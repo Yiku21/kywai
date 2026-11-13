@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { imagePromptText, isVideoFile, projectCast, saveCastImages, saveCastNotes } from './videoStudio'
+import { imagePromptText, isVideoFile, lookTrialPrompt, projectCast, saveCastImages, saveCastNotes } from './videoStudio'
 
 describe('personajes fijos y referencias', () => {
   it('guarda las imágenes una vez y la descripción solo la primera vez', () => {
@@ -26,6 +26,18 @@ describe('personajes fijos y referencias', () => {
     expect(p).toContain('Visual style: flat ink')
     expect(p).not.toContain('no faces')
     expect(imagePromptText('a door', true)).toContain('no faces')
+  })
+
+  it('un aspecto elegido manda también en los dibujos con presentador', () => {
+    expect(imagePromptText('a door', true, 'claymation', true)).toContain('Visual style: claymation')
+    expect(imagePromptText('a door', true, 'claymation', false)).not.toContain('claymation')
+  })
+
+  it('la escena de prueba lleva el tema y el personaje elegido', () => {
+    expect(lookTrialPrompt('  mi primer  cliente ')).toContain('about: "mi primer cliente"')
+    expect(lookTrialPrompt('x', { name: 'Ana' })).toContain('Ana is the main character')
+    expect(lookTrialPrompt('x', { name: 'Hermes, Claude y Codex', builtin: true })).toContain('are the main character')
+    expect(lookTrialPrompt('')).not.toContain('about')
   })
 
   it('reconoce los vídeos adjuntos', () => {

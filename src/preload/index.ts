@@ -154,6 +154,7 @@ const api: CoworkApi = {
   removeVideoCharacter: (id) => ipcRenderer.invoke('cowork:removeVideoCharacter', id),
   listVideoVoices: () => ipcRenderer.invoke('cowork:listVideoVoices'),
   previewVideoVoice: (id) => ipcRenderer.invoke('cowork:previewVideoVoice', id),
+  tryVideoLook: (input) => ipcRenderer.invoke('cowork:tryVideoLook', input),
   listMods: () => ipcRenderer.invoke('cowork:listMods'),
   installModLink: (url) => ipcRenderer.invoke('cowork:installModLink', url),
   installModFolder: (folder) => ipcRenderer.invoke('cowork:installModFolder', folder),

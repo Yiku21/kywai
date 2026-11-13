@@ -3674,4 +3674,13 @@ export const zh: Record<string, string> = {
   "Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente.": "总结本周项目完成了什么、还有什么待办。",
   "Ponle un nombre para encontrarla luego.": "起个名字，方便以后找到它。",
   "Escribe lo que tiene que pedir (al menos 3 letras).": "写下它要发出的请求（至少 3 个字）。",
+  "Imágenes con IA": "AI 图像",
+  "El vídeo de siempre, con las imágenes en este aspecto.": "照常的视频，图像采用这种外观。",
+  "Pinta tu escena en cada aspecto para elegir viéndola": "用每种外观画出你的场景，看着选",
+  "Escribe primero de qué va el vídeo": "先写下视频的主题",
+  "Pintando tu escena…": "正在画你的场景…",
+  "Probar con mi escena": "用我的场景试试",
+  "Ese aspecto no existe": "没有这种外观",
+  "Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).": "要试外观，需要在这台电脑上打开 ComfyUI，或填入 Gemini 密钥（设置 → 扩展 → 视频工作室）。",
+  "No salió la imagen de prueba: mira que ComfyUI siga abierto o que a la clave de Gemini le quede saldo.": "测试图片没有生成：请确认 ComfyUI 仍然开着，或 Gemini 密钥还有余额。",
 }

@@ -120,7 +120,7 @@ import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScr
 import { getSidebarOrder, initSidebarOrder, setSidebarOrder } from './sidebarOrder'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
-import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
+import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
 import { filmThumb, filmThumbSlugs } from './filmThumbs'
 // Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
@@ -1152,6 +1152,7 @@ function registerIpc(): void {
   handle('removeVideoCharacter', (id: unknown) => removeVideoCharacter(id))
   // Voces para los vídeos (paso 4 del selector) y una muestra corta de cada una, en el idioma de la app.
   handle('listVideoVoices', () => listVideoVoices(lang()))
+  handle('tryVideoLook', (input: unknown) => tryVideoLook(input))
   handle('previewVideoVoice', (id: unknown) => previewVideoVoice(id, lang(), tr('Hola, así sonará la voz de tu vídeo. ¿Te gusta cómo suena?')))
   // Las muestras de los estilos para el selector de «/video» de Órbita (el escritorio y la web las llevan dentro).
   webMethods.set('videoStyleThumbs', () => filmThumbSlugs())

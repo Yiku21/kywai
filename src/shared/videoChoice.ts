@@ -4,6 +4,7 @@
 // kywai y la mejor voz que haya.
 // Órbita las lee y escribe con su propia copia (VideoTags en android/.../ui/orbita/VideoPicker.kt): si cambian aquí, allí también.
 import { filmStyle, KYWAI_FILM } from './filmStyles'
+import { imageLook } from './imageLooks'
 
 /**
  * rapido: texto animado con ritmo. presentador: un personaje dibujado lo explica. mixto: las dos cosas alternadas.
@@ -31,6 +32,11 @@ export interface VideoChoice {
   review?: boolean
   /** Estructura fija del guion («estructura:pasos»: gancho, ¿te suena?, giro, 3 pasos y «comenta»); vale con cualquier estilo. */
   structure?: VideoStructure
+  /**
+   * Aspecto de las imágenes con IA («aspecto:plastilina», de src/shared/imageLooks.ts) para los tipos sin película de
+   * la biblioteca. Con un estilo de la biblioteca no cuenta (la película no usa esas imágenes).
+   */
+  look?: string | null
 }
 
 /** pasos: «Reel en 3 pasos» (gancho «deja de…» → autoridad → ¿te suena? → giro → 3 pasos → «comenta PALABRA»). */
@@ -182,6 +188,7 @@ const VOICE_TAG = /(^|\s)voz:([a-z0-9_-]+)(?=\s|$)/i
 const DIALOGUE_TAG = /(^|\s)di[aá]logo:(si|sí|yes)(?=\s|$)/i
 const REVIEW_TAG = /(^|\s)gui[oó]n:(repasar|revisar|review)(?=\s|$)/i
 const STRUCTURE_TAG = TAG('estructura')
+const LOOK_TAG = TAG('aspecto')
 
 /** Id válido de personaje: minúsculas, números y guiones (lo genera kywai al guardarlo). */
 export const CHARACTER_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
@@ -199,13 +206,15 @@ export function videoChoiceOf(text: string): VideoChoice {
   const voice = v && parseVoiceId(v) ? v : null
   const st = STRUCTURE_TAG.exec(text)?.[2].toLowerCase()
   const structure = VIDEO_STRUCTURES.includes(st as VideoStructure) ? (st as VideoStructure) : undefined
-  return { kind, character, style, voice, ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}), ...(REVIEW_TAG.test(text) ? { review: true } : {}), ...(structure ? { structure } : {}) }
+  const lk = LOOK_TAG.exec(text)?.[2].toLowerCase()
+  const look = !style && imageLook(lk) ? lk : undefined
+  return { kind, character, style, voice, ...(look ? { look } : {}), ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}), ...(REVIEW_TAG.test(text) ? { review: true } : {}), ...(structure ? { structure } : {}) }
 }
 
 /** Quita las marcas del texto, cada una con su espacio de delante (así no quedan espacios de más). */
 export function stripVideoTags(text: string): string {
   let out = text
-  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG, REVIEW_TAG, STRUCTURE_TAG]) {
+  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG, REVIEW_TAG, STRUCTURE_TAG, LOOK_TAG]) {
     for (let i = 0; i < 3 && re.test(out); i++) out = out.replace(re, '')
   }
   return out
@@ -220,6 +229,7 @@ export function withVideoChoice(text: string, choice: VideoChoice): string {
     choice.kind !== 'rapido' ? `tipo:${choice.kind}` : '',
     choice.character ? `personaje:${choice.character}` : choice.style === KYWAI_FILM ? `personaje:${NO_CHARACTER}` : '',
     choice.style ? `estilo:${choice.style}` : '',
+    !choice.style && choice.look ? `aspecto:${choice.look}` : '',
     choice.voice ? `voz:${choice.voice}` : '',
     choice.dialogue ? 'dialogo:si' : '',
     choice.review ? 'guion:repasar' : '',

@@ -2570,7 +2570,8 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Con el selector de cuatro pasos** (escritorio, web y Órbita): al escribir `/video` se abre encima del cuadro un panel con
   **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
   robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
-  uno de los 79 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
+  uno de los 79 estilos de película con su muestra, o uno de los 9 aspectos de «Imágenes con IA», que puedes
+  probar antes con tu escena) y **4. Voz** (automática o una concreta, con ▶ para oírla).
   Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
@@ -2787,6 +2788,20 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    imágenes y su aspecto. El personaje elegido manda sobre los personajes fijos del proyecto.
 3. **Estilo de animación.** *El de kywai (rápido)*: lo de siempre, en unos minutos. O uno de los estilos de película,
    con buscador (ver abajo), que tardan más.
+   Debajo de *El de kywai* está el grupo **Imágenes con IA**: nueve aspectos para las imágenes del vídeo de siempre
+   (rápido, presentador, mixto o charla), sin película de la biblioteca. Son **Animación 3D de cine**, **Plastilina**,
+   **Ganchillo de lana**, **Chibi 3D**, **Cómic**, **Pergamino**, **Objeto que habla**, **Explicador 3D con esqueleto**
+   y **Realista (podcast o UGC)**, sacados de un reel que enseñaba la misma escena en 15 estilos. Los nombres son
+   genéricos a propósito: ni estudios ni canales. Se marca con `aspecto:<id>` (`aspecto:plastilina`) y su bloque de
+   estilo en inglés (`src/shared/imageLooks.ts`) va al final de **todas** las imágenes del vídeo, también las del
+   presentador. El guion no escribe su propio «look» (el encargo le dice cuál eligió el usuario) y, aunque lo
+   escribiera, manda el elegido. Con un estilo de película elegido no cuenta: la película no usa esas imágenes.
+   El botón **«Probar con mi escena»** pinta el momento clave de lo que llevas escrito tras `/video`, con el personaje
+   que elegiste en el paso 2, en los nueve aspectos (dos a la vez; con ComfyUI, de una en una). Cada tarjeta cambia su
+   color de muestra por tu escena, y eliges viéndola. Va primero con ComfyUI de tu equipo (gratis) y, si no, con
+   Gemini y tu clave (gasta un poco por imagen). Cada prueba queda guardada en `<estudio>/pruebas-aspecto/` y no se
+   paga dos veces. Si cambias el tema o el personaje, las pruebas se vacían. Sin ComfyUI ni clave, el aviso lo dice.
+   Órbita todavía no tiene este grupo.
 4. **Voz.** **En español solo salen tres voces**, elegidas por Yil escuchando 28 muestras: **Álvaro** (Edge,
    España, `voz:edge-es-ES-AlvaroNeural`, la de por defecto, sin marca), **Jorge** (Edge, México,
    `voz:edge-es-MX-JorgeNeural`) y **Carmen** (Siri de macOS, México, `voz:mac-carmen`). Edge va con **edge-tts** en el

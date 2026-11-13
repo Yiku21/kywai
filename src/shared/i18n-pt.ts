@@ -3674,4 +3674,13 @@ export const pt: Record<string, string> = {
   "Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente.": "Resume o que foi feito esta semana no projeto e o que falta.",
   "Ponle un nombre para encontrarla luego.": "Dê-lhe um nome para a encontrar depois.",
   "Escribe lo que tiene que pedir (al menos 3 letras).": "Escreva o que deve pedir (pelo menos 3 letras).",
+  "Imágenes con IA": "Imagens com IA",
+  "El vídeo de siempre, con las imágenes en este aspecto.": "O vídeo de sempre, com as imagens neste visual.",
+  "Pinta tu escena en cada aspecto para elegir viéndola": "Pinta a sua cena em cada visual para escolher vendo-a",
+  "Escribe primero de qué va el vídeo": "Escreva primeiro do que trata o vídeo",
+  "Pintando tu escena…": "Pintando a sua cena…",
+  "Probar con mi escena": "Testar com a minha cena",
+  "Ese aspecto no existe": "Esse visual não existe",
+  "Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).": "Para testar visuais é preciso o ComfyUI aberto neste computador ou a chave do Gemini (Ajustes → Extensões → Estúdio de vídeo).",
+  "No salió la imagen de prueba: mira que ComfyUI siga abierto o que a la clave de Gemini le quede saldo.": "A imagem de teste não saiu: veja se o ComfyUI continua aberto ou se a chave do Gemini ainda tem saldo.",
 }

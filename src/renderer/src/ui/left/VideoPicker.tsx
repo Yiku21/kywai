@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, MessagesSquare, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, X } from 'lucide-react'
+import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, MessagesSquare, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, Wand2, X } from 'lucide-react'
 import { FILM_CATEGORIES, FILM_STYLES, filmStyle, type FilmStyle } from '@shared/filmStyles'
+import { IMAGE_LOOKS, imageLook, type ImageLook } from '@shared/imageLooks'
 import { defaultVoiceFor, ROBOTS_CHARACTER, type VideoChoice, type VideoKind } from '@shared/videoChoice'
 import type { CoworkApi, VideoCharacterInfo, VideoVoiceInfo } from '@shared/types'
 import { cx } from '../common/util'
@@ -31,12 +32,19 @@ interface Props {
   open: boolean
   onOpen: (open: boolean) => void
   onChoose: (choice: VideoChoice) => void
+  /** Lo que lleva escrito después de «/video» (sin marcas): el tema de «Probar con mi escena». */
+  topic?: string
 }
 
 // Los nombres y las líneas del catálogo van en español y en inglés (en otros idiomas, el inglés).
 const es = (): boolean => lang() === 'es'
 const fname = (f: FilmStyle): string => (es() ? f.name : f.en)
 const fline = (f: FilmStyle): string => (es() ? f.line : f.lineEn)
+const lname = (l: ImageLook): string => (es() ? l.name : l.en)
+const lline = (l: ImageLook): string => (es() ? l.line : l.lineEn)
+
+/** Una prueba de «Probar con mi escena»: la imagen, o que se está haciendo, o por qué no salió. */
+type Trial = { url?: string; loading?: boolean; error?: string }
 
 const KINDS: { id: VideoKind; icon: typeof Clapperboard; name: string; line: string }[] = [
   { id: 'rapido', icon: Clapperboard, name: 'Rápido: texto animado', line: 'Frases grandes con ritmo, al compás de la voz.' },
@@ -217,7 +225,7 @@ function AddCharacter({ api, onDone, onCancel }: { api: CoworkApi; onDone: (id: 
  * muestra de cada uno, y la voz (con ▶ para oír una muestra). Lo elegido se pone en el texto como marcas («tipo:…»,
  * «personaje:…», «estilo:…», «voz:…»).
  */
-export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
+export function VideoPicker({ api, value, open, onOpen, onChoose, topic = '' }: Props) {
   const [q, setQ] = useState('')
   const [chars, setChars] = useState<VideoCharacterInfo[]>([])
   const [adding, setAdding] = useState(false)
@@ -228,6 +236,16 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
   const [voices, setVoices] = useState<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] } | null>(null)
   // La muestra que suena (o se está preparando) y las ya hechas, para no pedirlas otra vez.
   const [playing, setPlaying] = useState<{ id: string; loading: boolean } | null>(null)
+  // «Probar con mi escena»: una imagen por aspecto con el tema y el personaje de ahora (se tiran si cambian).
+  const [trials, setTrials] = useState<Record<string, Trial>>({})
+  const trialKey = `${topic.trim()}\n${value.character ?? ''}`
+  const trialFor = useRef(trialKey)
+  useEffect(() => {
+    if (trialFor.current === trialKey) return
+    trialFor.current = trialKey
+    setTrials({})
+  }, [trialKey])
+  const trying = Object.values(trials).some((x) => x.loading)
   const [voiceError, setVoiceError] = useState<{ id: string; text: string } | null>(null)
   const samples = useRef(new Map<string, string>())
   const audio = useRef<HTMLAudioElement | null>(null)
@@ -276,6 +294,35 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
     }
   }
 
+  const tryLooks = async (): Promise<void> => {
+    if (!api.tryVideoLook || trying || !topic.trim()) return
+    const key = trialKey
+    const vertical = !/\bhorizontal\b/i.test(topic)
+    const todo = IMAGE_LOOKS.filter((l) => !trials[l.id]?.url)
+    setTrials((cur) => ({ ...cur, ...Object.fromEntries(todo.map((l) => [l.id, { loading: true }])) }))
+    let next = 0
+    // Dos a la vez: con ComfyUI van de una en una igualmente y con Gemini no se pasa del límite por minuto.
+    const worker = async (): Promise<void> => {
+      while (next < todo.length) {
+        const l = todo[next++]
+        let r: Trial
+        try {
+          r = { url: await api.tryVideoLook!({ look: l.id, topic, character: value.character, vertical }) }
+        } catch (e) {
+          r = { error: e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(e) }
+        }
+        if (trialFor.current !== key) return
+        setTrials((cur) => ({ ...cur, [l.id]: r }))
+        // Si falta ComfyUI y la clave, fallarán todas igual: se dice una vez y se para.
+        if (r.error && /ComfyUI .*Gemini/.test(r.error) && !r.error.includes('saldo')) {
+          setTrials((cur) => Object.fromEntries(Object.entries(cur).map(([id, x]) => [id, x.loading ? { error: r.error } : x])))
+          next = todo.length
+        }
+      }
+    }
+    await Promise.all([worker(), worker()])
+  }
+
   const preview = async (v: VideoVoiceInfo): Promise<void> => {
     if (playing?.id === v.id) return stopVoice()
     audio.current?.pause()
@@ -300,6 +347,8 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
   useEffect(() => () => audio.current?.pause(), [])
 
   const style = value.style ? filmStyle(value.style) : undefined
+  const look = !style ? imageLook(value.look) : undefined
+  const trialError = Object.values(trials).find((x) => x.error)?.error
   const chosenChar = value.character ? chars.find((c) => c.id === value.character) : undefined
   // En español y en inglés solo salen las voces elegidas y la primera va por defecto (sin marca): no hay «Automática».
   const defaultVoice = defaultVoiceFor(lang())
@@ -309,13 +358,13 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
   const summary = [
     kindName(value.kind),
     value.character ? (chosenChar ? charName(chosenChar) : value.character === ROBOTS_CHARACTER ? t('Robots de kywai') : t('Personaje')) : '',
-    style ? fname(style) : t('Estilo de kywai'),
+    style ? fname(style) : look ? lname(look) : t('Estilo de kywai'),
     chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : '',
     value.dialogue ? t('Diálogo') : '',
     value.review && !value.style ? t('Repasar guion') : '',
     value.structure && value.kind !== 'charla' ? t('Reel en 3 pasos') : ''
   ].filter(Boolean)
-  const thumb = value.style ? THUMBS[value.style] : undefined
+  const thumb = value.style ? THUMBS[value.style] : look ? trials[look.id]?.url : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
 
   return (
@@ -430,14 +479,60 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                 <div role="radiogroup" aria-label={t('Estilos')}>
                   {quickHit && (
                     <div className={s.grid}>
-                      <button type="button" role="radio" aria-checked={!value.style} className={cx(s.card, !value.style && s.cardOn)} onClick={() => set({ style: null }, voiceRef)}>
+                      <button type="button" role="radio" aria-checked={!value.style && !look} className={cx(s.card, !value.style && !look && s.cardOn)} onClick={() => set({ style: null, look: null }, voiceRef)}>
                         <span className={cx(s.thumb, s.quick)}>
                           <Sparkles size={26} />
                         </span>
                         <span className={s.name}>{t('El de kywai (rápido)')}</span>
                         <span className={s.line}>{t('Listo en unos minutos, con las imágenes y la voz de kywai.')}</span>
-                        {!value.style && <Check size={14} className={s.check} aria-hidden="true" />}
+                        {!value.style && !look && <Check size={14} className={s.check} aria-hidden="true" />}
                       </button>
+                    </div>
+                  )}
+                  {!q.trim() && (
+                    <div>
+                      <div className={s.lookHead}>
+                        <h5 className={s.cat}>
+                          {t('Imágenes con IA')} <span className={s.catLine}>{t('El vídeo de siempre, con las imágenes en este aspecto.')}</span>
+                        </h5>
+                        {api.tryVideoLook && (
+                          <button
+                            type="button"
+                            className={s.tryBtn}
+                            onClick={() => void tryLooks()}
+                            disabled={trying || !topic.trim()}
+                            title={topic.trim() ? t('Pinta tu escena en cada aspecto para elegir viéndola') : t('Escribe primero de qué va el vídeo')}
+                          >
+                            {trying ? <Loader2 size={13} className={s.spin} /> : <Wand2 size={13} />}
+                            {trying ? t('Pintando tu escena…') : t('Probar con mi escena')}
+                          </button>
+                        )}
+                      </div>
+                      {trialError && <p className={s.voiceNote}>{trialError}</p>}
+                      <div className={cx(s.grid, s.lookGrid)}>
+                        {IMAGE_LOOKS.map((l) => {
+                          const on = look?.id === l.id
+                          const trial = trials[l.id]
+                          return (
+                            <button
+                              key={l.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={on}
+                              className={cx(s.card, on && s.cardOn)}
+                              onClick={() => set({ look: l.id, style: null }, voiceRef)}
+                              title={`${lname(l)}\n${lline(l)}`}
+                            >
+                              <span className={cx(s.thumb, s.lookThumb)} style={{ background: `linear-gradient(135deg, ${l.colors[0]}, ${l.colors[1]})` }}>
+                                {trial?.url ? <img src={trial.url} alt="" /> : trial?.loading ? <Loader2 size={20} className={s.spin} /> : <Wand2 size={20} />}
+                              </span>
+                              <span className={s.name}>{lname(l)}</span>
+                              <span className={s.line}>{lline(l)}</span>
+                              {on && <Check size={14} className={s.check} aria-hidden="true" />}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                   )}
                   {groups.map((g) => (
@@ -451,7 +546,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                             role="radio"
                             aria-checked={value.style === f.slug}
                             className={cx(s.card, value.style === f.slug && s.cardOn)}
-                            onClick={() => set({ style: f.slug }, voiceRef)}
+                            onClick={() => set({ style: f.slug, look: null }, voiceRef)}
                             title={`${fname(f)}${es() ? ` · ${f.en}` : ''}\n${fline(f)}`}
                           >
                             <span className={s.thumb}>{THUMBS[f.slug] && <img src={THUMBS[f.slug]} alt="" loading="lazy" />}</span>

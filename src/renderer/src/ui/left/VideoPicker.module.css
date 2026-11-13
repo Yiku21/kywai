@@ -598,3 +598,55 @@
     animation: none;
   }
 }
+
+/* «Imágenes con IA»: tarjetas verticales (como un reel) y el botón «Probar con mi escena». */
+.lookHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lookHead .cat {
+  flex: 1 1 220px;
+}
+
+.tryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 2px 4px;
+  padding: 5px 11px;
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  background: var(--cyan-soft);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tryBtn:hover:not(:disabled),
+.tryBtn:focus-visible {
+  background: color-mix(in srgb, var(--cyan) 28%, transparent);
+  outline: 0;
+}
+
+.tryBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.lookGrid {
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+}
+
+.thumb.lookThumb {
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(255 255 255 / 0.85);
+}

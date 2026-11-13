@@ -291,6 +291,8 @@ export interface Task {
     review?: boolean
     /** Estructura fija del guion («estructura:pasos»: gancho, ¿te suena?, giro, 3 pasos y «comenta»). */
     structure?: 'pasos'
+    /** Aspecto de las imágenes con IA elegido en el selector (id de src/shared/imageLooks.ts). */
+    look?: string
     work?: string
     /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
     saveCast?: boolean
@@ -2171,6 +2173,8 @@ export interface CoworkApi {
   listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven')[] }>
   /** Una muestra corta de una voz (data: URL de audio). */
   previewVideoVoice(id: string): Promise<string>
+  /** «Probar con mi escena»: la escena del tema (con el personaje elegido) en un aspecto de imagen con IA (data: URL JPEG). */
+  tryVideoLook?(input: { look: string; topic: string; character?: string | null; vertical?: boolean }): Promise<string>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */
   listMods(): Promise<ModInfo[]>
   /** Instala un mod desde un enlace de GitHub a su carpeta (con kywai-mod.json). */

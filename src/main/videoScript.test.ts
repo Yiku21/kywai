@@ -15,6 +15,19 @@ const SCRIPT = JSON.stringify({
 })
 
 describe('parseVideoRequest', () => {
+  it('el aspecto elegido va en la petición y su nombre en el guion, que no escribe «look»', () => {
+    const r = parseVideoRequest('/video tipo:presentador aspecto:plastilina la luna')!
+    expect(r).toMatchObject({ topic: 'la luna', style: 'cartoon', kind: 'presentador', look: 'plastilina' })
+    expect(parseVideoRequest('/video estilo:watercolor aspecto:plastilina la luna')!.look).toBeUndefined()
+    expect(parseVideoRequest('/video estilo plastilina sobre la luna')).toMatchObject({ topic: 'la luna', look: 'plastilina' })
+    expect(parseVideoRequest('/video vertical estilo pixar de mi primer cliente')).toMatchObject({ topic: 'mi primer cliente', look: 'cine-3d', format: 'vertical' })
+    expect(parseVideoRequest('/video sobre el esqueleto humano')!.look).toBeUndefined()
+    expect(parseVideoRequest('/video estilo acuarela sobre la luna')!.film).toBe('watercolor')
+    const p = videoScriptPrompt({ topic: 'la luna', format: 'vertical', lang: 'es', lookName: 'Plastilina' })
+    expect(p).toContain('ya lo eligió el usuario («Plastilina»)')
+    expect(p).not.toContain('"look": "…"')
+  })
+
   it('con un estilo de la biblioteca, lo separa del tema', () => {
     expect(parseVideoRequest('/video estilo acuarela sobre el ciclo del agua')).toEqual({ topic: 'el ciclo del agua', format: 'horizontal', fromPrevious: false, style: 'dinamico', film: 'watercolor' })
     expect(parseVideoRequest('/video estilo:pixel-rpg vertical cómo se hace el pan')).toMatchObject({ topic: 'cómo se hace el pan', format: 'vertical', film: 'pixel-rpg' })

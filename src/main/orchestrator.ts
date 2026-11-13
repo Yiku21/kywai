@@ -108,6 +108,7 @@ import { BEATS_FILE, FILM_3D, filmPrompt, filmReady, filmTitle, findFilm, KYWAI_
 import { filmFixRequest, filmReviewPrompt, MAX_FILM_FIXES } from './filmCheck'
 import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 import { filmStyle } from '@shared/filmStyles'
+import { imageLook } from '@shared/imageLooks'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { transcribeAudio } from './voice'
 import { createRoutine } from './routines'
@@ -2013,7 +2014,7 @@ function withBatch(topic: string, batch: { brief: string } | undefined): string 
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; structure?: VideoStructure; episode?: { n: number; total: number; vote?: string }; afterwards?: 'ig-trial' },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; structure?: VideoStructure; look?: string; episode?: { n: number; total: number; vote?: string }; afterwards?: 'ig-trial' },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -2111,6 +2112,7 @@ async function sendVideo(
         ...(req.dialogue ? { dialogue: true } : {}),
         ...(req.review && !film ? { review: true } : {}),
         ...(req.structure ? { structure: req.structure } : {}),
+        ...(req.look && !film && imageLook(req.look) ? { look: req.look } : {}),
         ...(req.episode ? { episode: req.episode } : {}),
         ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {}),
         ...(req.afterwards ? { afterwards: req.afterwards } : {})
@@ -3766,6 +3768,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       refs: v.refs ?? imageAttachments(run, true),
       cast: seriesCast(run, t),
       ...(v.voice ? { voice: v.voice } : {}),
+      ...(imageLook(v.look) ? { look: imageLook(v.look)!.prompt } : {}),
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
         t.progress = p
@@ -5545,7 +5548,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue, ...(t.video.structure ? { structure: t.video.structure } : {}) }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue, ...(t.video.structure ? { structure: t.video.structure } : {}), ...(imageLook(t.video.look) ? { lookName: imageLook(t.video.look)!.name } : {}) }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

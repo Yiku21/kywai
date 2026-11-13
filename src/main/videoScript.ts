@@ -3,6 +3,7 @@
 // voz, imágenes, música y montaje los hace kywai siempre igual (videoStudio.ts), para que el resultado no dependa de
 // que el agente improvise.
 import { KYWAI_FILM, takeFilmStyle } from '../shared/filmStyles'
+import { takeImageLook } from '../shared/imageLooks'
 import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, type VideoKind, type VideoStructure } from '../shared/videoChoice'
 import { narrationLines, voiceEmotion, VOICE_EMOTIONS, type VoiceLine } from '../shared/voiceEmotion'
 import { episodeRules, type EpisodeBrief } from './series'
@@ -270,6 +271,8 @@ type PromptInput = {
   dialogue?: boolean
   /** Estructura fija del guion (STEPS_STRUCTURE). */
   structure?: VideoStructure
+  /** Aspecto de las imágenes ya elegido por el usuario (su nombre): el guion no escribe «look», kywai pone el suyo. */
+  lookName?: string
 }
 
 /** El vídeo lleva presentador (dibujos con presentador o mixto). */
@@ -278,6 +281,11 @@ export const hasPresenter = (style: VideoStyle | undefined): boolean => style ==
 /** Reglas del bloque de estilo y del movimiento (comunes a los dos estilos rápidos). */
 function lookRules(input: PromptInput): string[] {
   // En el estilo con presentador el dibujo es siempre el mismo, salvo que el usuario dé referencias.
+  if (input.lookName)
+    return [
+      `- El aspecto de las imágenes ya lo eligió el usuario («${input.lookName}»): no escribas "look"; kywai le añade a cada imagen el suyo. En "image" (y "shots") describe solo lo que se ve, pensado para lucir en ese aspecto.`,
+      ...motionRules(input)
+    ]
   const look = !hasPresenter(input.style) || !!input.refs?.length || !!input.cast
   return [
     !look
@@ -286,12 +294,17 @@ function lookRules(input: PromptInput): string[] {
       ? `- "look": el bloque de estilo de las imágenes, sacado de las imágenes de referencia del usuario (${input.refs.join(', ')}): ábrelas y míralas antes de escribir. En inglés, de 40 a 90 palabras, SOLO cómo está hecho (técnica o medio, tipo de línea, paleta de colores concreta, luz, textura, encuadre habitual), nunca lo que sale en ellas (ni personas, ni objetos, ni lugares). Ponle al principio un nombre corto del estilo. Ese texto se añade al final de cada imagen, así todas salen iguales y en ese estilo.`
         : '- "look": el bloque de estilo de las imágenes, uno solo para todo el vídeo, en inglés y de 30 a 70 palabras: técnica o medio, tipo de línea, paleta de colores concreta, luz y textura (nunca el tema). Se añade al final de cada imagen para que todas salgan iguales.',
     look ? '- En "image" (y "shots") describe solo lo que se ve; el estilo ya va en "look".' : '',
-    ...(input.motion
-      ? [
-          `- "motion" (opcional, como mucho en ${MAX_MOTION} escenas, las que más ganan moviéndose: el gancho y los momentos fuertes): qué se mueve en la imagen de esa escena, en inglés y en una frase (la acción y el movimiento de cámara). kywai convierte esa imagen en un clip con movimiento. Que sea una acción sencilla que quepa en la duración de la escena.`
-        ]
-      : [])
+    ...motionRules(input)
   ].filter(Boolean)
+}
+
+/** La regla del movimiento (FreeVideo), si está en el equipo. */
+function motionRules(input: PromptInput): string[] {
+  return input.motion
+    ? [
+        `- "motion" (opcional, como mucho en ${MAX_MOTION} escenas, las que más ganan moviéndose: el gancho y los momentos fuertes): qué se mueve en la imagen de esa escena, en inglés y en una frase (la acción y el movimiento de cámara). kywai convierte esa imagen en un clip con movimiento. Que sea una acción sencilla que quepa en la duración de la escena.`
+      ]
+    : []
 }
 
 /** Reglas de los personajes fijos (los de la carpeta «personajes» del proyecto): salen iguales en todos los vídeos. */
@@ -352,7 +365,7 @@ export function videoScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + (input.dialogue ? '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], ' : '') + '"scenes": [{"heading": "…", "narration": "' + (input.dialogue ? '[Nombre1, sorprendido] … [Nombre2, alegre] …' : '[sorprendido] …') + '", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", ' + (input.lookName ? '' : '"look": "…", ') + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + (input.dialogue ? '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], ' : '') + '"scenes": [{"heading": "…", "narration": "' + (input.dialogue ? '[Nombre1, sorprendido] … [Nombre2, alegre] …' : '[sorprendido] …') + '", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -398,7 +411,7 @@ function cartoonScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (input.refs?.length || input.cast ? '"look": "…", ' : '') + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + (input.dialogue ? '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "' + (input.dialogue ? '[Nombre1, alegre] … [Nombre2, emocionado] …' : '[alegre] … [emocionado] …') + '", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (!input.lookName && (input.refs?.length || input.cast) ? '"look": "…", ' : '') + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + (input.dialogue ? '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "' + (input.dialogue ? '[Nombre1, alegre] … [Nombre2, emocionado] …' : '[alegre] … [emocionado] …') + '", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -481,6 +494,8 @@ export interface VideoRequest {
   review?: boolean
   /** «estructura:pasos» o «estructura en 3 pasos»: el guion sigue STEPS_STRUCTURE (no en «Charla y tutorial»). */
   structure?: VideoStructure
+  /** Aspecto de las imágenes con IA elegido en el selector («aspecto:…», src/shared/imageLooks.ts); no en películas. */
+  look?: string
 }
 
 /** Piden dos personajes hablando: «un diálogo», «una conversación entre…», «charlando», «a dialogue between…». */
@@ -540,7 +555,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const dialogue = !!choice.dialogue || DIALOGUE_RE.test(topic)
   const review = !!choice.review
   let structure = choice.structure
-  if (kindTag || charTag || choice.dialogue || review || structure || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
+  let look = choice.look ?? undefined
+  if (kindTag || charTag || choice.dialogue || review || structure || look || /(^|\s)(?:voz|aspecto):[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
     const film = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i.exec(topic)
     topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
     if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
@@ -570,6 +586,12 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const takenFilm = takeFilmStyle(topic)
   if (takenFilm) topic = takenFilm.rest
   const film = charla ? null : takenFilm
+  // «estilo plastilina sobre…», «aspecto cómic de…»: un aspecto de las imágenes con IA (si no es una película).
+  const takenLook = takenFilm || look ? null : takeImageLook(topic)
+  if (takenLook) {
+    topic = takenLook.rest.replace(/^(?:de|sobre|con|para|acerca de|about|on)\s+/i, '')
+    look = takenLook.look.id
+  }
   // Quita del tema lo que solo dice el formato («vertical para TikTok de…»).
   const stripped = topic
     .replace(/^(?:(?:en\s+)?(?:formato\s+)?(?:vertical|horizontal)|para\s+(?:tiktok|reels?|shorts?|youtube))[\s,:]*(?:(?:de|sobre)\s+)?/i, '')
@@ -590,8 +612,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
   const character = charTag ? choice.character : charla ? ROBOTS_CHARACTER : null
-  if (charla) return { topic: fromPrevious ? '' : bare, format: HORIZONTAL_RE.test(t) ? 'horizontal' : 'vertical', fromPrevious, style, kind: 'charla', ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), dialogue: true, ...(review ? { review } : {}) }
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}), ...(review ? { review } : {}), ...(structure ? { structure } : {}) }
+  if (charla) return { topic: fromPrevious ? '' : bare, format: HORIZONTAL_RE.test(t) ? 'horizontal' : 'vertical', fromPrevious, style, kind: 'charla', ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), dialogue: true, ...(review ? { review } : {}), ...(look ? { look } : {}) }
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}), ...(review ? { review } : {}), ...(structure ? { structure } : {}), ...(look ? { look } : {}) }
 }
 
 // ---------- composición ----------

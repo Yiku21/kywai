@@ -19,7 +19,7 @@ import { useMods } from './ModsView'
 import { TemplateBar } from './TemplateBar'
 import { VideoPicker } from './VideoPicker'
 import { isVideoCommand } from '@shared/filmStyles'
-import { videoChoiceOf, withVideoChoice } from '@shared/videoChoice'
+import { stripVideoTags, videoChoiceOf, withVideoChoice } from '@shared/videoChoice'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -568,6 +568,7 @@ export function Composer() {
         <VideoPicker
           api={api!}
           value={videoChoiceOf(text)}
+          topic={stripVideoTags(text).replace(/^\s*\/v[ií]deo\s*/i, '').trim()}
           open={stylesOpen}
           onOpen={(o) => {
             setStylesOpen(o)

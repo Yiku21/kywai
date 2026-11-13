@@ -7,6 +7,7 @@
 // (say en macOS, la de Windows o espeak-ng en Linux). Las imágenes las genera Gemini si hay clave de API; sin clave, cada
 // escena lleva un fondo de diseño animado.
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
@@ -33,6 +34,8 @@ import { buildCharlaComposition } from './videoCharla'
 import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
 import { comfyImage, comfyStatus } from './comfyui'
+import { videoCharacter } from './videoCharacters'
+import { imageLook } from '@shared/imageLooks'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
 import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
@@ -988,9 +991,10 @@ async function geminiImage(
   signal?: AbortSignal,
   look?: string,
   refs: string[] = [],
-  cast?: { images: string[]; text?: string }
+  cast?: { images: string[]; text?: string },
+  lookWins = refs.length > 0
 ): Promise<boolean> {
-  const text = imagePromptText(prompt, cartoon, look, refs.length > 0, cast?.text)
+  const text = imagePromptText(prompt, cartoon, look, lookWins, cast?.text)
   // Gemini ve primero a los personajes fijos (para que salgan iguales) y después las referencias de estilo (solo el
   // estilo, no lo que sale en ellas). Cuatro imágenes como mucho entre las dos.
   const who = cast?.images.length ? refParts(cast.images, 3) : []
@@ -1214,6 +1218,53 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
   return `data:audio/mpeg;base64,${readFileSync(mp3).toString('base64')}`
 }
 
+/** La escena de prueba de «Probar con mi escena»: el momento clave del tema, con el personaje elegido si lo hay. */
+export function lookTrialPrompt(topic: string, character?: { name: string; builtin?: boolean } | null): string {
+  const t = topic.replace(/\s+/g, ' ').trim().slice(0, 300)
+  const who = character
+    ? `${character.name} ${character.builtin ? 'are' : 'is'} the main character, centered, showing a big clear emotion`
+    : 'One main character, centered, showing a big clear emotion'
+  return `The key moment of a short video${t ? ` about: "${t}"` : ''}. ${who}, in a place that fits the topic, one simple readable action`
+}
+
+/**
+ * «Probar con mi escena» del selector de /video: la escena de prueba (el tema y el personaje elegido) en un aspecto de
+ * imagen con IA, como data: URL JPEG pequeña. ComfyUI de este equipo primero (gratis); si no, Gemini con la clave.
+ * Cada prueba se guarda en el estudio (pruebas-aspecto/) para no pagarla dos veces.
+ */
+export async function tryVideoLook(input: unknown): Promise<string> {
+  const o = (input && typeof input === 'object' ? input : {}) as { look?: unknown; topic?: unknown; character?: unknown; vertical?: unknown }
+  const look = imageLook(typeof o.look === 'string' ? o.look : null)
+  if (!look || !root) throw new Error(tr('Ese aspecto no existe'))
+  const topic = typeof o.topic === 'string' ? o.topic : ''
+  const char = typeof o.character === 'string' ? videoCharacter(o.character) : null
+  const vertical = o.vertical !== false
+  const sum = createHash('sha1').update(JSON.stringify([topic.trim(), char?.id ?? '', vertical])).digest('hex').slice(0, 12)
+  const dir = join(root, 'pruebas-aspecto', sum)
+  const jpg = join(dir, `${look.id}.jpg`)
+  const toData = (f: string, mime: string): string => `data:${mime};base64,${readFileSync(f).toString('base64')}`
+  if (existsSync(jpg)) return toData(jpg, 'image/jpeg')
+  const png = join(dir, `${look.id}.png`)
+  if (existsSync(png)) return toData(png, 'image/png')
+  const comfy = (await comfyStatus()).info
+  const key = geminiApiKey()
+  if (!comfy && !key) throw new Error(tr('Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).'))
+  mkdirSync(dir, { recursive: true })
+  const prompt = lookTrialPrompt(topic, char)
+  const castText = char ? char.look ?? char.about ?? char.name : undefined
+  const cast = char ? { images: char.images.slice(0, 3), text: castText } : undefined
+  const ok =
+    (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, look.prompt, true, castText), vertical, png, { timeoutMs: 180_000 }))) ||
+    (key && (await geminiImage(prompt, vertical ? 'vertical' : 'horizontal', png, key, false, undefined, look.prompt, [], cast, true)))
+  if (!ok || !existsSync(png)) throw new Error(tr('No salió la imagen de prueba: mira que ComfyUI siga abierto o que a la clave de Gemini le quede saldo.'))
+  const c = await run('ffmpeg', ['-y', '-v', 'error', '-i', png, '-vf', 'scale=360:-2', '-q:v', '4', jpg], { timeoutMs: 60_000 }).catch(() => null)
+  if (c?.code === 0 && existsSync(jpg)) {
+    rmSync(png, { force: true })
+    return toData(jpg, 'image/jpeg')
+  }
+  return toData(png, 'image/png')
+}
+
 /**
  * Una frase con una voz concreta, en un WAV. Lanza un error que se puede enseñar si esa voz no sale. Con `sample`
  * (la muestra del selector), una voz de otro idioma lee una frase de su idioma.
@@ -1324,8 +1375,14 @@ export async function renderVideo(input: {
    * clips de FreeVideo se usan tal cual en vez de hacerlos otra vez.
    */
   reuseFrom?: string
+  /**
+   * Aspecto de las imágenes elegido en el selector (el bloque de estilo en inglés de src/shared/imageLooks.ts): manda
+   * sobre el «look» del guion y sobre el dibujo de siempre del presentador.
+   */
+  look?: string
 }): Promise<RenderedVideo> {
   const { script, format, workDir: dir, signal } = input
+  if (input.look) script.look = input.look
   const step = input.onStep ?? (() => undefined)
   let status = await videoStudioStatus()
   // Los efectos de sonido se preparan mientras se hacen la voz y las imágenes (la primera vez tardan un poco).
@@ -1355,6 +1412,8 @@ export async function renderVideo(input: {
   if (stageBots) copyThree(join(dir, 'assets'))
   if (charla && !stageBots && !script.look) script.look = CHARLA_LOOK
   const refs = (input.refs ?? []).filter((f) => existsSync(f))
+  // El «look» manda (también en los dibujos con presentador) con referencias del usuario o con un aspecto elegido.
+  const lookWins = refs.length > 0 || !!input.look
   const castImages = stageBots ? [] : (input.cast?.images ?? []).filter((f) => existsSync(f))
   const castText = stageBots ? undefined : script.cast || input.cast?.notes
   const cast = castImages.length || castText ? { images: castImages, text: castText } : undefined
@@ -1630,14 +1689,14 @@ export async function renderVideo(input: {
         }
         // Tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini.
         if (comfy && comfyFails < 2) {
-          if (await comfyImage(comfy, imagePromptText(prompt, cartoon, script.look, refs.length > 0, castText), format === 'vertical', out, { signal })) {
+          if (await comfyImage(comfy, imagePromptText(prompt, cartoon, script.look, lookWins, castText), format === 'vertical', out, { signal })) {
             shots[i][k] = rel
             comfyFails = 0
             continue
           }
           comfyFails++
         }
-        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal, script.look, refs, cast))) shots[i][k] = rel
+        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal, script.look, refs, cast, lookWins))) shots[i][k] = rel
       }
     }
     // ComfyUI hace una imagen detrás de otra (una sola gráfica); Gemini, tres a la vez.
@@ -1666,8 +1725,8 @@ export async function renderVideo(input: {
     if (!input.cast?.name || !cast) return
     const prompt = `${input.cast.name}, as the friendly host of a video, waist-up, facing the camera, smiling, one hand raised mid-gesture, centered, simple soft plain background`
     const out = join(dir, 'assets', 'presentador.png')
-    if (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, script.look, refs.length > 0, castText), true, out, { signal }))) presenter = 'assets/presentador.png'
-    else if (key && (await geminiImage(prompt, 'vertical', out, key, false, signal, script.look, refs, cast))) presenter = 'assets/presentador.png'
+    if (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, script.look, lookWins, castText), true, out, { signal }))) presenter = 'assets/presentador.png'
+    else if (key && (await geminiImage(prompt, 'vertical', out, key, false, signal, script.look, refs, cast, lookWins))) presenter = 'assets/presentador.png'
     else if (castImages.length) {
       const ext = castImages[0].split('.').pop()!.toLowerCase()
       copyFileSync(castImages[0], join(dir, 'assets', `presentador.${ext}`))
