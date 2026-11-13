@@ -3364,6 +3364,23 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
 - **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
   se despliega solo); un punto azul que late indica que el equipo está trabajando en él. Clic en un proyecto: lo abre
   y lo despliega; **otro clic en el que ya está abierto lo pliega** (y otro más lo vuelve a desplegar), como en Órbita.
+  De cada proyecto se ven solo sus **3 chats más recientes** (y el abierto, aunque vaya más abajo); debajo, la fila
+  **«Ver los X restantes»** despliega los demás y, abierta, **«Ver menos»** los vuelve a esconder. Si solo sobra uno,
+  se enseña sin la fila. Un **punto verde** junto a un proyecto indica que tiene resultados terminados sin ver.
+- **Filtro de Proyectos** (el botón de las rayas, junto al **+**): se guarda en cada equipo (cada pantalla a su
+  gusto) y, si hay algo distinto de lo de siempre, el botón lleva un punto.
+  - **Agrupación**: *Por proyecto* (lo de siempre) o *Por fecha*: los chats de todos los proyectos en Hoy, Ayer,
+    Últimos 7 días, Últimos 30 días y por meses, con el nombre del proyecto a la derecha (también de 3 en 3).
+  - **Orden**: *Tu orden* (el que dejas arrastrando), *Lo más reciente primero* o *Por nombre (A-Z)*; vale para los
+    proyectos y para sus chats. Con un orden que no es el tuyo no se recoloca arrastrando (mover un chat a otro
+    proyecto sí).
+  - **Estado**: *Todos*, *Trabajando ahora* (el equipo trabaja en él), *Con resultados sin ver* o *Activos esta
+    semana*. Si no queda ninguno, sale «Quitar el filtro».
+  - **Mostrar todos los chats**: sin «Ver los X restantes», todos a la vista.
+  - **Restablecer el filtro**, **Contraer todo** (o *Desplegar todo* si ya está todo plegado) y **Marcar todo como
+    visto** (quita el «nuevo» de todo lo terminado sin ver, lo mismo que «Visto» en Resultados).
+  - En **Órbita** hay el mismo botón junto a «Proyectos» con Orden, Estado, Mostrar todos los chats, Restablecer,
+    Contraer todo y Marcar todo como visto (sin *Agrupación por fecha*: para eso está Historial).
 - **Recientes**: las últimas conversaciones de todos los proyectos; al final, «Ver todo el historial».
 - Abajo, **dónde estás conectado** (el servidor) y la **rueda ⚙**: ver [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes).
 

@@ -88,6 +88,17 @@
   font: 12px var(--mono);
 }
 
+.value {
+  flex: none;
+  margin-left: 16px;
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+
+.value + .chev {
+  margin-left: 6px;
+}
+
 .chev {
   flex: none;
   margin-left: 16px;

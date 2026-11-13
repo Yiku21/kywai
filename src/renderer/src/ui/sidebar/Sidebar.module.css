@@ -682,3 +682,77 @@
   border-color: var(--border-focus);
   color: var(--text-2);
 }
+
+/* Filtro de «Proyectos»: botón junto al «+», con un punto si hay algo distinto de lo de siempre. */
+.filterBtn {
+  position: relative;
+}
+
+.sectionAction + .sectionAction {
+  margin-left: 2px;
+}
+
+.filterBtnOpen {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.filterDot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+}
+
+/* «Ver los X restantes» bajo los 3 chats más recientes de un proyecto. */
+.moreChats {
+  color: var(--text-3);
+}
+
+.moreChats:hover {
+  color: var(--text-1);
+}
+
+/* Proyecto con resultados terminados sin ver (verde de «terminado»; el azul que palpita es «trabajando»). */
+.unseen {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+/* «Agrupación: por fecha»: Hoy, Ayer, Últimos 7 días… */
+.dateGroup + .dateGroup {
+  margin-top: 6px;
+}
+
+.dateLabel {
+  margin: 4px 10px 2px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.filterEmpty {
+  margin: 4px 10px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.linkBtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  color: var(--text-1);
+}

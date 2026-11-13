@@ -12,6 +12,7 @@ import {
   GitBranch,
   History,
   ListChecks,
+  ListFilter,
   MessageSquare,
   Package,
   PanelLeft,
@@ -42,6 +43,17 @@ import { NEW_CHAT_KEYS, SEARCH_KEYS, SIDEBAR_DEFAULT, isNewChatKey, isSearchKey,
 import { SidebarResizer } from './SidebarResizer'
 import { DragProvider, DragSlot, useDragged } from './DragSlot'
 import { applyOrder, chatKey, placeKey, projectKey, type Dragged, type DropPlace } from './dragOrder'
+import { groupByDate } from './historyGroups'
+import {
+  DEFAULT_FILTER,
+  filterProjects,
+  isDefaultFilter,
+  previewChats,
+  readProjectFilter,
+  saveProjectFilter,
+  sortItems,
+  type ProjectFilter
+} from './projectFilter'
 import s from './Sidebar.module.css'
 import { t } from '@/lib/i18n'
 import { openChatWindow, type ChatRef } from '@/lib/chatPane'
@@ -194,6 +206,11 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sections, setSections] = useState({ pinned: true, projects: true, recent: true })
   const [order, setOrder] = useState<SidebarOrder>({ projects: [], favorites: [], chats: {} })
+  // Filtro de «Proyectos» (botón junto al título) y qué listas tienen abierto «Ver los X restantes».
+  const [filter, setFilterState] = useState<ProjectFilter>(readProjectFilter)
+  const [showMore, setShowMore] = useState<Record<string, boolean>>({})
+  // Con «Agrupación: por fecha», los chats de todos los proyectos.
+  const [allChats, setAllChats] = useState<ConversationSummary[]>([])
   const dragged = useDragged()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -216,6 +233,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
     void a.pinnedConversations().then((list) => alive && setPinnedConvs(list), () => undefined)
     // Servidor antiguo (cliente conectado a un kywai sin esto): sin orden guardado, todo por fecha.
     void a.getSidebarOrder?.().then((o) => alive && o && setOrder(o), () => undefined)
+    if (filter.grouping === 'date') void a.allConversations().then((list) => alive && setAllChats(list), () => undefined)
     for (const id of openKey ? openKey.split(',') : []) {
       void a.listConversations(id).then(
         (list) => alive && setConvs((c) => ({ ...c, [id]: list })),
@@ -225,7 +243,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
     return () => {
       alive = false
     }
-  }, [live, tick, openKey, conversation?.id])
+  }, [live, tick, openKey, conversation?.id, filter.grouping])
 
   const go = useCallback(
     (tab: LeftTab) => {
@@ -311,16 +329,52 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const pinned = projects.filter((p) => p.pinned)
   const canNew = live && !!project
 
+  // ---------- filtro de «Proyectos» ----------
+  function setFilter(patch: Partial<ProjectFilter>): void {
+    setFilterState((f) => {
+      const next = { ...f, ...patch }
+      saveProjectFilter(next)
+      return next
+    })
+  }
+  // Proyectos con algo terminado que aún no has visto (lo mismo que sale como nuevo en Resultados).
+  const unseen = new Set(finished.map((i) => i.projectId).filter((id): id is string => !!id))
+  const manualOrder = filter.sort === 'manual'
+
   // ---------- arrastrar (mantener el clic y mover) ----------
   // Proyectos y chats de cada proyecto en el orden que dejó el usuario (lo nuevo arriba, por fecha).
-  const orderedProjects = applyOrder(projects, (p) => p.id, order.projects)
+  const manualProjects = applyOrder(projects, (p) => p.id, order.projects)
+  // Lo que se ve en «Proyectos»: con el orden y el estado del filtro.
+  const orderedProjects = filterProjects(
+    sortItems(projects, filter.sort, (p) => p.id, (p) => p.name, order.projects),
+    filter.status,
+    unseen
+  )
   const chatsOf = (pid: string): ConversationSummary[] =>
-    applyOrder(
+    sortItems(
       // El chat vacío solo se enseña si es el que está abierto (si no, sale «Conversación nueva» de relleno).
       (convs[pid] ?? []).filter((c) => c.messageCount > 0 || (c.current && project?.id === pid && conversation?.id === c.id)),
+      filter.sort,
       (c) => c.id,
+      (c) => c.title,
       order.chats[pid]
     )
+  const anyExpanded = orderedProjects.some((p) => expanded[p.id])
+
+  /** Contraer todo (o, si ya está todo contraído, desplegar los proyectos que se ven). */
+  function toggleAll(): void {
+    if (anyExpanded) {
+      setExpanded({})
+      setShowMore({})
+    } else setExpanded(Object.fromEntries(orderedProjects.map((p) => [p.id, true])))
+  }
+
+  /** Marca como visto todo lo terminado (lo que sale como nuevo en Resultados y con punto en los proyectos). */
+  const markAllSeen = (): Promise<void> =>
+    run(async () => {
+      if (!api) return
+      for (const i of finished) await api.actInbox(i.id, i.actions.find((a) => a.id === 'dismiss')?.id ?? i.actions[0]?.id ?? 'dismiss')
+    })
   // Favoritos: proyectos y chats mezclados, en el orden que se dejaron al soltarlos.
   type Fav = { key: string; project?: ProjectSummary; conv?: ConversationSummary }
   const favs = applyOrder<Fav>(
@@ -381,11 +435,11 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const projectAccepts =
     (p: ProjectSummary) =>
     (d: Dragged): DropPlace[] => {
-      if (d.kind === 'project') return d.id === p.id ? [] : ['before', 'after']
+      if (d.kind === 'project') return d.id === p.id || !manualOrder ? [] : ['before', 'after']
       return d.projectId === p.id || d.busy ? [] : ['into']
     }
   const dropOnProject = (p: ProjectSummary, d: Dragged, place: DropPlace): void => {
-    if (d.kind === 'project') saveOrder({ projects: placeKey(orderedProjects.map((x) => x.id), d.id, p.id, place === 'after') })
+    if (d.kind === 'project') saveOrder({ projects: placeKey(manualProjects.map((x) => x.id), d.id, p.id, place === 'after') })
     else void moveChat(d, p.id)
   }
 
@@ -394,6 +448,8 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
     (c: ConversationSummary) =>
     (d: Dragged): DropPlace[] => {
       if (d.kind !== 'chat' || (d.projectId === c.projectId && d.id === c.id)) return []
+      // Con otro orden que el tuyo (fecha, nombre) los chats no se recolocan a mano.
+      if (d.projectId === c.projectId && !manualOrder) return []
       return d.projectId !== c.projectId && d.busy ? [] : ['before', 'after']
     }
   const dropOnChat = (c: ConversationSummary, d: Dragged, place: DropPlace): void => {
@@ -506,9 +562,19 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
             open={sections.projects}
             onToggle={() => setSections((x) => ({ ...x, projects: !x.projects }))}
             action={
-              <button type="button" className={s.sectionAction} onClick={() => setCreating((v) => !v)} aria-label={t('Nuevo proyecto')} title={t('Nuevo proyecto')}>
-                <Plus size={15} aria-hidden="true" />
-              </button>
+              <>
+                <ProjectFilterButton
+                  filter={filter}
+                  onChange={setFilter}
+                  anyExpanded={anyExpanded}
+                  onToggleAll={toggleAll}
+                  unseenCount={finished.length}
+                  onMarkAllSeen={() => void markAllSeen()}
+                />
+                <button type="button" className={s.sectionAction} onClick={() => setCreating((v) => !v)} aria-label={t('Nuevo proyecto')} title={t('Nuevo proyecto')}>
+                  <Plus size={15} aria-hidden="true" />
+                </button>
+              </>
             }
           >
             {creating && (
@@ -525,33 +591,70 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                 />
               </form>
             )}
-            {orderedProjects.map((p) => {
-              const isOpen = !!expanded[p.id]
-              return (
-                <div key={p.id}>
-                  <DragSlot slot={`p:${p.id}`} item={{ kind: 'project', id: p.id }} accepts={projectAccepts(p)} onDrop={(d, place) => dropOnProject(p, d, place)}>
-                    <ProjectRow
-                      p={p}
-                      current={project?.id === p.id}
-                      icon={isOpen ? <FolderOpen size={15} /> : <Folder size={15} />}
-                      expanded={isOpen}
-                      onExpand={() => setExpanded((e) => ({ ...e, [p.id]: !isOpen }))}
-                      onOpen={() => void openProject(p, true)}
-                      actions={actions}
-                    />
-                  </DragSlot>
-                  {isOpen && (
-                    <div className={s.sub}>
-                      {chatsOf(p.id).map((c) => (
-                        <DragSlot key={c.id} slot={`c:${p.id}:${c.id}`} item={asChat(c)} accepts={chatAccepts(c)} onDrop={(d, place) => dropOnChat(c, d, place)}>
-                          <ConversationRow c={c} active={project?.id === p.id && conversation?.id === c.id} onOpen={() => void openConversation(c)} actions={actions} />
+            {filter.grouping === 'date'
+              ? groupByDate(
+                  allChats.filter((c) => c.messageCount > 0 && orderedProjects.some((p) => p.id === c.projectId)),
+                  Date.now()
+                ).map((g) => {
+                  const key = `d:${g.key}`
+                  const { shown, hidden } = previewChats(g.items, filter.showAll || !!showMore[key], conversation?.id)
+                  return (
+                    <div key={key} className={s.dateGroup}>
+                      <p className={s.dateLabel}>{g.label}</p>
+                      {shown.map((c) => (
+                        <DragSlot key={`${c.projectId}:${c.id}`} slot={`g:${c.projectId}:${c.id}`} item={asChat(c)}>
+                          <ConversationRow
+                            c={c}
+                            flat
+                            meta={projects.find((p) => p.id === c.projectId)?.name ?? ''}
+                            active={project?.id === c.projectId && conversation?.id === c.id}
+                            onOpen={() => void openConversation(c)}
+                            actions={actions}
+                          />
                         </DragSlot>
                       ))}
+                      <MoreChats hidden={hidden} open={!!showMore[key]} all={filter.showAll} onToggle={() => setShowMore((m) => ({ ...m, [key]: !m[key] }))} />
                     </div>
-                  )}
-                </div>
-              )
-            })}
+                  )
+                })
+              : orderedProjects.map((p) => {
+                  const isOpen = !!expanded[p.id]
+                  const { shown, hidden } = previewChats(chatsOf(p.id), filter.showAll || !!showMore[p.id], project?.id === p.id ? conversation?.id : null)
+                  return (
+                    <div key={p.id}>
+                      <DragSlot slot={`p:${p.id}`} item={{ kind: 'project', id: p.id }} accepts={projectAccepts(p)} onDrop={(d, place) => dropOnProject(p, d, place)}>
+                        <ProjectRow
+                          p={p}
+                          current={project?.id === p.id}
+                          icon={isOpen ? <FolderOpen size={15} /> : <Folder size={15} />}
+                          unseen={unseen.has(p.id)}
+                          expanded={isOpen}
+                          onExpand={() => setExpanded((e) => ({ ...e, [p.id]: !isOpen }))}
+                          onOpen={() => void openProject(p, true)}
+                          actions={actions}
+                        />
+                      </DragSlot>
+                      {isOpen && (
+                        <div className={s.sub}>
+                          {shown.map((c) => (
+                            <DragSlot key={c.id} slot={`c:${p.id}:${c.id}`} item={asChat(c)} accepts={chatAccepts(c)} onDrop={(d, place) => dropOnChat(c, d, place)}>
+                              <ConversationRow c={c} active={project?.id === p.id && conversation?.id === c.id} onOpen={() => void openConversation(c)} actions={actions} />
+                            </DragSlot>
+                          ))}
+                          <MoreChats hidden={hidden} open={!!showMore[p.id]} all={filter.showAll} onToggle={() => setShowMore((m) => ({ ...m, [p.id]: !m[p.id] }))} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+            {orderedProjects.length === 0 && projects.length > 0 && (
+              <p className={s.filterEmpty}>
+                {t('Ningún proyecto con este filtro.')}{' '}
+                <button type="button" className={s.linkBtn} onClick={() => setFilter({ status: DEFAULT_FILTER.status })}>
+                  {t('Quitar el filtro')}
+                </button>
+              </p>
+            )}
           </Section>
 
           {recent.length > 0 && (
@@ -580,6 +683,122 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
       )}
       {mode === 'demo' && !rail && <p className={s.hint}>{t('Modo demo: tus proyectos y conversaciones salen al volver a los datos reales.')}</p>}
     </div>
+  )
+}
+
+/**
+ * Fila bajo los 3 chats más recientes de un proyecto: «Ver los X restantes» los despliega y, abierta, «Ver menos»
+ * los vuelve a esconder. Con «Mostrar todos los chats» en el filtro no sale.
+ */
+function MoreChats({ hidden, open, all, onToggle }: { hidden: number; open: boolean; all: boolean; onToggle: () => void }) {
+  if (all || (!open && hidden === 0)) return null
+  return (
+    <button type="button" className={cx(s.item, s.convItem, s.moreChats)} onClick={onToggle} aria-expanded={open}>
+      <Ellipsis size={14} aria-hidden="true" className={s.icon} />
+      <span className={s.label}>{open ? t('Ver menos') : t('Ver los {n} restantes', { n: hidden })}</span>
+    </button>
+  )
+}
+
+/**
+ * Botón de filtro junto a «Proyectos»: agrupación (por proyecto o por fecha), orden (el tuyo, lo más reciente o por
+ * nombre), estado (trabajando, con resultados sin ver, de esta semana), mostrar todos los chats, restablecer,
+ * contraer todo y marcar todo como visto. Con algo distinto de lo de siempre lleva un punto.
+ */
+function ProjectFilterButton({
+  filter,
+  onChange,
+  anyExpanded,
+  onToggleAll,
+  unseenCount,
+  onMarkAllSeen
+}: {
+  filter: ProjectFilter
+  onChange: (patch: Partial<ProjectFilter>) => void
+  anyExpanded: boolean
+  onToggleAll: () => void
+  unseenCount: number
+  onMarkAllSeen: () => void
+}) {
+  const [menu, setMenu] = useState<MenuAt | null>(null)
+  const grouping = { project: t('Proyecto'), date: t('Fecha') }
+  const sorts = { manual: t('Tu orden'), recent: t('Más recientes'), name: t('Nombre') }
+  const statuses = { all: t('Todos'), busy: t('Trabajando ahora'), unseen: t('Con resultados sin ver'), week: t('Activos esta semana') }
+  const items: MenuEntry[] = [
+    {
+      id: 'grouping',
+      label: t('Agrupación'),
+      value: grouping[filter.grouping],
+      submenu: [
+        { id: 'project', label: t('Por proyecto'), checked: filter.grouping === 'project', onSelect: () => onChange({ grouping: 'project' }) },
+        { id: 'date', label: t('Por fecha (Hoy, Ayer…)'), checked: filter.grouping === 'date', onSelect: () => onChange({ grouping: 'date' }) }
+      ]
+    },
+    {
+      id: 'sort',
+      label: t('Orden'),
+      value: sorts[filter.sort],
+      disabled: filter.grouping === 'date',
+      title: filter.grouping === 'date' ? t('Por fecha ya va de lo más reciente a lo más antiguo') : undefined,
+      submenu: [
+        { id: 'manual', label: t('Tu orden (arrastrando)'), checked: filter.sort === 'manual', onSelect: () => onChange({ sort: 'manual' }) },
+        { id: 'recent', label: t('Lo más reciente primero'), checked: filter.sort === 'recent', onSelect: () => onChange({ sort: 'recent' }) },
+        { id: 'name', label: t('Por nombre (A-Z)'), checked: filter.sort === 'name', onSelect: () => onChange({ sort: 'name' }) }
+      ]
+    },
+    {
+      id: 'status',
+      label: t('Estado'),
+      value: statuses[filter.status],
+      submenu: (Object.keys(statuses) as Array<ProjectFilter['status']>).map((k) => ({ id: k, label: statuses[k], checked: filter.status === k, onSelect: () => onChange({ status: k }) }))
+    },
+    {
+      id: 'showAll',
+      label: t('Mostrar todos los chats'),
+      checked: filter.showAll,
+      title: t('Sin «Ver los X restantes»: todos los chats de cada proyecto a la vista'),
+      onSelect: () => onChange({ showAll: !filter.showAll })
+    },
+    {
+      id: 'reset',
+      label: t('Restablecer el filtro'),
+      disabled: isDefaultFilter(filter),
+      onSelect: () => onChange({ ...DEFAULT_FILTER })
+    },
+    'sep',
+    {
+      id: 'collapse',
+      label: anyExpanded ? t('Contraer todo') : t('Desplegar todo'),
+      icon: anyExpanded ? <ChevronRight size={15} /> : <ChevronDown size={15} />,
+      disabled: filter.grouping === 'date',
+      onSelect: onToggleAll
+    },
+    {
+      id: 'seen',
+      label: t('Marcar todo como visto'),
+      icon: <Package size={15} />,
+      disabled: unseenCount === 0,
+      title: unseenCount ? t('Quita el aviso de nuevo a los {n} resultados terminados sin ver', { n: unseenCount }) : t('No hay nada terminado sin ver'),
+      onSelect: onMarkAllSeen
+    }
+  ]
+  const active = !isDefaultFilter(filter)
+  return (
+    <>
+      <button
+        type="button"
+        className={cx(s.sectionAction, s.filterBtn, menu && s.filterBtnOpen)}
+        aria-haspopup="menu"
+        aria-expanded={!!menu}
+        aria-label={active ? t('Filtrar y ordenar los proyectos (hay un filtro puesto)') : t('Filtrar y ordenar los proyectos')}
+        title={t('Filtrar y ordenar')}
+        onClick={(e) => setMenu(menu ? null : belowButton(e))}
+      >
+        <ListFilter size={15} aria-hidden="true" />
+        {active && <span className={s.filterDot} aria-hidden="true" />}
+      </button>
+      {menu && <ContextMenu at={menu} items={items} label={t('Filtrar y ordenar los proyectos')} onClose={() => setMenu(null)} />}
+    </>
   )
 }
 
@@ -695,6 +914,7 @@ function ProjectRow({
   p,
   current,
   icon,
+  unseen,
   expanded,
   onExpand,
   onOpen,
@@ -703,6 +923,8 @@ function ProjectRow({
   p: ProjectSummary
   current: boolean
   icon: ReactNode
+  /** Tiene resultados terminados que aún no has visto. */
+  unseen?: boolean
   expanded?: boolean
   onExpand?: () => void
   onOpen: () => void
@@ -786,6 +1008,7 @@ function ProjectRow({
           {icon}
         </span>
         <span className={s.label}>{p.name}</span>
+        {unseen && !p.busy && <span className={s.unseen} title={t('Tiene resultados sin ver')} />}
         {p.busy && <span className={s.busy} title={t('El equipo está trabajando aquí')} />}
       </button>
       <span className={s.rowActions}>

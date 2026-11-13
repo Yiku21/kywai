@@ -19,8 +19,10 @@ export interface MenuAction {
   /** Pide pulsarlo otra vez antes de hacerlo (borrar). Es el texto que se muestra entonces. */
   confirm?: string
   onSelect?: () => void
-  /** Submenú (p. ej. a qué proyecto mover). */
-  submenu?: Array<{ id: string; label: string; icon?: ReactNode; onSelect: () => void }>
+  /** Lo elegido ahora en su submenú (p. ej. «Proyecto» en «Agrupación»): sale en gris antes de la flecha. */
+  value?: string
+  /** Submenú (p. ej. a qué proyecto mover). `checked`: la opción elegida de ese grupo. */
+  submenu?: Array<{ id: string; label: string; icon?: ReactNode; checked?: boolean; onSelect: () => void }>
   /** Texto si el submenú está vacío. */
   emptySubmenu?: string
 }
@@ -123,7 +125,7 @@ function Surface({ at, items, label, onClose }: { at: MenuAt; items: MenuEntry[]
       else onClose()
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
-      const subItems = sub ? Array.from(el.querySelectorAll<HTMLElement>('[data-sub] [role="menuitem"]')) : []
+      const subItems = sub ? Array.from(el.querySelectorAll<HTMLElement>('[data-sub] [role^="menuitem"]')) : []
       const j = subItems.indexOf(document.activeElement as HTMLElement)
       if (j >= 0) {
         subItems[(j + (e.key === 'ArrowDown' ? 1 : subItems.length - 1)) % subItems.length]?.focus()
@@ -135,7 +137,7 @@ function Surface({ at, items, label, onClose }: { at: MenuAt; items: MenuEntry[]
       if (a?.submenu) {
         e.preventDefault()
         setSub(a.id)
-        window.setTimeout(() => el.querySelector<HTMLElement>('[data-sub] [role="menuitem"]')?.focus(), 0)
+        window.setTimeout(() => el.querySelector<HTMLElement>('[data-sub] [role^="menuitem"]')?.focus(), 0)
       }
     } else if (e.key === 'ArrowLeft' && sub) {
       e.preventDefault()
@@ -146,7 +148,7 @@ function Surface({ at, items, label, onClose }: { at: MenuAt; items: MenuEntry[]
       if (a) {
         e.preventDefault()
         choose(a)
-        if (a.submenu) window.setTimeout(() => el.querySelector<HTMLElement>('[data-sub] [role="menuitem"]')?.focus(), 0)
+        if (a.submenu) window.setTimeout(() => el.querySelector<HTMLElement>('[data-sub] [role^="menuitem"]')?.focus(), 0)
       }
     }
   }
@@ -198,6 +200,7 @@ function MenuButton({ it, confirming, subOpen, onChoose, onHover }: { it: MenuAc
         {it.icon}
       </span>
       <span className={s.label}>{confirming && it.confirm ? it.confirm : it.label}</span>
+      {it.value && <span className={s.value}>{it.value}</span>}
       {it.submenu ? <ChevronRight size={14} aria-hidden="true" className={s.chev} /> : it.shortcut && <kbd className={s.key}>{it.shortcut.toUpperCase()}</kbd>}
     </button>
   )
@@ -240,13 +243,15 @@ function Submenu({
           <button
             key={x.id}
             type="button"
-            role="menuitem"
+            role={x.checked === undefined ? 'menuitem' : 'menuitemradio'}
+            aria-checked={x.checked}
             className={s.item}
             onClick={() => {
               onClose()
               x.onSelect()
             }}
           >
+            {x.checked !== undefined && <span className={cx(s.radio, x.checked && s.radioOn)} aria-hidden="true" />}
             <span className={s.icon} aria-hidden="true">
               {x.icon}
             </span>
