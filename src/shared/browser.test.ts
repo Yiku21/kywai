@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addressToUrl, browserInputArg, browserRectArg, captureRelPath, safeUrl, siteOf } from './browser'
+import { addressToUrl, browserInputArg, browserRectArg, captureRelPath, needsKywaiBrowser, safeUrl, siteOf } from './browser'
 
 describe('navegador de kywai', () => {
   it('la barra de direcciones abre webs y busca lo demás, nunca otros esquemas', () => {
@@ -38,5 +38,14 @@ describe('navegador de kywai', () => {
     expect(browserInputArg({ type: 'key', key: 'F12' })).toBeNull()
     expect(browserInputArg({ type: 'text', text: '' })).toBeNull()
     expect(browserInputArg({ type: 'scroll', x: 1, y: 1, dy: 120 })).toEqual({ type: 'scroll', x: 1, y: 1, dy: 120 })
+  })
+
+  it('reconoce las tareas que necesitan el navegador de kywai', () => {
+    expect(needsKywaiBrowser('Documentar el workflow de GHL en un PDF técnico')).toBe(true)
+    expect(needsKywaiBrowser('Abre GoHighLevel con el navegador de kywai y captura el flujo')).toBe(true)
+    expect(needsKywaiBrowser('Usa navegador_leer en la pestaña «Navegador»')).toBe(true)
+    expect(needsKywaiBrowser('Revisar el panel con la pestaña Navegador')).toBe(true)
+    expect(needsKywaiBrowser('Arreglar el CSS del navegador web en Safari')).toBe(false)
+    expect(needsKywaiBrowser('Escribir un README para el proyecto')).toBe(false)
   })
 })

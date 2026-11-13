@@ -3771,4 +3771,6 @@ export const fr: Record<string, string> = {
   "hace clic": "clique",
   "escribe": "écrit",
   "pulsa una tecla": "appuie sur une touche",
+  // main/orchestrator.ts (reparto de tareas del navegador de kywai)
+  "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "« {title} » est confiée à {name} : elle a besoin du navigateur de kywai et {agent} ne l'a pas",
 }

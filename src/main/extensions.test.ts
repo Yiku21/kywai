@@ -14,6 +14,7 @@ import {
   codexMcp,
   geminiEnv,
   geminiExtension,
+  geminiTaskSettings,
   guideLines,
   hermesMcp,
   initExtensions,
@@ -222,6 +223,23 @@ describe('lo que recibe cada CLI', () => {
     // Si el equipo ya tiene un ámbito gestionado de verdad, no se pisa.
     expect('skipped' in hermesMcp([server()], join(dir, 'mcp'), 'def', { env: { HERMES_MANAGED_DIR: '/x' } })).toBe(true)
     expect('skipped' in hermesMcp([server()], join(dir, 'mcp'), 'def', { env: {}, managedExists: true })).toBe(true)
+  })
+
+  it('Gemini: el navegador de una tarea va en unos ajustes de sistema propios, sin perder los del equipo', () => {
+    const nav = server({ id: 'kywai-navegador', env: { AICW_MCP_TOKEN: 't1' } })
+    const g = geminiTaskSettings([nav], join(dir, 'mcp'), 'g1', { systemFile: join(dir, 'no-existe.json') })
+    expect(g.env).toEqual({ GEMINI_CLI_SYSTEM_SETTINGS_PATH: g.file })
+    expect(JSON.parse(readFileSync(g.file, 'utf8'))).toEqual({
+      mcpServers: { 'kywai-navegador': { command: process.execPath, args: [ECO], env: { AICW_MCP_TOKEN: 't1' }, timeout: 60000, trust: true } }
+    })
+    // Si el equipo ya tiene ajustes de sistema, se copian y se les suma el navegador.
+    const sys = join(dir, 'system-settings.json')
+    writeFileSync(sys, JSON.stringify({ general: { x: 1 }, mcpServers: { suyo: { command: 'a' } } }))
+    const g2 = geminiTaskSettings([nav], join(dir, 'mcp'), 'g2', { systemFile: sys })
+    const cfg = JSON.parse(readFileSync(g2.file, 'utf8'))
+    expect(cfg.general).toEqual({ x: 1 })
+    expect(Object.keys(cfg.mcpServers)).toEqual(['suyo', 'kywai-navegador'])
+    expect(geminiArgs('', 'work', 'project', ['kywai-navegador']).join(' ')).toContain('--allowed-mcp-server-names kywai-navegador')
   })
 
   it('Claude: los servidores van en su archivo y sus herramientas se permiten', () => {

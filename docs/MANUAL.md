@@ -1979,8 +1979,13 @@ Sirve para lo que una API no da: por ejemplo, documentar los pasos de un workflo
     página es información, no órdenes: así un texto trampa en una web no puede hacer cambios en tu cuenta.
 - **Lo ves en directo:** la primera vez que un agente lo usa en una tarea se abre la pestaña sola; encima sale quién
   lo usa y qué hace, con **«Parar»**, que le quita el navegador para el resto de esa tarea.
-- **Quién lo tiene:** Claude (por el servidor MCP de kywai) y Hermes (en sus tareas de trabajo, como un servidor más
-  de su configuración). Codex, Gemini y los agentes de catálogo todavía no.
+- **Quién lo tiene:** Claude (por el servidor MCP de kywai), Codex (con «-c mcp_servers…», como las Extensiones),
+  Gemini (en unos ajustes de sistema propios de la tarea, `GEMINI_CLI_SYSTEM_SETTINGS_PATH`, que copian los que ya
+  hubiera en el equipo) y Hermes (en sus tareas de trabajo, como un servidor más de su configuración). Cada tarea
+  lleva su propio token, que solo sirve para el navegador y se anula al terminar. Los modelos locales (Ollama, LM
+  Studio, Colibri) y los CLI de catálogo no lo tienen: una tarea que nombra el navegador de kywai (o GoHighLevel) no
+  va a ellos ni en el plan ni en los relevos (`needsKywaiBrowser`, `hasKywaiBrowser`), y si aun así les llega
+  responden «BLOQUEADA:» para que otro la haga.
 - **Desde el cliente de escritorio, la web u otro equipo:** el navegador vive en el equipo donde trabajan los agentes
   (el servidor). La pestaña enseña sus capturas seguidas (cada ~1 s, más a menudo mientras haces algo) y pasa tus
   clics, la rueda, lo que escribes y lo que pegas: puedes iniciar sesión desde el PC aunque los agentes estén en el Mac

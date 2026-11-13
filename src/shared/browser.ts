@@ -38,6 +38,14 @@ export function isBrowserKey(k: unknown): k is (typeof BROWSER_KEYS)[number] {
   return typeof k === 'string' && (BROWSER_KEYS as readonly string[]).includes(k)
 }
 
+/**
+ * ¿La tarea necesita el navegador de kywai? Cuando lo nombra (o sus herramientas navegador_…) o habla de un sitio
+ * que solo se ve con la cuenta del usuario, como GoHighLevel. Así no va a un agente que no lo tiene.
+ */
+export function needsKywaiBrowser(text: string): boolean {
+  return /navegador (de|del) kywai|navegador incorporado|pesta[ñn]a\s*[«"'“]?\s*navegador|\bnavegador_[a-z]+|kywai[- ]navegador|kywai'?s? (built-in )?browser|\b(go ?high ?level|ghl)\b/i.test(text)
+}
+
 /** Página en blanco del principio (y la que se ve tras «Cerrar sesión en todo»). */
 export const BLANK_URL = 'about:blank'
 

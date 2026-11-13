@@ -562,6 +562,47 @@ export function hermesMcp(
   return { dir, names: list.map((s) => s.id), args: [], env: { HERMES_MANAGED_DIR: dir } }
 }
 
+/** El archivo de ajustes «de sistema» de Gemini en este equipo (el que sustituye GEMINI_CLI_SYSTEM_SETTINGS_PATH). */
+export function geminiSystemSettingsPath(platform: NodeJS.Platform = process.platform): string {
+  if (platform === 'darwin') return '/Library/Application Support/GeminiCli/settings.json'
+  if (platform === 'win32') return 'C:\\ProgramData\\gemini-cli\\settings.json'
+  return '/etc/gemini-cli/settings.json'
+}
+
+/**
+ * Servidores que Gemini solo debe tener en UNA tarea (el navegador de kywai, con su token de un solo uso). La
+ * extensión «kywai» es fija para todo el equipo, así que estos van en unos ajustes «de sistema» propios de la tarea
+ * (GEMINI_CLI_SYSTEM_SETTINGS_PATH, se borran al terminar). Si el equipo ya tiene ajustes de sistema, se copian y
+ * se les añaden los servidores: Gemini sigue con los suyos.
+ */
+export function geminiTaskSettings(
+  list: ResolvedMcpServer[],
+  root: string,
+  tag: string,
+  opts: { systemFile?: string } = {}
+): { file: string; env: Record<string, string> } {
+  const systemFile = opts.systemFile ?? geminiSystemSettingsPath()
+  let base: Record<string, unknown> = {}
+  try {
+    if (existsSync(systemFile)) {
+      const parsed = JSON.parse(readFileSync(systemFile, 'utf8')) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) base = parsed as Record<string, unknown>
+    }
+  } catch {
+    // Ajustes ilegibles (o con comentarios): Gemini los leería igual de mal; seguimos sin ellos.
+  }
+  const prev = base.mcpServers && typeof base.mcpServers === 'object' ? (base.mcpServers as Record<string, unknown>) : {}
+  const servers: Record<string, unknown> = { ...prev }
+  for (const s of list) {
+    // «trust»: sin confirmar cada llamada (Gemini no puede preguntar sin consola); lo delicado ya lo pregunta kywai.
+    servers[s.id] = { command: s.command, args: s.args, ...(Object.keys(s.env).length ? { env: s.env } : {}), timeout: STARTUP_TIMEOUT_SEC * 1000, trust: true }
+  }
+  mkdirSync(root, { recursive: true })
+  const file = join(root, `gemini-${tag}.json`)
+  writeFileSync(file, JSON.stringify({ ...base, mcpServers: servers }, null, 2), { encoding: 'utf8', mode: 0o600 })
+  return { file, env: { GEMINI_CLI_SYSTEM_SETTINGS_PATH: file } }
+}
+
 /** La extensión «kywai» de Gemini: los servidores encendidos para Gemini, con las claves como ${VARIABLE}. */
 export function geminiExtension(list: ResolvedMcpServer[]): Record<string, unknown> {
   const servers: Record<string, unknown> = {}

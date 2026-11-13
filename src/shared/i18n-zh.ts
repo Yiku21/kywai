@@ -3771,4 +3771,6 @@ export const zh: Record<string, string> = {
   "hace clic": "正在点击",
   "escribe": "正在输入",
   "pulsa una tecla": "正在按键",
+  // main/orchestrator.ts (reparto de tareas del navegador de kywai)
+  "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "「{title}」交给 {name}：它需要 kywai 浏览器，而 {agent} 没有",
 }

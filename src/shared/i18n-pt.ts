@@ -3771,4 +3771,6 @@ export const pt: Record<string, string> = {
   "hace clic": "está clicando",
   "escribe": "está escrevendo",
   "pulsa una tecla": "está pressionando uma tecla",
+  // main/orchestrator.ts (reparto de tareas del navegador de kywai)
+  "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "«{title}» fica com {name}: precisa do navegador do kywai e {agent} não o tem",
 }

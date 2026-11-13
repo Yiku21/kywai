@@ -31,6 +31,14 @@ export function isTextOnly(provider: ProviderKind): boolean {
   return provider === 'ollama'
 }
 
+/**
+ * Agentes que reciben el navegador de kywai en sus tareas (aceptan servidores MCP): Claude, Codex, Gemini y Hermes.
+ * Los modelos locales y los CLI genéricos no: una tarea que lo necesite va a otro.
+ */
+export function hasKywaiBrowser(provider: ProviderKind): boolean {
+  return provider === 'claude' || provider === 'codex' || provider === 'gemini' || provider === 'hermes'
+}
+
 /** Proveedores que se ejecutan en este equipo (se re-comprueban a menudo). */
 export function isLocalProvider(provider: ProviderKind): boolean {
   return isLocalEngine(provider)
