@@ -96,7 +96,8 @@
 }
 
 .indicatorReady {
-  transition: transform 220ms var(--ease-in-ui, cubic-bezier(0.2, 0, 0, 1));
+  /* Con muelle: llega a la pestaña nueva, se pasa un pelo y se asienta. */
+  transition: transform var(--spring-ms, 220ms) var(--spring, cubic-bezier(0.2, 0, 0, 1));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -178,6 +179,29 @@
   font-variant-numeric: tabular-nums;
   background: var(--bg-active);
   color: var(--text-2);
+}
+
+/* Al aparecer o cambiar de cifra, salta un poco (LeftPanel le cambia la key). */
+.badge {
+  animation: badgePop var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease) both;
+}
+
+@keyframes badgePop {
+  from {
+    transform: scale(calc(1 - var(--m, 1) * 0.5));
+  }
+}
+
+/* Ventana estrecha: la pestaña abierta enseña su nombre, que entra deslizándose al elegirla. */
+.tabsCompact .tabActive .tabLabel {
+  animation: labelIn var(--spring-ms, 0ms) var(--spring, ease) both;
+}
+
+@keyframes labelIn {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--m, 1) * -6px));
+  }
 }
 
 .badgeLive {

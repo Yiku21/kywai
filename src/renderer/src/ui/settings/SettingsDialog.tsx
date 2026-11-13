@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
   ArrowLeftRight,
   Blocks,
@@ -70,6 +70,10 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SettingsDialog.module.css'
 import { hasPendingUpdate } from '@/lib/updateWatch'
+import { useSwitchMotion } from '../common/motion'
+
+/** Orden de las secciones de Ajustes (para saber si la nueva está arriba o abajo). */
+const SETTINGS_ORDER = ['general', 'agents', 'extensions', 'connection', 'about']
 
 /** Página de Ko-fi del autor: «Apoyar kywai» la abre en el navegador para quien quiera invitar a un café. */
 export const DONATE_URL = 'https://ko-fi.com/yilsander'
@@ -100,6 +104,13 @@ export function SettingsDialog() {
   useEscape(!!tab && !sub, close)
   // Versión nueva esperando: «Acerca de» (donde se actualiza) brilla en amarillo, como la rueda ⚙.
   const updateGlow = useCowork((st) => hasPendingUpdate(st))
+  // Al cambiar de sección, el contenido llega desde arriba o desde abajo (según dónde esté en la lista) con muelle.
+  const bodyRef = useRef<HTMLElement>(null)
+  useSwitchMotion(bodyRef, tab ?? '', SETTINGS_ORDER, {
+    axis: 'y',
+    distance: 14,
+    iconOf: () => bodyRef.current?.parentElement?.querySelector('[role="tab"][aria-selected="true"] svg')
+  })
   if (!tab) return null
 
   if (sub === 'remote') return <RemoteAccess onClose={() => setSub(null)} />
@@ -140,7 +151,7 @@ export function SettingsDialog() {
             ))}
           </div>
         </nav>
-        <section className={s.body} role="tabpanel" aria-label={current.label}>
+        <section ref={bodyRef} className={s.body} role="tabpanel" aria-label={current.label}>
           <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} title={t('Cerrar (Esc)')} onClick={close}>
             <X size={18} aria-hidden="true" />
           </button>

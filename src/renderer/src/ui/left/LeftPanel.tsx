@@ -17,6 +17,7 @@ import { useComposer } from './composerStore'
 import { droppedPaths } from './dropFiles'
 import s from './LeftPanel.module.css'
 import { t } from '@/lib/i18n'
+import { useSwitchMotion } from '../common/motion'
 
 const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
@@ -170,6 +171,15 @@ export function LeftPanel() {
   const mods = useMods()
   const TABS = modPanels(mods).length ? [...BASE_TABS, MODS_TAB] : BASE_TABS
   const strip = useTabStrip(tab, TABS.length)
+  const body = useRef<HTMLDivElement>(null)
+  // Al cambiar de pestaña, el contenido nuevo llega desde el lado de la pestaña elegida (derecha si está más a la
+  // derecha) y se asienta con muelle; el icono de la pestaña da un saltito. Al abrir la app no se mueve nada.
+  useSwitchMotion(
+    body,
+    tab,
+    TABS.map((x) => x.id),
+    { iconOf: (id) => document.getElementById(`${baseId}-tab-${id}`)?.querySelector('svg') }
+  )
 
   const canAttach = !!api && mode === 'live'
 
@@ -259,7 +269,8 @@ export function LeftPanel() {
               <Icon size={16} aria-hidden="true" className={s.tabIcon} />
               <span className={s.tabLabel}>{label}</span>
               {showBadge && (
-                <span className={cx(s.badge, id === 'tasks' && s.badgeLive)} aria-hidden="true">
+                // Con otra cifra, la insignia da un saltito (key la vuelve a montar y su animación se repite).
+                <span key={badge.n} className={cx(s.badge, id === 'tasks' && s.badgeLive)} aria-hidden="true">
                   {badge.n}
                 </span>
               )}
@@ -275,6 +286,7 @@ export function LeftPanel() {
       </div>
 
       <div
+        ref={body}
         className={s.body}
         role="tabpanel"
         id={`${baseId}-panel`}

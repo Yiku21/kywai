@@ -3753,12 +3753,17 @@ pelo y se asienta.
   bolita de los interruptores se estira mientras la pulsas y salta al otro lado.
 - **Ventanas** (Ajustes, Buscar, avisos…): suben y se asientan con muelle; al cerrarse se van más rápido de lo que
   llegaron.
+- **Pestañas** (Chat, Archivos, Tareas… y las secciones de Ajustes): el contenido nuevo llega desde el lado de la
+  pestaña elegida (desde la derecha si está más a la derecha; en Ajustes, desde arriba o desde abajo), el icono da un
+  saltito y la rayita de debajo se desliza con muelle. Las cifras de las pestañas (tareas en curso, resultados…) saltan
+  al cambiar. En ventana estrecha, el nombre de la pestaña abierta entra deslizándose.
 
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.
 
 Cómo está hecho: las curvas de muelle están en `styles/motion.css` (`--spring`, `--spring-bouncy` y `--spring-soft`,
-como `linear()` de CSS) y la misma física en `lib/motion.ts` para lo que se anima desde JavaScript (`enter`). Las
+como `linear()` de CSS) y la misma física en `lib/motion.ts` para lo que se anima desde JavaScript (`enter`); el cambio de pestaña es `useSwitchMotion`
+(`ui/common/motion.ts`). Las
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 
