@@ -1018,15 +1018,41 @@ async function geminiImage(
       body: JSON.stringify(body),
       signal: signal ?? AbortSignal.timeout(120_000)
     })
-    if (!res.ok) return false
-    const json = (await res.json()) as { candidates?: { content?: { parts?: { inlineData?: { data?: string; mimeType?: string } }[] } }[] }
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
+      lastGeminiImageError = geminiImageProblem(res.status, err?.error?.message ?? '')
+      return false
+    }
+    const json = (await res.json()) as {
+      candidates?: { finishReason?: string; content?: { parts?: { inlineData?: { data?: string; mimeType?: string } }[] } }[]
+      promptFeedback?: { blockReason?: string }
+    }
     const part = json.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data)
-    if (!part?.inlineData?.data) return false
+    if (!part?.inlineData?.data) {
+      const why = json.promptFeedback?.blockReason ?? json.candidates?.[0]?.finishReason ?? ''
+      lastGeminiImageError = tr('Gemini no devolvió imagen ({why}).', { why: why || tr('sin motivo') })
+      return false
+    }
     writeFileSync(out, Buffer.from(part.inlineData.data, 'base64'))
+    lastGeminiImageError = ''
     return true
-  } catch {
+  } catch (e) {
+    lastGeminiImageError = tr('No se pudo hablar con Gemini: {msg}', { msg: e instanceof Error ? e.message : String(e) })
     return false
   }
+}
+
+/** Por qué falló la última imagen de Gemini (para decírselo al usuario en «Probar con mi escena»). */
+let lastGeminiImageError = ''
+
+/** Un fallo de la API de imágenes de Gemini, en palabras del usuario. */
+export function geminiImageProblem(status: number, message: string): string {
+  if (status === 429 && /free[_ ]tier|limit: 0|billing/i.test(message))
+    return tr('Tu clave de Gemini no puede generar imágenes en el plan gratis: activa la facturación del proyecto en Google AI Studio (aistudio.google.com).')
+  if (status === 429) return tr('Gemini dice que has llegado al límite de imágenes por ahora: prueba dentro de un rato.')
+  if (status === 400 && /api key/i.test(message)) return tr('Gemini no acepta la clave: pégala otra vez en Ajustes → Extensiones → Estudio de vídeo.')
+  if (status === 403) return tr('Gemini no deja usar esa clave para imágenes (error 403): mira que la API esté activada en Google AI Studio.')
+  return tr('Gemini respondió con un error {status}: {msg}', { status, msg: message.slice(0, 200) || '—' })
 }
 
 /** Busca un archivo por nombre dentro de una carpeta (Manim lo deja en videos/<escena>/<resolución>/). */
@@ -1246,17 +1272,24 @@ export async function tryVideoLook(input: unknown): Promise<string> {
   if (existsSync(jpg)) return toData(jpg, 'image/jpeg')
   const png = join(dir, `${look.id}.png`)
   if (existsSync(png)) return toData(png, 'image/png')
-  const comfy = (await comfyStatus()).info
+  const cs = await comfyStatus()
+  const comfy = cs.info
   const key = geminiApiKey()
   if (!comfy && !key) throw new Error(tr('Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).'))
   mkdirSync(dir, { recursive: true })
   const prompt = lookTrialPrompt(topic, char)
   const castText = char ? char.look ?? char.about ?? char.name : undefined
   const cast = char ? { images: char.images.slice(0, 3), text: castText } : undefined
-  const ok =
-    (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, look.prompt, true, castText), vertical, png, { timeoutMs: 180_000 }))) ||
-    (key && (await geminiImage(prompt, vertical ? 'vertical' : 'horizontal', png, key, false, undefined, look.prompt, [], cast, true)))
-  if (!ok || !existsSync(png)) throw new Error(tr('No salió la imagen de prueba: mira que ComfyUI siga abierto o que a la clave de Gemini le quede saldo.'))
+  const comfyOk = !!comfy && (await comfyImage(comfy, imagePromptText(prompt, false, look.prompt, true, castText), vertical, png, { timeoutMs: 180_000 }))
+  const ok = comfyOk || (!!key && (await geminiImage(prompt, vertical ? 'vertical' : 'horizontal', png, key, false, undefined, look.prompt, [], cast, true)))
+  if (!ok || !existsSync(png)) {
+    // Por qué no salió, de cada uno: así se sabe qué arreglar.
+    const why = [
+      comfy ? tr('ComfyUI no devolvió la imagen (mira su ventana por si dio un error).') : cs.running ? tr('ComfyUI está abierto pero no tiene ningún modelo de imagen instalado.') : '',
+      key ? lastGeminiImageError || tr('Gemini no devolvió la imagen.') : tr('No hay clave de Gemini para probar con ella.')
+    ].filter(Boolean)
+    throw new Error(`${tr('No salió la imagen de prueba.')} ${why.join(' ')}`)
+  }
   const c = await run('ffmpeg', ['-y', '-v', 'error', '-i', png, '-vf', 'scale=360:-2', '-q:v', '4', jpg], { timeoutMs: 60_000 }).catch(() => null)
   if (c?.code === 0 && existsSync(jpg)) {
     rmSync(png, { force: true })

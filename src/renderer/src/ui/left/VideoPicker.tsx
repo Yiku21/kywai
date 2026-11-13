@@ -313,8 +313,9 @@ export function VideoPicker({ api, value, open, onOpen, onChoose, topic = '' }: 
         }
         if (trialFor.current !== key) return
         setTrials((cur) => ({ ...cur, [l.id]: r }))
-        // Si falta ComfyUI y la clave, fallarán todas igual: se dice una vez y se para.
-        if (r.error && /ComfyUI .*Gemini/.test(r.error) && !r.error.includes('saldo')) {
+        // Un fallo (sin ComfyUI ni clave, clave sin imágenes, límite…) se repetiría en todas y Gemini cobra cada intento:
+        // se dice una vez, con el motivo, y se para.
+        if (r.error) {
           setTrials((cur) => Object.fromEntries(Object.entries(cur).map(([id, x]) => [id, x.loading ? { error: r.error } : x])))
           next = todo.length
         }
@@ -508,7 +509,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose, topic = '' }: 
                           </button>
                         )}
                       </div>
-                      {trialError && <p className={s.voiceNote}>{trialError}</p>}
+                      {trialError && <p className={s.trialErr} role="alert">{trialError}</p>}
                       <div className={cx(s.grid, s.lookGrid)}>
                         {IMAGE_LOOKS.map((l) => {
                           const on = look?.id === l.id

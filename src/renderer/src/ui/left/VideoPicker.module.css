@@ -650,3 +650,15 @@
   justify-content: center;
   color: rgb(255 255 255 / 0.85);
 }
+
+/* Por qué no salió «Probar con mi escena»: bien a la vista, encima de las tarjetas. */
+.trialErr {
+  margin: 4px 2px 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--red, #e5484d) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--red, #e5484d) 12%, transparent);
+  color: var(--text-1);
+  font-size: 12.5px;
+  line-height: 1.45;
+}

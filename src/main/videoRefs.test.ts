@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { imagePromptText, isVideoFile, lookTrialPrompt, projectCast, saveCastImages, saveCastNotes } from './videoStudio'
+import { geminiImageProblem, imagePromptText, isVideoFile, lookTrialPrompt, projectCast, saveCastImages, saveCastNotes } from './videoStudio'
 
 describe('personajes fijos y referencias', () => {
   it('guarda las imágenes una vez y la descripción solo la primera vez', () => {
@@ -38,6 +38,13 @@ describe('personajes fijos y referencias', () => {
     expect(lookTrialPrompt('x', { name: 'Ana' })).toContain('Ana is the main character')
     expect(lookTrialPrompt('x', { name: 'Hermes, Claude y Codex', builtin: true })).toContain('are the main character')
     expect(lookTrialPrompt('')).not.toContain('about')
+  })
+
+  it('explica por qué Gemini no hace la imagen', () => {
+    expect(geminiImageProblem(429, 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 0')).toContain('facturación')
+    expect(geminiImageProblem(429, 'Resource exhausted')).toContain('límite')
+    expect(geminiImageProblem(400, 'API key not valid. Please pass a valid API key.')).toContain('no acepta la clave')
+    expect(geminiImageProblem(500, 'boom')).toContain('500')
   })
 
   it('reconoce los vídeos adjuntos', () => {
