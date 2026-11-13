@@ -10,6 +10,7 @@ import { t } from '@/lib/i18n'
 import { copyText } from '@/lib/clipboard'
 import { cx } from './util'
 import { isKywaiCommand } from '@shared/chatCommands'
+import { fenceLooseJson } from '@shared/looseCode'
 import { useComposer } from '../left/composerStore'
 import s from './MarkdownView.module.css'
 
@@ -222,14 +223,18 @@ function webComponents(projectId: string | null): Components {
   }
 }
 
-/** Markdown con estilo de la app (GFM: tablas, listas de tareas, tachado…). */
+/**
+ * Markdown con estilo de la app (GFM: tablas, listas de tareas, tachado…). El JSON que un agente deja suelto en una
+ * frase sale en su propia tarjeta con botón de copiar (si no, el Markdown se comería sus `*` como cursiva).
+ */
 export const MarkdownView = memo(function MarkdownView({ text, className }: { text: string; className?: string }) {
   const projectId = useCowork((st) => st.live.project?.id ?? null)
   const components = useMemo(() => (isWeb ? webComponents(projectId) : desktopComponents(projectId)), [projectId])
+  const shown = useMemo(() => fenceLooseJson(text), [text])
   return (
     <div className={cx(s.md, className)}>
       <Markdown remarkPlugins={plugins} components={components}>
-        {text}
+        {shown}
       </Markdown>
     </div>
   )

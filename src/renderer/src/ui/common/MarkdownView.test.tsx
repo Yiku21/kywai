@@ -82,3 +82,16 @@ describe('MarkdownView: botón de copiar en los bloques de código', () => {
     expect(buttons[0].textContent).toBe('Copiado')
   })
 })
+
+describe('JSON suelto en una frase', () => {
+  it('sale en su tarjeta con botón de copiar, dentro del mismo punto y con los * intactos', async () => {
+    await render(false, '1. Abre IAM.\n2. Pega esto: { "Effect": "Deny", "Action": "*", "Resource": "*" }\n3. Pulsa Next.')
+    const items = container.querySelectorAll('ol > li')
+    expect(items).toHaveLength(3)
+    const pre = items[1].querySelector('pre')
+    expect(pre).not.toBeNull()
+    expect(JSON.parse(pre!.textContent ?? '')).toEqual({ Effect: 'Deny', Action: '*', Resource: '*' })
+    expect(items[1].querySelector('button')).not.toBeNull()
+    expect(container.querySelector('em')).toBeNull()
+  })
+})

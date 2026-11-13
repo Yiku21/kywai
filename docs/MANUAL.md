@@ -3877,7 +3877,16 @@ los planes, en el escritorio, en el cliente y en el navegador (también por http
 método antiguo del navegador). En **Órbita** cada bloque de código del chat lleva el mismo botón: un toque lo copia.
 El código suelto dentro de una frase (`` `ls` ``) no lleva botón: se copia seleccionándolo, como siempre.
 
-Por debajo: el componente `pre` de `MarkdownView.tsx` (`CodeBlock`) y la función común `copyText` de
+**El código siempre en su propia tarjeta.** Hermes y los agentes tienen la orden de poner todo lo que haya que copiar y
+pegar (código, órdenes de terminal, JSON, una política de AWS, configuración…) en su propio bloque, aunque sea una línea,
+nunca suelto en una frase. Y si aun así un agente deja un JSON suelto en un punto de la lista («pega esto: { "Action":
+"\*" … }»), el chat lo saca solo a una tarjeta con su botón de copiar, ordenado en varias líneas y dentro del mismo
+punto. Antes el Markdown se comía sus `*` como cursiva y al copiarlo salía roto. Solo se mueve el JSON válido: un enlace,
+una casilla `[ ]`, una `{plantilla}` o lo que ya va entre comillas invertidas se quedan como estaban. En Órbita todavía
+no: allí depende de que el agente lo escriba en bloque.
+
+Por debajo: el componente `pre` de `MarkdownView.tsx` (`CodeBlock`), `fenceLooseJson` de `src/shared/looseCode.ts` (saca el
+JSON suelto a un bloque ```json antes de pintar; la orden a los agentes está en `CHAT_STYLE` de `coordinatorGuide.ts`) y la función común `copyText` de
 `src/renderer/src/lib/clipboard.ts` (la usan también las rutinas). En Órbita, `CodeBlock` en `ui/orbita/Markdown.kt`.
 
 ### Ver los archivos del chat sin salir de kywai (panel de vista previa)
