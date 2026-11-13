@@ -325,10 +325,14 @@
   opacity: 0;
 }
 
-/* El punto lleva una animación de opacidad, así que se esconde con visibility. */
+/* Los puntos (trabajando, resultados sin ver) dejan su sitio a ⋯ y la flecha al pasar el ratón. El azul lleva una
+   animación de opacidad, así que se esconden con visibility. */
 .row:hover .busy,
 .row:focus-within .busy,
-.rowMenu .busy {
+.rowMenu .busy,
+.row:hover .unseen,
+.row:focus-within .unseen,
+.rowMenu .unseen {
   visibility: hidden;
 }
 
