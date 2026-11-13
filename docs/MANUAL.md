@@ -3607,6 +3607,12 @@ cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empiez
 a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; su botón de arriba abre la barra entera
 por encima del chat.
 
+**Volver al chat con la barra plegada.** Bajo los accesos (tras una raya) va el icono del **chat en el que estás**:
+desde Resultados, Tareas, Tablero o Rutinas, un clic te devuelve a él. Debajo salen tus **5 últimos chats** con la
+inicial de su nombre; al pasar el ratón sale el nombre entero y su proyecto, un clic lo abre y el clic con la rueda lo
+abre en una ventana aparte. Un punto azul que palpita marca los chats donde el equipo está trabajando. Igual en el
+escritorio, el cliente y el navegador.
+
 **Nombre del ordenador.** Abajo en la barra sale dónde corren los agentes: el nombre del equipo en la red
 («macmini.lan») o el que tú le pongas. Pulsa el nombre (sale un lápiz al pasar por encima), escribe uno nuevo (hasta
 40 caracteres) e Intro; Esc cancela y dejarlo vacío vuelve al nombre de la red. Se guarda en el servidor

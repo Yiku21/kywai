@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   AppWindow,
   CalendarClock,
@@ -507,6 +507,18 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
       />
       <NavItem icon={<CalendarClock size={17} />} label={t('Rutinas')} rail={rail} active={leftTab === 'routines'} onClick={() => go('routines')} />
 
+      {/* Plegada: el chat en el que estás y los últimos, para volver a ellos sin abrir la barra. */}
+      {live && rail && project && (
+        <RailChats
+          current={{ projectId: project.id, id: conversation?.id ?? '', title: conversation?.title ?? '', projectName: project.name }}
+          recent={recent}
+          projects={projects}
+          chatActive={leftTab === 'chat'}
+          onCurrent={() => go('chat')}
+          onOpen={(c) => void openConversation(c)}
+        />
+      )}
+
       {error && !rail && (
         <p className={s.error} role="alert">
           {error}
@@ -845,6 +857,90 @@ function NavItem({
       ) : null}
     </button>
   )
+}
+
+/** Cuántos chats recientes salen en la barra plegada, además del actual. */
+const RAIL_RECENT = 5
+
+/**
+ * Barra plegada: un icono para volver al chat en el que estás (desde Resultados, Tareas…) y debajo los últimos chats
+ * con su inicial. Al pasar el ratón sale su nombre y su proyecto; clic con la rueda lo abre en otra ventana.
+ */
+function RailChats({
+  current,
+  recent,
+  projects,
+  chatActive,
+  onCurrent,
+  onOpen
+}: {
+  current: { projectId: string; id: string; title: string; projectName: string }
+  recent: ConversationSummary[]
+  projects: ProjectSummary[]
+  chatActive: boolean
+  onCurrent: () => void
+  onOpen: (c: ConversationSummary) => void
+}) {
+  const isCurrent = (c: ConversationSummary): boolean => c.projectId === current.projectId && c.id === current.id
+  const currentBusy = recent.some((c) => isCurrent(c) && c.busy)
+  const others = recent.filter((c) => !isCurrent(c) && c.messageCount > 0).slice(0, RAIL_RECENT)
+  const currentTitle = current.title || t('Conversación nueva')
+  const projectName = (id: string): string => projects.find((p) => p.id === id)?.name ?? ''
+  const label = (title: string, project: string): string => (project ? `${title} · ${project}` : title)
+
+  function middleClick(e: MouseEvent, ref: ChatRef): void {
+    if (e.button !== 1) return
+    e.preventDefault()
+    openChatWindow(ref)
+  }
+
+  return (
+    <div className={s.railChats} role="group" aria-label={t('Chats')}>
+      <button
+        type="button"
+        className={cx(s.item, chatActive && s.active)}
+        aria-current={chatActive ? 'page' : undefined}
+        title={`${t('Chat actual')}: ${label(currentTitle, current.projectName)}`}
+        aria-label={`${t('Chat actual')}: ${label(currentTitle, current.projectName)}`}
+        onClick={onCurrent}
+        onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+        onAuxClick={(e) => current.id && middleClick(e, { projectId: current.projectId, conversationId: current.id, title: currentTitle })}
+      >
+        <span className={s.icon} aria-hidden="true">
+          <MessageSquare size={17} />
+        </span>
+        <span className={s.label}>{currentTitle}</span>
+        {currentBusy && <span className={cx(s.busy, s.railBusy)} aria-hidden="true" />}
+      </button>
+      {others.map((c) => {
+        const name = label(c.title, projectName(c.projectId))
+        return (
+          <button
+            key={`${c.projectId}:${c.id}`}
+            type="button"
+            className={s.item}
+            title={name}
+            aria-label={name}
+            onClick={() => onOpen(c)}
+            onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+            onAuxClick={(e) => middleClick(e, { projectId: c.projectId, conversationId: c.id, title: c.title })}
+          >
+            <span className={s.railInitial} aria-hidden="true">
+              {initialOf(c.title)}
+            </span>
+            <span className={s.label}>{c.title}</span>
+            {c.busy && <span className={cx(s.busy, s.railBusy)} aria-hidden="true" />}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Primera letra o cifra del nombre (sin «/», comillas ni emojis delante), en mayúscula. */
+function initialOf(title: string): string {
+  const m = /[\p{L}\p{N}]/u.exec(title)
+  return m ? m[0].toLocaleUpperCase() : '·'
 }
 
 function Section({ title, open, onToggle, action, children }: { title: string; open: boolean; onToggle: () => void; action?: ReactNode; children: ReactNode }) {
