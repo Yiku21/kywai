@@ -11,6 +11,13 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
   overflow: hidden;
+  animation: paneFade var(--dur) var(--ease) both;
+}
+
+@keyframes paneFade {
+  from {
+    opacity: 0;
+  }
 }
 
 .bar {

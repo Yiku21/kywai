@@ -83,6 +83,15 @@
   color: var(--text-2);
   cursor: pointer;
   transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  /* Sale del borde del chat al cerrar el 3D, un poco después de que se vaya (se ve que ahí sigue). */
+  animation: reopenIn var(--spring-bouncy-ms, 200ms) var(--spring-bouncy, ease) 160ms both;
+}
+
+@keyframes reopenIn {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--m, 1) * -12px), -50%);
+  }
 }
 
 .reopen:hover,

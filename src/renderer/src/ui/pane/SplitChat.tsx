@@ -6,6 +6,7 @@ import { t } from '@/lib/i18n'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SplitChat.module.css'
+import { useExitGhost } from '../common/motion'
 
 /**
  * Chat de al lado: otro chat a la derecha, en lugar del espacio 3D (que se para mientras tanto). Es la misma
@@ -15,6 +16,9 @@ export function SplitChat({ chat }: { chat: ChatRef }) {
   const setSplitChat = useCowork((st) => st.setSplitChat)
   const projectName = useCowork((st) => st.projects.find((p) => p.id === chat.projectId)?.name)
   const frame = useRef<HTMLIFrameElement>(null)
+  const root = useRef<HTMLElement>(null)
+  // Al cerrarlo se va hacia la derecha y vuelve a verse el 3D (o el chat se ensancha).
+  useExitGhost(root, { x: 40, scale: 0.97 })
   // La dirección del marco solo cambia si sueltas otro chat; si el propio chat de al lado pasa a otra conversación
   // (al bifurcar), ya la está enseñando y no se recarga.
   const [src, setSrc] = useState(() => chatPaneUrl(chat, true))
@@ -47,7 +51,7 @@ export function SplitChat({ chat }: { chat: ChatRef }) {
   const popout = t('Abrir en una ventana aparte (se puede llevar a otro monitor)')
   const close = t('Cerrar este chat (vuelve el espacio 3D)')
   return (
-    <section className={s.split} aria-label={t('Chat de al lado: {title}', { title })}>
+    <section ref={root} className={s.split} aria-label={t('Chat de al lado: {title}', { title })}>
       <div className={s.bar}>
         <MessageSquare size={17} aria-hidden="true" className={s.icon} />
         <h2 className={s.title} title={title}>

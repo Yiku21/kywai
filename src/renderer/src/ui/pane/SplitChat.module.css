@@ -11,6 +11,18 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
   overflow: hidden;
+  /* Al soltar el chat, llega desde donde lo soltaste (crece desde un poco más pequeño) y se asienta con muelle. */
+  animation: splitIn var(--spring-soft-ms, 300ms) var(--spring-soft, ease) both;
+}
+
+@keyframes splitIn {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - var(--m, 1) * 0.06));
+  }
+  40% {
+    opacity: 1;
+  }
 }
 
 .bar {

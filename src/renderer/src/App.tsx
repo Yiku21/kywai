@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
@@ -37,6 +37,8 @@ import { SplitChat, SplitDropZone } from '@/ui/pane/SplitChat'
 import { BrowserPane } from '@/ui/pane/BrowserPane'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
+import { enter, reducedMotion, calm, SPRING_SOFT } from '@/lib/motion'
+import { playGhost } from '@/ui/common/motion'
 
 // El espacio 3D (Three.js y compañía, la mayor parte del código) se carga aparte: el chat aparece sin esperarlo.
 const World = lazy(() => import('@/scene/World').then((m) => ({ default: m.World })))
@@ -174,6 +176,20 @@ export function App() {
     setResizing(!done)
     if (done) saveChatWidth(width)
   }
+  // El espacio 3D se cierra y se abre con movimiento: al cerrarlo, su panel se va hacia la derecha mientras funde (la
+  // columna se cierra a la vez); al volver, llega desde la derecha y se asienta con muelle. Con un chat o el navegador
+  // al lado, el 3D vuelve igual al cerrarlos.
+  const spaceRef = useRef<HTMLElement>(null)
+  const spaceGone = hidden || !!split || browserOpen
+  const wasGone = useRef(spaceGone)
+  useLayoutEffect(() => {
+    const before = wasGone.current
+    wasGone.current = spaceGone
+    const el = spaceRef.current
+    if (before === spaceGone || !el || narrow) return
+    if (!spaceGone) enter(el, { x: 40, scale: 0.98, spring: SPRING_SOFT })
+    else if (hidden && !reducedMotion()) playGhost(el, calm() ? {} : { x: 48, scale: 0.97 })
+  }, [spaceGone, hidden, narrow])
   const [inset, setInset] = useState(0)
   useEffect(() => {
     const el = left.current
@@ -226,6 +242,7 @@ export function App() {
           {hidden && !previewOpen && <SpaceReopen onOpen={() => useCowork.getState().setSpaceHidden(false)} />}
         </div>
         <section
+          ref={spaceRef}
           className={s.space}
           data-demo={mode === 'demo'}
           aria-label={t('Espacio digital')}

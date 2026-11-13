@@ -7,6 +7,7 @@ import { isRemoteKey, type BrowserRect, type BrowserRemoteInput as RemoteInput }
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './BrowserPane.module.css'
+import { useExitGhost } from '../common/motion'
 
 /** Lo que tapa la pestaña si se pone encima (diálogos, menús, la vista previa…): mientras esté, se ve una captura. */
 const OVERLAYS = '[role="dialog"], [role="alertdialog"], dialog[open], [role="menu"], [role="listbox"], [data-preview-panel]'
@@ -38,6 +39,9 @@ export function BrowserPane() {
   const [covered, setCovered] = useState(false)
   const area = useRef<HTMLDivElement>(null)
   const pane = useRef<HTMLElement>(null)
+  // Al cerrarlo, su copia se va hacia la derecha. Al abrirse solo funde (CSS): el navegador de verdad se coloca encima
+  // midiendo el panel y no debe moverse.
+  useExitGhost(pane, { x: 40, scale: 0.97 })
   const url = state?.url ?? ''
   const blank = !url
   const remote = isWeb

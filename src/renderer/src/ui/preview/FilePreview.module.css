@@ -15,7 +15,20 @@
   border-radius: var(--radius-panel);
   overflow: hidden;
   outline: none;
-  animation: slideIn var(--dur-slow) var(--ease);
+  /* Llega desde la derecha y se asienta con muelle; al cerrarse, su copia se va hacia la derecha (useExitGhost). */
+  animation: slideIn var(--spring-soft-ms, 380ms) var(--spring-soft, ease) both;
+}
+
+/* Solo cambia el archivo (‹ ›): el contenido entra corto desde el lado al que vas. */
+.panel[data-switched] {
+  animation: switchIn var(--spring-ms, 200ms) var(--spring, ease) both;
+}
+
+@keyframes switchIn {
+  /* Sin fundido: el panel es opaco y, si se aclarase, se vería el 3D de detrás un instante. */
+  from {
+    transform: translateX(calc(var(--m, 1) * var(--switch-dir, 1) * 16px));
+  }
 }
 
 @media (max-width: 949.98px) {
@@ -43,7 +56,10 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(14px);
+    transform: translateX(calc(var(--m, 1) * 36px)) scale(calc(1 - var(--m, 1) * 0.02));
+  }
+  45% {
+    opacity: 1;
   }
 }
 

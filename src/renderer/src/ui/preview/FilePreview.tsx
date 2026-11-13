@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   AlertCircle,
@@ -30,6 +30,7 @@ import { agentVars, cx, errorText, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './FilePreview.module.css'
 import { t } from '@/lib/i18n'
+import { useExitGhost } from '../common/motion'
 import { ViewerBusy } from './viewers/shared'
 
 // Los visores de documentos pesan (docx-preview, SheetJS…): se cargan la primera vez que hacen falta.
@@ -57,6 +58,10 @@ export function FilePreview() {
   return maximized ? createPortal(<div className={s.maxBackdrop}>{panel}</div>, document.body) : panel
 }
 
+/** Para notar que solo se cambia de archivo (el panel se vuelve a montar con otro): cuándo se fue el anterior y su
+    posición en la lista. */
+const lastPanel = { goneAt: 0, index: 0 }
+
 type Loaded =
   | { status: 'loading' }
   | { status: 'ready'; text?: string; url?: string }
@@ -81,6 +86,21 @@ function PreviewPanel({ item, index, count, maximized }: { item: PreviewItem; in
   const titleId = `preview-title-${index}`
 
   useEscape(true, close)
+
+  // Al cerrarse se va hacia la derecha mientras funde; si solo se cambia de archivo (o se amplía), no.
+  useExitGhost(rootRef, { x: 32, scale: 0.98, skip: () => useCowork.getState().preview != null })
+  // Cambiar de archivo con ‹ › no vuelve a hacer entrar el panel entero: solo el contenido, desde el lado al que vas.
+  useLayoutEffect(() => {
+    const el = rootRef.current
+    if (el && performance.now() - lastPanel.goneAt < 120) {
+      el.dataset.switched = ''
+      el.style.setProperty('--switch-dir', String(Math.sign(index - lastPanel.index) || 1))
+    }
+    return () => {
+      lastPanel.goneAt = performance.now()
+      lastPanel.index = index
+    }
+  }, [index])
 
   // Al abrir, el foco va al panel (sin mover el chat); al cerrarlo vuelve a donde estaba.
   useEffect(() => {

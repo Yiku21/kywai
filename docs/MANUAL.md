@@ -3757,13 +3757,19 @@ pelo y se asienta.
   pestaña elegida (desde la derecha si está más a la derecha; en Ajustes, desde arriba o desde abajo), el icono da un
   saltito y la rayita de debajo se desliza con muelle. Las cifras de las pestañas (tareas en curso, resultados…) saltan
   al cambiar. En ventana estrecha, el nombre de la pestaña abierta entra deslizándose.
+- **Paneles que se abren y se cierran**: la vista previa de un archivo llega desde la derecha y al cerrarla se va
+  hacia la derecha mientras funde; al cambiar de archivo con ‹ › solo entra el contenido, desde el lado al que vas. El
+  chat de al lado crece desde donde lo sueltas y se va igual al cerrarlo. Al cerrar el espacio 3D su panel se va a la
+  derecha mientras el chat se ensancha, la pestaña «Espacio digital» sale del borde del chat con un saltito y, al
+  volver, el 3D llega desde la derecha y se asienta.
 
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.
 
 Cómo está hecho: las curvas de muelle están en `styles/motion.css` (`--spring`, `--spring-bouncy` y `--spring-soft`,
 como `linear()` de CSS) y la misma física en `lib/motion.ts` para lo que se anima desde JavaScript (`enter`); el cambio de pestaña es `useSwitchMotion`
-(`ui/common/motion.ts`). Las
+y la salida de los paneles `useExitGhost` (`ui/common/motion.ts`): al desmontarse deja una copia inerte en su sitio
+que se va (los iframes, vídeos y lienzos de la copia se cambian por su fondo para no recargarlos). Las
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 
