@@ -87,7 +87,19 @@
   border-radius: var(--radius-panel);
   background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
   backdrop-filter: blur(4px);
-  transition: background var(--dur-fast, 0.15s) ease, border-color var(--dur-fast, 0.15s) ease;
+  transition:
+    background var(--dur-fast, 0.15s) ease,
+    border-color var(--dur-fast, 0.15s) ease,
+    scale var(--spring-ms, 0ms) var(--spring, ease);
+  /* Aparece en cuanto coges un chat: se abre desde un poco más pequeña y su borde de rayas «camina». */
+  animation: dropZoneIn var(--spring-ms, 0ms) var(--spring, ease) both;
+}
+
+@keyframes dropZoneIn {
+  from {
+    opacity: 0;
+    scale: calc(1 - var(--m, 1) * 0.05);
+  }
 }
 
 /* Con el 3D cerrado, el chat ocupa todo: la zona va en su mitad derecha. */
@@ -99,7 +111,25 @@
 
 .drop[data-over='true'] {
   border-color: var(--cyan, #4fc3ff);
+  border-style: solid;
   background: color-mix(in srgb, var(--cyan, #4fc3ff) 14%, var(--bg-panel));
+  /* Con el chat encima, la zona se encoge un pelo, como si lo recibiera. */
+  scale: calc(1 - var(--m, 1) * 0.012);
+}
+
+.drop[data-over='true'] .dropCard {
+  scale: calc(1 + var(--m, 1) * 0.08);
+  color: var(--cyan, #4fc3ff);
+}
+
+.drop[data-over='true'] .dropCard > svg {
+  animation: dropBounce 0.9s ease-in-out infinite;
+}
+
+@keyframes dropBounce {
+  50% {
+    translate: 0 calc(var(--m, 1) * -6px);
+  }
 }
 
 .dropCard {
@@ -113,4 +143,7 @@
   font-weight: 600;
   color: var(--text-1);
   pointer-events: none;
+  transition:
+    scale var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease),
+    color var(--dur) var(--ease);
 }

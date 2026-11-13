@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useRef, useState, type ReactNode } 
 import { cx } from '../common/util'
 import { dropPlace, type DropPlace, type Dragged } from './dragOrder'
 import s from './Sidebar.module.css'
+import { flipRows, setDragCard } from '@/lib/dragMotion'
 
 /**
  * Arrastrar en la barra lateral (mantener el clic y mover): chats y proyectos se reordenan, un chat soltado sobre
@@ -103,6 +104,7 @@ export function DragSlot({
 
   return (
     <div
+      data-slot={slot}
       className={cx(
         s.dragSlot,
         className,
@@ -122,6 +124,9 @@ export function DragSlot({
         if (item.kind === 'chat') {
           e.dataTransfer.setData(CHAT_DRAG_TYPE, JSON.stringify({ projectId: item.projectId, conversationId: item.id, title: item.title ?? '' }))
         }
+        // Lo que llevas cogido: una tarjeta con su icono y su nombre (no la copia borrosa de la fila).
+        const name = item.kind === 'chat' && item.title ? item.title : (e.currentTarget.innerText || '').trim().split('\n')[0]
+        if (name) setDragCard(e, name.slice(0, 60))
         dnd.start(item)
       }}
       onDragEnd={() => dnd.end()}
@@ -136,6 +141,9 @@ export function DragSlot({
         if (!place || !d) return
         e.preventDefault()
         e.stopPropagation()
+        // Al soltar, las filas se deslizan hasta su sitio nuevo y la que has soltado da un destello.
+        const list = e.currentTarget.closest('nav')
+        if (list) flipRows(list, { landed: `:${d.id}` })
         dnd.end()
         onDrop?.(d, place)
       }}

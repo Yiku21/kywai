@@ -3766,6 +3766,11 @@ pelo y se asienta.
   una «perla» sigue al ratón por ella; al agarrarla se ensancha y brilla, y el panel que estás cambiando se marca. Si
   al soltar se va a cerrar un lado, la perla se pone en ámbar y el aviso sale con un saltito. Al soltar, el reparto de
   la ventana se recoloca con un muelle suave.
+- **Arrastrar chats y proyectos** en la barra lateral: lo que coges es una tarjeta con su icono y su nombre, un poco
+  inclinada; la fila de origen queda como un hueco de rayas, las filas se apartan de donde caería y la raya de destino
+  crece y brilla (dentro de un proyecto, el recuadro late). Si Favoritos está vacío, su pista late para invitarte. Al
+  soltar, las filas se deslizan hasta su sitio nuevo y la que has soltado da un destello. La zona «Suelta aquí para
+  abrirlo al lado» se abre con muelle y, con el chat encima, su icono bota.
 
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.
@@ -3773,7 +3778,8 @@ aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo 
 Cómo está hecho: las curvas de muelle están en `styles/motion.css` (`--spring`, `--spring-bouncy` y `--spring-soft`,
 como `linear()` de CSS) y la misma física en `lib/motion.ts` para lo que se anima desde JavaScript (`enter`); el cambio de pestaña es `useSwitchMotion`
 y la salida de los paneles `useExitGhost` (`ui/common/motion.ts`): al desmontarse deja una copia inerte en su sitio
-que se va (los iframes, vídeos y lienzos de la copia se cambian por su fondo para no recargarlos). Las
+que se va (los iframes, vídeos y lienzos de la copia se cambian por su fondo para no recargarlos). Lo del arrastre está en `lib/dragMotion.ts`: `setDragCard` (la tarjeta) y `flipRows` (mide las
+filas con `data-slot` antes y después de soltar y anima la diferencia). Las
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 
