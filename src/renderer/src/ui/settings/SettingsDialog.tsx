@@ -38,13 +38,17 @@ import {
   Layers,
   MessageSquare,
   MessageSquareOff,
-  Grid3x3
+  Grid3x3,
+  Speech,
+  AudioLines
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
 import { PIXEL_SIZES, parsePixelSize, useAgentSkin, usePixelSize } from '../../scene/characters'
 import { SkinGrid, skinText } from './SkinGrid'
 import { useInboxAlert } from '@/lib/inboxAlert'
+import { canReadAloud, useReadAloud } from '@/lib/readAloud'
+import { ReadVoiceGrid, useReadVoiceName } from './ReadVoice'
 import type { AgentAccess, AgentConfig, ClientUpdateState } from '@shared/types'
 import { MAX_INSTANCES, MAX_TEAM_PARALLEL, instancesFor } from '@shared/instances'
 import { isLocalEngine } from '@shared/localEngines'
@@ -282,6 +286,7 @@ function GeneralTab() {
           <VoiceVolumeRow />
         </div>
       )}
+      {canReadAloud() && <ReadAloudSettings />}
       <Row icon={<Gauge size={18} />} label={t('Calidad del 3D')} hint={t('Más calidad gasta más tarjeta gráfica y batería. Solo en este dispositivo.')}>
         <select className={s.select} value={quality} aria-label={t('Calidad del 3D')} onChange={(e) => useQuality.getState().setChoice(e.currentTarget.value as QualityChoice)}>
           <option value="auto">{t('Automática')}</option>
@@ -303,6 +308,41 @@ function GeneralTab() {
       ) : (
         <Row icon={<Info size={18} />} label={t('Solo demo (sin motor)')} hint={t('Abre la app de escritorio para usar agentes reales')} />
       )}
+    </>
+  )
+}
+
+/**
+ * «Leer las respuestas en voz alta» (el altavoz junto al micrófono del chat) y la voz con la que se leen: la lista va
+ * plegada y cada voz tiene su ▶ de muestra, como en el paso «Voz» de «/video».
+ */
+function ReadAloudSettings() {
+  const on = useReadAloud((st) => st.on)
+  const [open, setOpen] = useState(false)
+  const name = useReadVoiceName()
+  return (
+    <>
+      <Row
+        icon={<Speech size={18} />}
+        label={t('Leer las respuestas en voz alta')}
+        hint={t('kywai te lee la respuesta final de cada petición (no los pasos ni el código). Es el altavoz que hay junto al micrófono del chat.')}
+      >
+        <Switch on={on} label={t('Leer las respuestas en voz alta')} onChange={() => useReadAloud.getState().setOn(!on)} />
+      </Row>
+      <div className={s.block}>
+        <div className={s.blockHead}>
+          <AudioLines size={18} aria-hidden="true" className={s.rowIcon} />
+          <span className={s.rowText}>
+            <span className={s.rowLabel}>{t('Voz para leer las respuestas')}</span>
+            <span className={s.rowHint}>{t('Las mismas voces de los vídeos. Pulsa ▶ para oír cómo suena cada una; se recuerda en este dispositivo.')}</span>
+          </span>
+          <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+            {name}
+            <ChevronDown size={15} aria-hidden="true" className={cx(s.chev, open && s.chevOpen)} />
+          </button>
+        </div>
+        {open && <ReadVoiceGrid />}
+      </div>
     </>
   )
 }

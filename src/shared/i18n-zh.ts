@@ -3802,4 +3802,18 @@ export const zh: Record<string, string> = {
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "来自服务器电脑的实时画面：像普通网页一样使用。",
   // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
+  // Leer las respuestas en voz alta (altavoz del chat)
+  "Dejar de leer esta respuesta": "停止朗读这条回复",
+  "Dejar de leer las respuestas en voz alta": "停止朗读回复",
+  "Leer las respuestas en voz alta": "朗读回复",
+  "Leyendo la respuesta… pulsa para callarla": "正在朗读回复…点击停止",
+  "No se pudo leer la última respuesta: {error}": "无法朗读上一条回复：{error}",
+  "Leyendo en voz alta la respuesta final de cada petición. Pulsa para apagarlo; la voz se cambia en Ajustes.": "正在朗读每个请求的最终回复。点击关闭；可在设置中更换声音。",
+  "Leer en voz alta la respuesta final de cada petición (la voz se elige en Ajustes)": "朗读每个请求的最终回复（在设置中选择声音）",
+  "Hola, así te leeré las respuestas del chat. ¿Te gusta cómo suena?": "你好，我会这样为你朗读聊天回复。你喜欢这个声音吗？",
+  "Voz para leer las respuestas": "朗读回复的声音",
+  "kywai te lee la respuesta final de cada petición (no los pasos ni el código). Es el altavoz que hay junto al micrófono del chat.": "kywai 会为你朗读每个请求的最终回复（不含步骤和代码）。就是聊天麦克风旁边的扬声器。",
+  "Las mismas voces de los vídeos. Pulsa ▶ para oír cómo suena cada una; se recuerda en este dispositivo.": "与视频相同的声音。点击 ▶ 试听每一个；会在此设备上记住。",
+  "No hay nada que leer": "没有可朗读的内容",
+  "No se pudo generar la voz": "无法生成语音",
 }

@@ -3802,4 +3802,18 @@ export const fr: Record<string, string> = {
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "En direct depuis l'ordinateur serveur : utilise-le comme un site normal.",
   // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
+  // Leer las respuestas en voz alta (altavoz del chat)
+  "Dejar de leer esta respuesta": "Arrêter de lire cette réponse",
+  "Dejar de leer las respuestas en voz alta": "Ne plus lire les réponses à voix haute",
+  "Leer las respuestas en voz alta": "Lire les réponses à voix haute",
+  "Leyendo la respuesta… pulsa para callarla": "Lecture de la réponse… clique pour l'arrêter",
+  "No se pudo leer la última respuesta: {error}": "Impossible de lire la dernière réponse : {error}",
+  "Leyendo en voz alta la respuesta final de cada petición. Pulsa para apagarlo; la voz se cambia en Ajustes.": "Lecture à voix haute de la réponse finale de chaque demande. Clique pour l'éteindre ; la voix se change dans les Réglages.",
+  "Leer en voz alta la respuesta final de cada petición (la voz se elige en Ajustes)": "Lire à voix haute la réponse finale de chaque demande (la voix se choisit dans les Réglages)",
+  "Hola, así te leeré las respuestas del chat. ¿Te gusta cómo suena?": "Bonjour, voici comment je te lirai les réponses du chat. Ça te plaît ?",
+  "Voz para leer las respuestas": "Voix pour lire les réponses",
+  "kywai te lee la respuesta final de cada petición (no los pasos ni el código). Es el altavoz que hay junto al micrófono del chat.": "kywai te lit la réponse finale de chaque demande (pas les étapes ni le code). C'est le haut-parleur à côté du micro du chat.",
+  "Las mismas voces de los vídeos. Pulsa ▶ para oír cómo suena cada una; se recuerda en este dispositivo.": "Les mêmes voix que pour les vidéos. Appuie sur ▶ pour écouter chacune ; mémorisé sur cet appareil.",
+  "No hay nada que leer": "Il n'y a rien à lire",
+  "No se pudo generar la voz": "Impossible de générer la voix",
 }

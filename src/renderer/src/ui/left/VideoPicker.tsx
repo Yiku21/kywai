@@ -61,7 +61,7 @@ const kindName = (k: VideoKind): string => t(KINDS.find((x) => x.id === k)!.name
 const charName = (c: VideoCharacterInfo): string => (c.builtin ? t('Robots de kywai') : c.name)
 
 type VoiceEngine = VideoVoiceInfo['engine']
-const ENGINES: { id: VoiceEngine; name: string; line: string }[] = [
+export const ENGINES: { id: VoiceEngine; name: string; line: string }[] = [
   { id: 'eleven', name: 'ElevenLabs v3', line: 'La que más actúa: de pago, con tu clave.' },
   { id: 'voicebox', name: 'Tus voces (Voicebox)', line: 'Las de Voicebox, abierto en tu equipo: también tu voz clonada.' },
   { id: 'voicestudio', name: 'VoiceStudio', line: 'Abierto en tu equipo: tus voces creadas o clonadas, en cualquier idioma.' },
@@ -69,7 +69,7 @@ const ENGINES: { id: VoiceEngine; name: string; line: string }[] = [
   { id: 'kokoro', name: 'Kokoro', line: 'Gratis y en tu equipo, sin internet.' },
   { id: 'sistema', name: 'Sistema', line: 'La voz que trae tu ordenador.' }
 ]
-const MISSING: Record<VoiceEngine, string> = {
+export const MISSING: Record<VoiceEngine, string> = {
   voicebox: 'Abre Voicebox para usar tus propias voces (o la tuya, clonada).',
   gemini: 'Con una clave de API de Gemini tendrás 12 voces más.',
   kokoro: 'Instala Kokoro (gratis) en Ajustes → Extensiones → Estudio de vídeo para tener voces sin internet.',
@@ -93,7 +93,7 @@ const dataToBlobUrl = (url: string): string => {
   return URL.createObjectURL(new Blob([bytes], { type: m[1] }))
 }
 
-const langName = (code: string | undefined): string => {
+export const langName = (code: string | undefined): string => {
   if (!code) return ''
   try {
     const n = new Intl.DisplayNames([lang()], { type: 'language' }).of(code) ?? code
@@ -102,8 +102,8 @@ const langName = (code: string | undefined): string => {
     return code
   }
 }
-const voiceName = (v: VideoVoiceInfo): string => (v.engine === 'sistema' ? t('Voz del sistema') : v.name)
-const voiceLine = (v: VideoVoiceInfo): string =>
+export const voiceName = (v: VideoVoiceInfo): string => (v.engine === 'sistema' ? t('Voz del sistema') : v.name)
+export const voiceLine = (v: VideoVoiceInfo): string =>
   [
     v.engine === 'kokoro' && v.line === 'Kokoro' ? '' : v.engine === 'sistema' ? t('La del sistema operativo') : t(v.line),
     v.engine === 'edge' ? 'Microsoft Edge' : v.engine === 'mac' ? t('Siri (Mac)') : v.engine === 'kokoro' && v.line !== 'Kokoro' ? 'Kokoro' : '',

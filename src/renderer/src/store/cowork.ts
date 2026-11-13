@@ -32,6 +32,7 @@ import { api } from '@/lib/api'
 import { fromArtifact, type PreviewItem, type PreviewState } from '@/lib/preview'
 import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
+import { readFinalAnswer } from '@/lib/readAloud'
 import { lang, t } from '@/lib/i18n'
 import { readSpaceHidden, saveSpaceHidden } from '@/ui/left/chatWidth'
 import type { BrowserState } from '@shared/browser'
@@ -565,6 +566,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
       // equipo (tareas, agentes) ya suenan en la ventana principal y no se oyen dos veces.
       if (!boundChat) eventAudio.handle(e, previous)
       else if (e.kind === 'message.upsert' || e.kind === 'conversation.message') eventAudio.handle({ ...e, kind: 'message.upsert' }, previous)
+      // El altavoz del chat: al terminar una petición se lee su respuesta final (solo si está en el chat de esta ventana).
+      if (e.kind === 'run.finished') readFinalAnswer(get()[target].messages, e.runId)
       sceneBus.emit(e)
     }
   },

@@ -3802,4 +3802,18 @@ export const pt: Record<string, string> = {
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "Ao vivo do computador servidor: use como um site normal.",
   // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
+  // Leer las respuestas en voz alta (altavoz del chat)
+  "Dejar de leer esta respuesta": "Parar de ler esta resposta",
+  "Dejar de leer las respuestas en voz alta": "Parar de ler as respostas em voz alta",
+  "Leer las respuestas en voz alta": "Ler as respostas em voz alta",
+  "Leyendo la respuesta… pulsa para callarla": "Lendo a resposta… clique para parar",
+  "No se pudo leer la última respuesta: {error}": "Não foi possível ler a última resposta: {error}",
+  "Leyendo en voz alta la respuesta final de cada petición. Pulsa para apagarlo; la voz se cambia en Ajustes.": "Lendo em voz alta a resposta final de cada pedido. Clique para desligar; a voz muda-se nos Ajustes.",
+  "Leer en voz alta la respuesta final de cada petición (la voz se elige en Ajustes)": "Ler em voz alta a resposta final de cada pedido (a voz escolhe-se nos Ajustes)",
+  "Hola, así te leeré las respuestas del chat. ¿Te gusta cómo suena?": "Olá, é assim que vou ler as respostas do chat. Gostou de como soa?",
+  "Voz para leer las respuestas": "Voz para ler as respostas",
+  "kywai te lee la respuesta final de cada petición (no los pasos ni el código). Es el altavoz que hay junto al micrófono del chat.": "O kywai lê a resposta final de cada pedido (não os passos nem o código). É o alto-falante ao lado do microfone do chat.",
+  "Las mismas voces de los vídeos. Pulsa ▶ para oír cómo suena cada una; se recuerda en este dispositivo.": "As mesmas vozes dos vídeos. Toque em ▶ para ouvir cada uma; fica guardado neste dispositivo.",
+  "No hay nada que leer": "Não há nada para ler",
+  "No se pudo generar la voz": "Não foi possível gerar a voz",
 }

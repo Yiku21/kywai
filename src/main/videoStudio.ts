@@ -1251,6 +1251,48 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
   return `data:audio/mpeg;base64,${readFileSync(mp3).toString('base64')}`
 }
 
+/** Cuántos trozos leídos se guardan (los más viejos se borran): repetir una respuesta no la vuelve a generar. */
+const READ_ALOUD_KEEP = 80
+
+/**
+ * Un trozo de una respuesta del chat leído en voz alta (el altavoz junto al micrófono), en MP3 como data: URL. Con la
+ * voz elegida en Ajustes o, sin elegir, la del idioma de la app (la misma que la de los vídeos); si esa no sale (sin
+ * internet, sin la voz), con la del sistema. El texto llega ya limpio (sin código ni Markdown).
+ */
+export async function readAloudClip(text: unknown, voice: unknown, lang: string): Promise<string> {
+  const line = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim().slice(0, 600) : ''
+  if (!line || !root) throw new Error(tr('No hay nada que leer'))
+  const chosen = typeof voice === 'string' && parseVoiceId(voice) ? voice : null
+  const dir = join(root, 'lectura')
+  mkdirSync(dir, { recursive: true })
+  const key = createHash('sha1').update(`${chosen ?? ''}\n${lang}\n${line}`).digest('hex').slice(0, 24)
+  const mp3 = join(dir, `${key}.mp3`)
+  if (!existsSync(mp3)) {
+    const wav = join(dir, `${key}.wav`)
+    try {
+      await speakLine(line, lang, wav, chosen)
+      const c = await run('ffmpeg', ['-y', '-v', 'error', '-i', wav, '-ac', '1', '-b:a', '64k', mp3], { timeoutMs: 60_000 })
+      if (c.code !== 0 || !existsSync(mp3)) {
+        if (!existsSync(wav)) throw new Error(tr('No se pudo generar la voz'))
+        return `data:audio/wav;base64,${readFileSync(wav).toString('base64')}`
+      }
+    } finally {
+      rmSync(wav, { force: true })
+    }
+    try {
+      const old = readdirSync(dir)
+        .filter((f) => f.endsWith('.mp3'))
+        .map((f) => ({ f, at: statSync(join(dir, f)).mtimeMs }))
+        .sort((a, b) => b.at - a.at)
+        .slice(READ_ALOUD_KEEP)
+      for (const o of old) rmSync(join(dir, o.f), { force: true })
+    } catch {
+      /* la limpieza no es importante */
+    }
+  }
+  return `data:audio/mpeg;base64,${readFileSync(mp3).toString('base64')}`
+}
+
 /** La escena de prueba de «Probar con mi escena»: el momento clave del tema, con el personaje elegido si lo hay. */
 export function lookTrialPrompt(topic: string, character?: { name: string; builtin?: boolean } | null): string {
   const t = topic.replace(/\s+/g, ' ').trim().slice(0, 300)

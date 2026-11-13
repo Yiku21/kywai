@@ -124,7 +124,7 @@ import { attachBrowser, browserCommand, browserFrame, browserRemoteInput, browse
 import { browserRtcOffer, initBrowserStream, rtcOfferArg } from './browserStream'
 import { addressToUrl, browserFrameArg, browserInputArg, browserRectArg } from '@shared/browser'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
-import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
+import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, readAloudClip, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
 import { filmThumb, filmThumbSlugs } from './filmThumbs'
 // Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
@@ -1191,6 +1191,8 @@ function registerIpc(): void {
   handle('listVideoVoices', () => listVideoVoices(lang()))
   handle('tryVideoLook', (input: unknown) => tryVideoLook(input))
   handle('previewVideoVoice', (id: unknown) => previewVideoVoice(id, lang(), tr('Hola, así sonará la voz de tu vídeo. ¿Te gusta cómo suena?')))
+  // El altavoz del chat: un trozo de la respuesta final leído con la voz elegida (o la del idioma de la app).
+  handle('readAloud', (text: unknown, voice?: unknown) => readAloudClip(text, voice, lang()))
   // Las muestras de los estilos para el selector de «/video» de Órbita (el escritorio y la web las llevan dentro).
   webMethods.set('videoStyleThumbs', () => filmThumbSlugs())
   webMethods.set('videoStyleThumb', (slug: unknown) => (typeof slug === 'string' ? filmThumb(slug) : null))

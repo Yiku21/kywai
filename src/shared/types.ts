@@ -2232,6 +2232,8 @@ export interface CoworkApi {
   listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven')[] }>
   /** Una muestra corta de una voz (data: URL de audio). */
   previewVideoVoice(id: string): Promise<string>
+  /** Un trozo de texto leído en voz alta con una voz de las de los vídeos (sin voz, la del idioma de la app): data: URL de audio. */
+  readAloud?(text: string, voice?: string | null): Promise<string>
   /** «Probar con mi escena»: la escena del tema (con el personaje elegido) en un aspecto de imagen con IA (data: URL JPEG). */
   tryVideoLook?(input: { look: string; topic: string; character?: string | null; vertical?: boolean }): Promise<string>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */

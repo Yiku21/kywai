@@ -692,6 +692,27 @@ pasar a texto» y un aviso dice por qué: vuelve a grabarla. Con «/nuevo», «/
 se queda en el cuadro sin enviar. La primera vez se prepara solo (instala `uv` si falta y descarga el modelo,
 ~480 MB) y tarda unos minutos; después, unos segundos por nota.
 
+### Leer las respuestas en voz alta
+
+Junto al micrófono hay un **altavoz**. Activado (se pone azul), kywai te **lee sola la respuesta final** de cada
+petición cuando el equipo termina: la respuesta del coordinador con todo delante o, si fue una sola tarea, su
+resultado; y también el plan cuando espera tu visto bueno. No lee los pasos intermedios, los bloques de código, las
+tablas, las direcciones web ni la lista «Resumen del trabajo»; de una respuesta larguísima lee unos cuatro minutos.
+Mientras lee, el altavoz late y un toque lo calla (sigue activado para la siguiente); sin estar leyendo, el toque lo
+apaga. Al empezar una nota de voz se calla solo.
+
+La voz se elige en ⚙ → Ajustes → General → **«Voz para leer las respuestas»**: son las mismas voces de los vídeos
+(Álvaro, Jorge y Carmen en español; las de inglés; y las de ElevenLabs, Gemini, Voicebox o VoiceStudio si las
+tienes), cada una con ▶ para oír una muestra. Sin elegir, lee la del idioma de la app (Álvaro en español). Ahí mismo
+está el interruptor «Leer las respuestas en voz alta», que es el mismo altavoz. Suena con el volumen de «Voces de
+los agentes»; si silencias esas voces, deja de leer, y al activar el altavoz vuelven. El altavoz y la voz se
+recuerdan por dispositivo (escritorio, cliente y navegador; Órbita aún no lo tiene).
+
+El audio lo genera el equipo servidor trozo a trozo (por eso empieza a sonar a los pocos segundos) con el estudio de
+vídeo; si la voz elegida no sale (sin internet para las de Edge, por ejemplo), lee la voz del sistema. Solo se lee
+la respuesta del chat que tienes abierto en esa ventana. Código: `src/shared/readAloud.ts` (qué se lee y en qué
+trozos), `readAloudClip` en `src/main/videoStudio.ts` y `src/renderer/src/lib/readAloud.ts`.
+
 Por dentro: `sendVoiceNote` (src/main/orchestrator.ts) pone el mensaje provisional (`voiceNote: 'transcribing'`),
 transcribe con `transcribeAudio` (src/main/voice.ts) y llama a `sendMessage` con un `clientMessageId` propio; al
 guardar el mensaje del usuario con ese `clientMessageId`, `pushMessage` le da el id y la hora del provisional, así que

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, Grid3x3, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Radar, Reply, UsersRound, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, Grid3x3, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Volume2, VolumeX, Puzzle, Radar, Reply, UsersRound, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -25,6 +25,7 @@ import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
 import { paneTarget } from '../pane/paneTarget'
 import { boundChat } from '@/lib/chatPane'
+import { canReadAloud, stopReading, useReadAloud } from '@/lib/readAloud'
 
 const LINE = 20
 const PAD_Y = 20
@@ -417,6 +418,8 @@ export function Composer() {
 
   async function toggleMic(): Promise<void> {
     if (rec) return finishRecording()
+    // Que la nota de voz no grabe a kywai leyendo.
+    stopReading()
     const a = api
     if (!a || !canDictate || transcribing) return
     setError(null)
@@ -618,6 +621,7 @@ export function Composer() {
               <Mic size={18} aria-hidden="true" />
             )}
           </button>
+          {canReadAloud() && !simulate && <ReadAloudButton />}
         </div>
 
         <div className={cx(s.inputWrap, !!blockedReason && s.inputBlocked)}>
@@ -847,5 +851,36 @@ export function Composer() {
         </p>
       )}
     </div>
+  )
+}
+
+/**
+ * El altavoz junto al micrófono: activado, kywai lee en voz alta la respuesta final de cada petición (no los pasos).
+ * Mientras lee, un toque lo calla; si no, lo activa o lo apaga. La voz se elige en Ajustes.
+ */
+function ReadAloudButton() {
+  const on = useReadAloud((r) => r.on)
+  const speaking = useReadAloud((r) => !!r.speaking)
+  const loading = useReadAloud((r) => r.loading)
+  const error = useReadAloud((r) => r.error)
+  const label = speaking ? t('Dejar de leer esta respuesta') : on ? t('Dejar de leer las respuestas en voz alta') : t('Leer las respuestas en voz alta')
+  const title = speaking
+    ? t('Leyendo la respuesta… pulsa para callarla')
+    : error && on
+      ? t('No se pudo leer la última respuesta: {error}', { error })
+      : on
+        ? t('Leyendo en voz alta la respuesta final de cada petición. Pulsa para apagarlo; la voz se cambia en Ajustes.')
+        : t('Leer en voz alta la respuesta final de cada petición (la voz se elige en Ajustes)')
+  return (
+    <button
+      type="button"
+      className={cx(u.iconBtn, s.tool, on && s.speakerOn, speaking && !loading && s.speakerTalking)}
+      onClick={() => (speaking ? stopReading() : useReadAloud.getState().setOn(!on))}
+      aria-label={label}
+      aria-pressed={on}
+      title={title}
+    >
+      {loading ? <LoaderCircle size={18} aria-hidden="true" className={u.spin} /> : on ? <Volume2 size={18} aria-hidden="true" /> : <VolumeX size={18} aria-hidden="true" />}
+    </button>
   )
 }

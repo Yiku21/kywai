@@ -452,6 +452,33 @@
   box-shadow: 0 0 0 calc(var(--level, 0) * 6px) color-mix(in srgb, var(--alert) 30%, transparent);
 }
 
+/* El altavoz activado (lee las respuestas) y su latido mientras habla. */
+.speakerOn {
+  color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 14%, transparent);
+}
+
+.speakerTalking {
+  animation: speakerPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes speakerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--cyan) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speakerTalking {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cyan) 45%, transparent);
+  }
+}
+
 .recBar {
   position: absolute;
   inset: 0;
