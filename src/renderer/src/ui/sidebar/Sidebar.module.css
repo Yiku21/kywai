@@ -26,9 +26,10 @@
   border-top-color: transparent;
 }
 
-/* Mientras se arrastra el borde, el ancho sigue al ratón sin animación. */
+/* Mientras se arrastra el borde, el ancho sigue al ratón sin animación y la barra se marca. */
 .bar[data-resizing] {
   transition: none;
+  border-right-color: color-mix(in srgb, var(--cyan) 55%, var(--border));
 }
 
 /* Borde derecho de la barra, en el hueco entre la barra y el chat: se arrastra para cambiar su ancho. */

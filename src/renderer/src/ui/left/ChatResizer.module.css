@@ -53,6 +53,15 @@
   white-space: nowrap;
   pointer-events: none;
   box-shadow: var(--shadow-pop);
+  /* Sale de la raya con un saltito (scale va aparte de transform, que lo coloca). */
+  animation: snapIn var(--spring-bouncy-ms, 200ms) var(--spring-bouncy, ease) both;
+}
+
+@keyframes snapIn {
+  from {
+    opacity: 0;
+    scale: calc(1 - var(--m, 1) * 0.4);
+  }
 }
 
 .handle[data-snap='hide-space'] .snap {

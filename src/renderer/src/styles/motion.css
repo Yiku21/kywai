@@ -64,6 +64,67 @@
   animation: kwDialogOut var(--dur-exit) var(--ease-out-ui) both !important;
 }
 
+/* Bordes que se arrastran (ancho del chat y de la barra lateral, con data-grip): la raya crece desde el centro al
+   pasar por encima, una «perla» sigue al ratón por la raya (--grip-y) y, al agarrarla, se ensancha y brilla mientras
+   arrastras (data-dragging). Si al soltar se cerrará un lado (data-snap), la perla se pone en ámbar. */
+[role='separator'][data-grip]::after {
+  transform: scaleY(0.35);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--spring-ms) var(--spring),
+    box-shadow var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+[role='separator'][data-grip]:hover::after,
+[role='separator'][data-grip]:focus-visible::after,
+[role='separator'][data-grip][data-dragging]::after {
+  transform: none;
+}
+
+[role='separator'][data-grip][data-dragging]::after {
+  opacity: 1;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+[role='separator'][data-grip]::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: clamp(34px, var(--grip-y, 50%), calc(100% - 34px));
+  width: 7px;
+  height: 30px;
+  margin: -15px 0 0 -3.5px;
+  border-radius: 4px;
+  background: var(--cyan);
+  opacity: 0;
+  scale: 0.4;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    scale var(--spring-bouncy-ms) var(--spring-bouncy),
+    box-shadow var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+[role='separator'][data-grip]:hover::before,
+[role='separator'][data-grip]:focus-visible::before {
+  opacity: 0.95;
+  scale: 1;
+}
+
+[role='separator'][data-grip][data-dragging]::before {
+  opacity: 1;
+  scale: 1.2 1.35;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 70%, transparent);
+}
+
+[role='separator'][data-grip][data-snap]::before {
+  background: var(--warn);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--warn) 70%, transparent);
+}
+
 /* Errores que se notan: el campo con aria-invalid se pone en rojo (lib/shake.ts lo hace temblar) y el aviso
    (role="alert") entra con una sacudida corta junto al campo. */
 :is(input, textarea, select)[aria-invalid='true'] {

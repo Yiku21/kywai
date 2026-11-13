@@ -3762,6 +3762,10 @@ pelo y se asienta.
   chat de al lado crece desde donde lo sueltas y se va igual al cerrarlo. Al cerrar el espacio 3D su panel se va a la
   derecha mientras el chat se ensancha, la pestaña «Espacio digital» sale del borde del chat con un saltito y, al
   volver, el 3D llega desde la derecha y se asienta.
+- **Bordes que se arrastran** (ancho del chat y de la barra lateral): al acercarte, la raya crece desde el centro y
+  una «perla» sigue al ratón por ella; al agarrarla se ensancha y brilla, y el panel que estás cambiando se marca. Si
+  al soltar se va a cerrar un lado, la perla se pone en ámbar y el aviso sale con un saltito. Al soltar, el reparto de
+  la ventana se recoloca con un muelle suave.
 
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.

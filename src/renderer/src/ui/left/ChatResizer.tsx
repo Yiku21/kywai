@@ -25,6 +25,7 @@ export function ChatResizer({ panel, width, onResize, onClose }: Props) {
   const drag = useRef<{ x: number; w: number; avail: number; before: number | null } | null>(null)
   // Mientras se arrastra hasta un extremo: aviso de lo que pasará al soltar.
   const [snap, setSnap] = useState<DragOutcome>(null)
+  const [dragging, setDragging] = useState(false)
 
   const measure = (): { w: number; avail: number } | null => {
     const el = panel.current
@@ -43,9 +44,12 @@ export function ChatResizer({ panel, width, onResize, onClose }: Props) {
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     drag.current = { x: e.clientX, ...m, before: width }
+    setDragging(true)
   }
 
   const onPointerMove = (e: PointerEvent<HTMLDivElement>): void => {
+    // La perla de la raya sigue al ratón (styles/motion.css, data-grip).
+    followGrip(e)
     const d = drag.current
     if (!d) return
     const raw = d.w + e.clientX - d.x
@@ -58,6 +62,7 @@ export function ChatResizer({ panel, width, onResize, onClose }: Props) {
     if (!d) return
     drag.current = null
     setSnap(null)
+    setDragging(false)
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
     // Un clic sin mover no cambia nada (si no, un clic fijaría el ancho automático como manual).
     if (Math.abs(e.clientX - d.x) < 3) {
@@ -98,6 +103,8 @@ export function ChatResizer({ panel, width, onResize, onClose }: Props) {
     <div
       className={s.handle}
       data-snap={snap ?? undefined}
+      data-grip=""
+      data-dragging={dragging || undefined}
       role="separator"
       aria-orientation="vertical"
       aria-label={t('Ancho del chat')}
@@ -119,6 +126,12 @@ export function ChatResizer({ panel, width, onResize, onClose }: Props) {
       )}
     </div>
   )
+}
+
+/** Coloca la perla de un borde que se arrastra a la altura del ratón. */
+export function followGrip(e: PointerEvent<HTMLElement>): void {
+  const r = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--grip-y', `${Math.round(e.clientY - r.top)}px`)
 }
 
 /** Con el espacio 3D cerrado: pestaña en el borde derecho del chat para volver a abrirlo. */

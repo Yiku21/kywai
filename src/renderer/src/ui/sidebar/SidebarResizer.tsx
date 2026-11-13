@@ -1,8 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { t } from '@/lib/i18n'
 import { SIDEBAR_DEFAULT, SIDEBAR_FOLD_BELOW, SIDEBAR_MAX, SIDEBAR_MIN, clampSidebarWidth } from './sidebarState'
 import s from './Sidebar.module.css'
+import { followGrip } from '../left/ChatResizer'
 
 interface Props {
   /** Ancho de la barra abierta. */
@@ -23,6 +24,7 @@ const RAIL_W = 58
  */
 export function SidebarResizer({ width, rail, onChange }: Props) {
   const drag = useRef<{ x: number; start: number; moved: boolean; width: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   // Plegada arrastrando, recuerda el ancho que tenía antes de empezar (para cuando se vuelva a abrir).
   const outcome = (raw: number): { width: number; rail: boolean } =>
@@ -33,9 +35,11 @@ export function SidebarResizer({ width, rail, onChange }: Props) {
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     drag.current = { x: e.clientX, start: rail ? RAIL_W : width, moved: false, width }
+    setDragging(true)
   }
 
   const onPointerMove = (e: PointerEvent<HTMLDivElement>): void => {
+    followGrip(e)
     const d = drag.current
     if (!d) return
     if (Math.abs(e.clientX - d.x) >= 3) d.moved = true
@@ -50,6 +54,7 @@ export function SidebarResizer({ width, rail, onChange }: Props) {
     // Un clic sin mover no cambia nada.
     if (d.moved) onChange(e.type === 'pointercancel' ? { width: d.width, rail } : outcome(d.start + e.clientX - d.x), true)
     drag.current = null
+    setDragging(false)
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
@@ -72,6 +77,8 @@ export function SidebarResizer({ width, rail, onChange }: Props) {
   return (
     <div
       className={s.resizer}
+      data-grip=""
+      data-dragging={dragging || undefined}
       role="separator"
       aria-orientation="vertical"
       aria-label={t('Ancho de la barra lateral')}

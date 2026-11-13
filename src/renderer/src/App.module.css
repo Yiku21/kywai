@@ -34,7 +34,8 @@
   gap: 14px;
   padding: 0 14px 14px;
   min-height: 0;
-  transition: grid-template-columns var(--dur-slow) var(--ease), gap var(--dur-slow) var(--ease);
+  /* Al cerrar o abrir un lado (o volver al ancho automático), el reparto se mueve con un muelle suave. */
+  transition: grid-template-columns var(--spring-soft-ms) var(--spring-soft), gap var(--spring-soft-ms) var(--spring-soft);
 }
 
 /* Ancho elegido arrastrando el borde del chat (se ajusta solo si luego la ventana se estrecha). */
@@ -116,7 +117,16 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
   overflow: hidden;
-  transition: opacity var(--dur-slow) var(--ease);
+  transition:
+    opacity var(--dur-slow) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+/* Mientras arrastras el borde del chat, su panel se marca: se ve qué estás cambiando. */
+.body[data-resizing='true'] .left {
+  border-color: color-mix(in srgb, var(--cyan) 45%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cyan) 18%, transparent);
 }
 
 .body[data-expanded='true'] .left {
