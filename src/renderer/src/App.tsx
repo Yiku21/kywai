@@ -34,6 +34,7 @@ import { HistoryDialog } from '@/ui/sidebar/HistoryDialog'
 import { ImportDialog } from '@/ui/sidebar/ImportDialog'
 import { useMediaQuery } from '@/ui/common/hooks'
 import { SplitChat, SplitDropZone } from '@/ui/pane/SplitChat'
+import { BrowserPane } from '@/ui/pane/BrowserPane'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
 
@@ -145,16 +146,19 @@ export function App() {
   // hay sitio para dos chats: se queda guardado para cuando vuelva a ser ancha.
   const splitChat = useCowork((st) => st.splitChat)
   const split = splitChat && !narrow ? splitChat : null
-  const hidden = spaceHidden && !narrow && !split
+  // Navegador de kywai: también en el sitio del 3D (en ventana estrecha no cabe: se queda para cuando sea ancha).
+  const browserOpen = useCowork((st) => st.browserOpen) && !narrow && !expanded
+  const hidden = spaceHidden && !narrow && !split && !browserOpen
   // Mientras el 3D no se ve, la escena se para del todo: ni se dibuja ni se mueve nada (ahorra CPU y GPU). En Órbita el
   // 3D se ve detrás del chat de cristal, así que solo se para si está cerrado.
-  const sceneOff = hidden || !!split || (narrow && mobileView === 'chat' && !glass)
+  const sceneOff = hidden || !!split || browserOpen || (narrow && mobileView === 'chat' && !glass)
   const onClose = (side: 'space' | 'chat'): void => {
     const st = useCowork.getState()
     // Con un chat al lado, llevar el borde a la derecha lo cierra y el chat principal ocupa todo; a la izquierda, nada.
-    if (split) {
+    if (split || browserOpen) {
       if (side === 'space') {
         st.setSplitChat(null)
+        st.setBrowserOpen(false)
         st.setSpaceHidden(true)
       }
       return
@@ -207,7 +211,7 @@ export function App() {
         className={s.body}
         data-expanded={expanded}
         data-space-hidden={hidden || undefined}
-        data-split={split ? true : undefined}
+        data-split={split || browserOpen ? true : undefined}
         data-preview={(hidden && previewOpen) || undefined}
         data-mobile={mobileView}
         data-custom-width={chatWidth != null || undefined}
@@ -225,8 +229,8 @@ export function App() {
           className={s.space}
           data-demo={mode === 'demo'}
           aria-label={t('Espacio digital')}
-          aria-hidden={hidden || !!split || undefined}
-          inert={hidden || !!split || undefined}
+          aria-hidden={hidden || !!split || browserOpen || undefined}
+          inert={hidden || !!split || browserOpen || undefined}
         >
           <SpaceHeader />
           <div className={s.stage}>
@@ -247,7 +251,8 @@ export function App() {
             )}
           </div>
         </section>
-        {split && <SplitChat chat={split} />}
+        {split && !browserOpen && <SplitChat chat={split} />}
+        {browserOpen && <BrowserPane />}
         {!narrow && !expanded && <SplitDropZone wide={hidden} />}
         {/* Vista previa de archivos: encima del espacio 3D, a la derecha del chat. */}
         <FilePreview />

@@ -34,6 +34,7 @@ import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
 import { lang, t } from '@/lib/i18n'
 import { readSpaceHidden, saveSpaceHidden } from '@/ui/left/chatWidth'
+import type { BrowserState } from '@shared/browser'
 import { boundChat, readSplitChat, saveSplitChat, type ChatRef } from '@/lib/chatPane'
 
 export type Mode = 'live' | 'demo'
@@ -158,6 +159,10 @@ interface CoworkState {
   camera: CameraCommand | null
   /** Chat de al lado: otro chat abierto a la derecha, en lugar del espacio 3D (se recuerda en este equipo). */
   splitChat: ChatRef | null
+  /** Pestaña «Navegador» abierta a la derecha, en lugar del espacio 3D (y del chat de al lado). */
+  browserOpen: boolean
+  /** Lo último que contó el navegador de kywai (página, carga, agente que lo usa). */
+  browser: BrowserState | null
 
   applyEvent(e: CoworkEvent): void
   setMode(mode: Mode): void
@@ -178,6 +183,7 @@ interface CoworkState {
   setMobileView(v: 'chat' | 'space'): void
   /** Abre otro chat al lado (null lo cierra y vuelve el espacio 3D). */
   setSplitChat(ref: ChatRef | null): void
+  setBrowserOpen(open: boolean): void
   cameraCommand(c: CameraInput): void
   openSetup(open: boolean): void
   /** Abre (o cierra con null) la ventana de lo que hace el agente en una tarea. */
@@ -344,6 +350,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     case 'conversations.updated':
     case 'templates.updated':
     case 'board.updated':
+    case 'browser.state':
       return d
   }
 }
@@ -435,6 +442,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
   mobileView: 'chat',
   camera: null,
   splitChat: boundChat ? null : readSplitChat(),
+  browserOpen: false,
+  browser: null,
 
   applyEvent(e) {
     if (!markSeen(e.id)) return
@@ -458,6 +467,12 @@ export const useCowork = create<CoworkState>((set, get) => ({
           if (list[0]) get().loadProjectState(await a.loadProject(list[0].id))
         })().catch((err) => console.error('[cowork] no se pudo abrir otro proyecto', err))
       }
+      return
+    }
+    if (e.kind === 'browser.state') {
+      // Un agente empieza a usarlo: se abre la pestaña para que veas lo que hace (no en el chat de al lado).
+      const { reveal, ...state } = e.state
+      set(reveal && !boundChat ? { browser: state, browserOpen: true, splitChat: null, spaceExpanded: false } : { browser: state })
       return
     }
     if (e.kind === 'conversations.updated') {
@@ -650,7 +665,11 @@ export const useCowork = create<CoworkState>((set, get) => ({
   setSplitChat(splitChat) {
     saveSplitChat(splitChat)
     // Al abrir uno al lado, el 3D cerrado o ampliado deja sitio: el chat de al lado ocupa su lugar.
-    set(splitChat ? { splitChat, spaceExpanded: false } : { splitChat })
+    set(splitChat ? { splitChat, spaceExpanded: false, browserOpen: false } : { splitChat })
+  },
+  setBrowserOpen(browserOpen) {
+    if (browserOpen) saveSplitChat(null)
+    set(browserOpen ? { browserOpen, splitChat: null, spaceExpanded: false } : { browserOpen })
   },
   cameraCommand(c) {
     set({ camera: { ...c, nonce: performance.now() } as CameraCommand })

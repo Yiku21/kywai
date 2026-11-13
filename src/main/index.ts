@@ -119,6 +119,8 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { getSidebarOrder, initSidebarOrder, setSidebarOrder } from './sidebarOrder'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
+import { attachBrowser, browserCommand, browserFrame, browserRemoteInput, browserState, clearBrowserSession, navigateBrowser, showBrowser, stopBrowserAgent } from './browser'
+import { addressToUrl, browserInputArg, browserRectArg } from '@shared/browser'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
 import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
@@ -270,6 +272,7 @@ function createWindow(): BrowserWindow {
     if (mainWindow === win) {
       mainWindow = null
       setEventWindow(null)
+      attachBrowser(null)
     }
   })
   return win
@@ -816,6 +819,26 @@ function registerIpc(): void {
   handle('restoreTemplates', () => restoreBuiltinTemplates())
   // Tablero de tareas del proyecto (Kanban): las tarjetas de «Por hacer» las va cogiendo el equipo, una tras otra.
   handle('getBoard', (projectId: unknown) => getBoard(projectArg(projectId)))
+  // Navegador de kywai. Colocarlo solo vale en la ventana de este equipo (por web se ve con capturas).
+  ipcMain.handle('cowork:browserShow', (_e, rect: unknown) => showBrowser(browserRectArg(rect)))
+  handle('browserState', () => browserState())
+  handle('browserNavigate', (address: unknown) => {
+    const url = typeof address === 'string' ? addressToUrl(address.slice(0, 4000)) : null
+    if (!url) throw new Error(tr('Esa dirección no se puede abrir'))
+    return navigateBrowser(url)
+  })
+  handle('browserCommand', (cmd: unknown) => {
+    if (cmd !== 'back' && cmd !== 'forward' && cmd !== 'reload' && cmd !== 'stop' && cmd !== 'home') throw new Error(tr('Orden no válida'))
+    return browserCommand(cmd)
+  })
+  handle('browserStopAgent', () => stopBrowserAgent())
+  handle('browserClearSession', () => clearBrowserSession())
+  handle('browserFrame', () => browserFrame())
+  handle('browserInput', (input: unknown) => {
+    const i = browserInputArg(input)
+    if (!i) throw new Error(tr('Orden no válida'))
+    browserRemoteInput(i)
+  })
   handle('boardCommand', (projectId: unknown, cmd: unknown) => {
     if (!cmd || typeof cmd !== 'object') throw new Error(tr('Orden del tablero no válida'))
     return boardCommand(projectArg(projectId), cmd as BoardCommand)
@@ -1514,6 +1537,7 @@ async function boot(): Promise<void> {
 
   mainWindow = createWindow()
   setEventWindow(mainWindow)
+  attachBrowser(mainWindow)
   closeClientWindow()
   initUpdater()
   startUpdateWatch()
@@ -1528,6 +1552,7 @@ async function boot(): Promise<void> {
     if (BrowserWindow.getAllWindows().length === 0) {
       mainWindow = createWindow()
       setEventWindow(mainWindow)
+  attachBrowser(mainWindow)
     }
   })
 }

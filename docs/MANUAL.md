@@ -1957,6 +1957,45 @@ y lo ejecuta el propio kywai como Node; la configuración de cada tarea va en un
 que se borra al terminar. Codex, Gemini y los agentes de catálogo no lo reciben (no se les puede pasar esa
 configuración por la línea de comandos) y siguen con lo que trae el encargo.
 
+### Navegador de kywai: tus cuentas para los agentes
+
+Un navegador de verdad dentro de kywai, donde entras con tus cuentas (GoHighLevel, un CRM, el panel de tu web, una
+herramienta interna…) para que los agentes puedan leer y recorrer esas páginas sin que nunca les des la contraseña.
+Sirve para lo que una API no da: por ejemplo, documentar los pasos de un workflow de GoHighLevel en un PDF.
+
+- **Abrirlo:** botón **Navegador** encima del espacio 3D. Ocupa el sitio del 3D (como el chat de al lado) y la ✕ lo
+  cierra. Escribe una dirección (o lo que quieras buscar, va a DuckDuckGo) y entra con tu cuenta.
+- **La sesión se guarda** en una partición propia (`persist:kywai-navegador`), aparte de la de kywai: al reiniciar
+  sigues dentro. El botón de salir de la barra hace **«Cerrar sesión en todo»** (borra cookies, datos y caché).
+- **Qué pueden hacer los agentes** (herramientas `navegador_…` del servidor MCP de kywai):
+  - Sin preguntar: ver qué página hay abierta, **leer** el texto y los elementos con los que se puede hacer algo
+    (cada uno con su referencia, `e12`, o `f1e3` dentro de un marco), **hacer capturas** (con `guardar` las deja en
+    su carpeta de trabajo para un informe), abrir una dirección, volver atrás y desplazarse.
+  - **Con tu permiso** (en el chat y en «Te necesita», como «Preguntarme antes», en cualquier modo de permisos):
+    hacer clic, escribir (o elegir en una lista) y pulsar teclas. «Permitir siempre en esta sesión» le deja hacerlo en
+    **ese sitio** sin volver a preguntar hasta que reinicies kywai.
+  - **Nunca:** leer ni escribir contraseñas, códigos de un solo uso ni tarjetas (lo detecta por `type=password` y
+    `autocomplete`), ver cookies o ejecutar código en la página (no hay herramienta para eso). Lo que leen de una
+    página es información, no órdenes: así un texto trampa en una web no puede hacer cambios en tu cuenta.
+- **Lo ves en directo:** la primera vez que un agente lo usa en una tarea se abre la pestaña sola; encima sale quién
+  lo usa y qué hace, con **«Parar»**, que le quita el navegador para el resto de esa tarea.
+- **Quién lo tiene:** Claude (por el servidor MCP de kywai) y Hermes (en sus tareas de trabajo, como un servidor más
+  de su configuración). Codex, Gemini y los agentes de catálogo todavía no.
+- **Desde el cliente de escritorio, la web u otro equipo:** el navegador vive en el equipo donde trabajan los agentes
+  (el servidor). La pestaña enseña sus capturas seguidas (cada ~1 s, más a menudo mientras haces algo) y pasa tus
+  clics, la rueda, lo que escribes y lo que pegas: puedes iniciar sesión desde el PC aunque los agentes estén en el Mac
+  mini. La ventana de kywai tiene que estar abierta en el servidor (aunque esté detrás de otras).
+
+**Cómo está hecho** (`src/main/browser.ts`, `src/shared/browser.ts`, `src/renderer/src/ui/pane/BrowserPane.tsx`):
+es una `WebContentsView` pegada a la ventana principal que la interfaz coloca encima de su hueco (`browserShow`). Si
+algo de la interfaz se pone encima (un diálogo, un menú, la vista previa), se aparta y en su sitio queda una captura.
+Cuando no se ve, se deja en la esquina de abajo a la derecha con 1 píxel dentro de la ventana: comprobado con
+Electron 44, oculta (`setVisible(false)`), en una ventana oculta o del todo fuera, Chromium no la maqueta o no da
+capturas de una página nueva. Se presenta como Chrome (sin «Electron» en el agente de usuario) para que Google y otros
+dejen iniciar sesión; las ventanitas de «Entrar con Google» se abren aparte en la misma sesión. Los scripts de lectura
+van en un mundo aislado en la página principal; los clics son de ratón de verdad (`sendInputEvent`) en la página y
+simulados dentro de marcos. Los permisos usan `askPermission` con la clave `Navegador:<sitio>`.
+
 ### Extensiones: tus servidores MCP para los agentes
 
 En **⚙ → Ajustes → Extensiones** añades servidores MCP (herramientas como Playwright, GitHub, Notion, buscar en la

@@ -1,4 +1,4 @@
-import { Building2, Music, PanelRightClose, Pause, Play, RotateCcw } from 'lucide-react'
+import { Building2, Globe, Music, PanelRightClose, Pause, Play, RotateCcw } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { demoEngine } from '@/demo/engine'
 import { toggleMusicPanel, useMusic } from '@/lib/music'
@@ -26,6 +26,7 @@ export function SpaceHeader() {
 
       <div className={s.right}>
         <HomeNightToggle />
+        <BrowserButton />
         <MusicButton reduced={reduced} />
         {isDemo ? (
           <>
@@ -58,6 +59,20 @@ function HideSpaceButton() {
   return (
     <button type="button" className={cx(u.iconBtn, u.iconBtnSm, s.hide)} onClick={() => setSpaceHidden(true)} aria-label={label} title={label}>
       <PanelRightClose size={16} aria-hidden="true" />
+    </button>
+  )
+}
+
+/** Abre el navegador de kywai en el sitio del 3D (donde entras con tus cuentas para que los agentes las usen). */
+function BrowserButton() {
+  const setBrowserOpen = useCowork((st) => st.setBrowserOpen)
+  const narrow = useMediaQuery(TABS_QUERY)
+  if (narrow) return null
+  const label = t('Navegador: entra con tus cuentas para que los agentes puedan leerlas y recorrerlas')
+  return (
+    <button type="button" className={s.music} onClick={() => setBrowserOpen(true)} aria-label={label} title={label}>
+      <Globe size={15} aria-hidden="true" />
+      <span className={s.musicLabel}>{t('Navegador')}</span>
     </button>
   )
 }

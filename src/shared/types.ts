@@ -2,6 +2,7 @@ import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
 import type { Board, BoardCommand } from './board'
+import type { BrowserRect, BrowserRemoteInput, BrowserState } from './browser'
 import type { ArchivePreview, ImportResult, ImportScan } from './imports'
 import type { SpotifastAction, SpotifastStatus } from './spotifast'
 export type { ArchivePreview, ImportResult, ImportScan } from './imports'
@@ -1778,6 +1779,8 @@ export type CoworkEvent = EventBase &
     | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string; leanCode?: boolean }
     | { kind: 'routines.updated'; projectId: string; routines: Routine[] }
     | { kind: 'board.updated'; board: Board }
+    /** El navegador de kywai cambió de página, cargó o un agente empezó o dejó de usarlo. */
+    | { kind: 'browser.state'; state: BrowserState }
     | { kind: 'templates.updated'; templates: TaskTemplate[] }
     | { kind: 'project.deleted'; projectId: string }
     | { kind: 'local.pull'; pull: LocalPullState }
@@ -2080,6 +2083,20 @@ export interface CoworkApi {
   /** Enciende o apaga «Código escueto (Ponytail)» en el proyecto; al encenderlo descarga sus reglas si no están. */
   setLeanCode(projectId: string, on: boolean): Promise<void>
   /** Rutinas del proyecto (los cambios llegan por eventos routines.updated, sin el secreto del webhook). */
+  /**
+   * Navegador de kywai (pestaña «Navegador»). browserShow lo coloca en ese sitio de la ventana (null: deja de verse);
+   * desde otro dispositivo se ve con browserFrame y se maneja con browserInput. Los cambios llegan con browser.state.
+   */
+  browserShow(rect: BrowserRect | null): Promise<BrowserState>
+  browserState(): Promise<BrowserState>
+  browserNavigate(address: string): Promise<BrowserState>
+  browserCommand(cmd: 'back' | 'forward' | 'reload' | 'stop' | 'home'): Promise<BrowserState>
+  /** «Parar»: el agente que lo usa ahora deja de poder usarlo en esa tarea. */
+  browserStopAgent(): Promise<BrowserState>
+  /** «Cerrar sesión en todo»: borra cookies, almacenamiento y caché del navegador. */
+  browserClearSession(): Promise<BrowserState>
+  browserFrame(): Promise<{ image: string; width: number; height: number } | null>
+  browserInput(input: BrowserRemoteInput): Promise<void>
   /** Tablero de tareas del proyecto (los cambios llegan por el evento board.updated). */
   getBoard(projectId: string): Promise<Board>
   /** Añadir, cambiar, ordenar, quitar o reintentar tarjetas del tablero, o ponerlo en pausa. */

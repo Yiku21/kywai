@@ -1,0 +1,245 @@
+/* Navegador de kywai: en la columna del espacio 3D, con su misma forma de panel (como el chat de al lado). */
+.pane {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.address {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 34px;
+  margin: 0 6px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-2) 7%, transparent);
+  transition: border-color var(--dur-fast, 0.15s) ease, background var(--dur-fast, 0.15s) ease;
+}
+
+.address:focus-within {
+  border-color: var(--cyan, #4fc3ff);
+  background: var(--bg-panel);
+}
+
+.addressIcon {
+  flex: none;
+  color: var(--text-2);
+}
+
+.addressInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--text-1);
+  background: transparent;
+}
+
+.addressInput::placeholder {
+  color: var(--text-3, var(--text-2));
+}
+
+/* Un agente lo está usando: su nombre, lo que hace y «Parar». */
+.agent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 7px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--cyan, #4fc3ff) 12%, var(--bg-panel));
+}
+
+.agentDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan, #4fc3ff);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan, #4fc3ff) 60%, transparent);
+  animation: agentPulse 1.6s ease-out infinite;
+}
+
+@keyframes agentPulse {
+  to {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agentDot {
+    animation: none;
+  }
+}
+
+.agentText {
+  flex: none;
+  font-weight: 600;
+}
+
+.agentTask {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.agentStop {
+  flex: none;
+  gap: 6px;
+}
+
+.error {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--red, #ff6b6b);
+}
+
+/* Aquí va la página de verdad (la coloca el motor encima de este hueco). */
+.area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #ffffff;
+}
+
+.snapshot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+
+.intro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px clamp(20px, 6%, 64px);
+  overflow-y: auto;
+  text-align: center;
+  color: var(--text-1);
+  background: var(--bg-panel);
+}
+
+.introIcon {
+  color: var(--cyan, #4fc3ff);
+}
+
+.introTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.introText,
+.introHint {
+  max-width: 520px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.introHint {
+  font-style: italic;
+}
+
+.introList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 520px;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-1);
+}
+
+.introList li {
+  display: flex;
+  gap: 10px;
+}
+
+.introList svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--green, #3ddc97);
+}
+
+/* Desde otro dispositivo: capturas seguidas del equipo servidor. */
+.remote {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  background: var(--bg-panel);
+}
+
+.remote:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--cyan, #4fc3ff);
+}
+
+.remoteImg {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  object-position: top center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remoteNote,
+.remoteWait {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.remoteWait {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--bg-panel);
+}

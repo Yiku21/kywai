@@ -14,7 +14,7 @@ import { memoryOf } from './memory'
 import * as store from './projects'
 import { confirmLearnedSkill, fullSkillSections, initSkills, learnedSkills, parseTaskSkill, readSkill, relevantSkills, removeLearnedSkill, saveTaskSkill, skillPromptLines } from './skills'
 import { repoInstructionLines } from './repoInstructions'
-import { mcpForTask, releaseMcp, startCoworkMcp, stopCoworkMcp } from './coworkMcp'
+import { BROWSER_TOOLS, browserMcpForTask, callTool, mcpForTask, releaseBrowserMcp, releaseMcp, startCoworkMcp, stopCoworkMcp, toolsFor } from './coworkMcp'
 import { claudeArgs } from './agents/claude'
 import { buildCommandLine } from './agents/spawn'
 
@@ -56,6 +56,29 @@ async function talk(envVars: Record<string, string>, msgs: object[]): Promise<Re
 }
 
 describe('servidor MCP de kywai', () => {
+  it('el navegador: lectura sin preguntar, cambios con permiso, y para Hermes solo el navegador', async () => {
+    expect(BROWSER_TOOLS.map((t) => t.name)).toEqual(['navegador_estado', 'navegador_leer', 'navegador_captura', 'navegador_ir', 'navegador_atras', 'navegador_desplazar', 'navegador_clic', 'navegador_escribir', 'navegador_tecla'])
+    const ctx = { projectId, runId: 'r1', taskId: 't-nav', taskTitle: 'Documentar', agentId: 'hermes', agentName: 'Hermes' }
+    expect(toolsFor({ ...ctx, browserOnly: true }).map((t) => t.name)).toEqual(BROWSER_TOOLS.map((t) => t.name))
+    // Sin la ventana de kywai (aquí no hay Electron) el navegador lo dice claro, sin colgarse.
+    await expect(callTool(ctx, 'navegador_leer', {})).rejects.toThrow(/ventana de kywai/)
+    await expect(callTool(ctx, 'navegador_tecla', { tecla: 'F12', motivo: 'x' })).rejects.toThrow(/Tecla no admitida/)
+    // Hermes: un servidor más de su configuración, con su propio token, que solo sirve para el navegador.
+    const b = browserMcpForTask(ctx)!
+    expect(b.server).toMatchObject({ id: 'kywai-navegador', args: [expect.stringMatching(/ai-cowork-mcp\.cjs$/)] })
+    const child = spawn(process.execPath, b.server.args, { env: { ...process.env, ...b.server.env }, stdio: ['pipe', 'pipe', 'inherit'] })
+    const rl = createInterface({ input: child.stdout })
+    const got = new Map<number, any>()
+    const done = new Promise<void>((ok) => rl.on('line', (l) => { const m = JSON.parse(l); got.set(m.id, m); if (got.size === 2) ok() }))
+    child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }) + '\n')
+    child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'memoria_proyecto', arguments: {} } }) + '\n')
+    await done
+    child.kill()
+    releaseBrowserMcp(b.token)
+    expect(got.get(1).result.tools.map((t: { name: string }) => t.name)).toEqual(BROWSER_TOOLS.map((t) => t.name))
+    expect(got.get(2).result).toMatchObject({ isError: true, content: [{ text: 'Herramienta desconocida: memoria_proyecto' }] })
+  })
+
   it('se presenta, lista sus herramientas y las ejecuta para su proyecto y su tarea', async () => {
     const r = await talk({}, [
       { id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'x', version: '1' } } },
@@ -68,7 +91,7 @@ describe('servidor MCP de kywai', () => {
       { id: 7, method: 'otra/cosa' }
     ])
     expect(r[1].result).toMatchObject({ protocolVersion: '2025-06-18', serverInfo: { name: 'ai-cowork' }, capabilities: { tools: {} } })
-    expect(r[2].result.tools.map((t: { name: string }) => t.name)).toEqual(['memoria_proyecto', 'anotar_memoria', 'estado_equipo', 'preguntar_usuario', 'leer_habilidad'])
+    expect(r[2].result.tools.map((t: { name: string }) => t.name)).toEqual(['memoria_proyecto', 'anotar_memoria', 'estado_equipo', 'preguntar_usuario', 'leer_habilidad', ...BROWSER_TOOLS.map((t) => t.name)])
     expect(r[3].result.content[0].text).toMatch(/^Anotado como m\d+/)
     expect(memoryOf(projectId).find((m) => m.text === 'El servidor usa Node 22')).toMatchObject({ kind: 'fact', status: 'provisional', by: 'codex', taskId: 't1' })
     expect(r[4].result.content[0].text).toContain('1. Subir el número.')

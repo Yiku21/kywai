@@ -9,15 +9,17 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import type { MemoryKind } from '@shared/types'
 import { getConfig } from './config'
 import { addInbox } from './inbox'
-import { tl } from '@shared/i18n'
+import { tl, type Msg } from '@shared/i18n'
 import { addMemory, instructionsOf, KIND_LABEL, memoryLines, memoryOf } from './memory'
 import * as store from './projects'
 import { listSkills, readSkill } from './skills'
 import { askPermission, describeToolRequest } from './permissions'
+import { BROWSER_KEYS, captureRelPath, isBrowserKey, siteOf } from '@shared/browser'
+import * as browser from './browser'
 
 export const MCP_SERVER_NAME = 'ai-cowork'
 
@@ -33,6 +35,10 @@ export interface McpTaskContext {
    * respuesta. Solo entonces existe la herramienta pedir_permiso.
    */
   askPermission?: boolean
+  /** Carpeta de trabajo de la tarea (ahí guarda las capturas del navegador que pide guardar). */
+  dir?: string
+  /** Solo las herramientas del navegador (las que se le dan a Hermes por su configuración de servidores). */
+  browserOnly?: boolean
 }
 
 /** La herramienta que usa Claude con --permission-prompt-tool (no la llama el agente por su cuenta). */
@@ -97,6 +103,55 @@ export const MCP_TOOLS: ToolDef[] = [
     name: 'leer_habilidad',
     description: 'Lee una habilidad del equipo (un procedimiento ya escrito) por su nombre. Sin nombre, lista las que hay.',
     inputSchema: { type: 'object', properties: { nombre: { type: 'string' } }, additionalProperties: false }
+  }
+]
+
+/** El navegador de kywai (src/main/browser.ts): leer y moverse sin preguntar; cambiar cosas, con permiso. */
+export const BROWSER_TOOLS: ToolDef[] = [
+  {
+    name: 'navegador_estado',
+    description: 'Qué página tiene abierta el navegador de kywai: la pestaña «Navegador» de la app, donde el usuario ya inició sesión con sus cuentas (por ejemplo GoHighLevel). Úsalo para trabajar con webs que necesitan la cuenta del usuario; nunca pidas su contraseña.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'navegador_leer',
+    description: 'Lee la página abierta en el navegador de kywai: el texto visible y los elementos con los que se puede hacer algo, cada uno con su referencia (e12, o f1e3 dentro de un marco) para navegador_clic y navegador_escribir. Las referencias valen hasta la siguiente lectura. Los campos de contraseña nunca enseñan su valor.',
+    inputSchema: { type: 'object', properties: { parte: { type: 'number', description: 'Si el texto es largo sale por partes: 2, 3…' } }, additionalProperties: false }
+  },
+  {
+    name: 'navegador_captura',
+    description: 'Captura de lo que se ve en el navegador de kywai (para ver lo que el texto no cuenta: un diagrama, un flujo, un diseño). Con «guardar» la deja además en tu carpeta de trabajo (p. ej. capturas/paso-1.png) para usarla en un informe.',
+    inputSchema: { type: 'object', properties: { guardar: { type: 'string', description: 'Ruta relativa en tu carpeta de trabajo (opcional).' } }, additionalProperties: false }
+  },
+  {
+    name: 'navegador_ir',
+    description: 'Abre una dirección (http o https) en el navegador de kywai, con la sesión del usuario.',
+    inputSchema: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'], additionalProperties: false }
+  },
+  {
+    name: 'navegador_atras',
+    description: 'Vuelve a la página anterior del navegador de kywai.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'navegador_desplazar',
+    description: 'Desplaza la página del navegador de kywai hacia abajo o hacia arriba (o hasta un elemento, con su referencia).',
+    inputSchema: { type: 'object', properties: { direccion: { type: 'string', enum: ['abajo', 'arriba'] }, ref: { type: 'string' } }, additionalProperties: false }
+  },
+  {
+    name: 'navegador_clic',
+    description: 'Hace clic en un elemento de la página (referencia de navegador_leer). Pide permiso al usuario y espera su respuesta, salvo que ya te lo diera para ese sitio en esta sesión. Explica en «motivo» para qué.',
+    inputSchema: { type: 'object', properties: { ref: { type: 'string' }, motivo: { type: 'string' } }, required: ['ref', 'motivo'], additionalProperties: false }
+  },
+  {
+    name: 'navegador_escribir',
+    description: 'Escribe en un campo de la página (sustituye lo que tenga; en una lista elige la opción con ese texto). Con enviar=true pulsa Intro después. Pide permiso al usuario. Nunca sirve para contraseñas, códigos ni tarjetas: eso lo escribe el usuario.',
+    inputSchema: { type: 'object', properties: { ref: { type: 'string' }, texto: { type: 'string' }, enviar: { type: 'boolean' }, motivo: { type: 'string' } }, required: ['ref', 'texto', 'motivo'], additionalProperties: false }
+  },
+  {
+    name: 'navegador_tecla',
+    description: 'Pulsa una tecla en la página (Enter, Tab, Escape, flechas, PageDown…). Pide permiso al usuario.',
+    inputSchema: { type: 'object', properties: { tecla: { type: 'string', enum: [...BROWSER_KEYS] }, motivo: { type: 'string' } }, required: ['tecla', 'motivo'], additionalProperties: false }
   }
 ]
 
@@ -205,17 +260,33 @@ async function handleHttp(req: import('node:http').IncomingMessage, res: import(
   }
   const ctx = session(body.token)
   if (!ctx) return reply(403, { error: 'Esta tarea ya terminó o el token no es válido' })
-  if (req.url === '/tools') return reply(200, { tools: ctx.askPermission ? [...MCP_TOOLS, PERMISSION_TOOL] : MCP_TOOLS })
+  if (req.url === '/tools') return reply(200, { tools: toolsFor(ctx) })
   try {
-    reply(200, { text: await callTool(ctx, String(body.name ?? ''), (body.arguments ?? {}) as Record<string, unknown>) })
+    const name = String(body.name ?? '')
+    if (!toolsFor(ctx).some((t) => t.name === name)) throw new Error(`Herramienta desconocida: ${name}`)
+    const out = await callTool(ctx, name, (body.arguments ?? {}) as Record<string, unknown>)
+    reply(200, typeof out === 'string' ? { text: out } : out)
   } catch (e) {
     reply(200, { text: (e as Error).message, isError: true })
   }
 }
 
+/** Las herramientas de una tarea. */
+export function toolsFor(ctx: McpTaskContext): ToolDef[] {
+  if (ctx.browserOnly) return BROWSER_TOOLS
+  return [...MCP_TOOLS, ...BROWSER_TOOLS, ...(ctx.askPermission ? [PERMISSION_TOOL] : [])]
+}
+
+/** Respuesta de una herramienta con imagen (la captura del navegador). */
+export interface ToolImageResult {
+  text: string
+  image: { data: string; mimeType: string }
+}
+
 /** Ejecuta una herramienta para la tarea `ctx`. Exportada para las pruebas. */
-export async function callTool(ctx: McpTaskContext & { questions?: number }, name: string, args: Record<string, unknown>): Promise<string> {
+export async function callTool(ctx: McpTaskContext & { questions?: number }, name: string, args: Record<string, unknown>): Promise<string | ToolImageResult> {
   const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
+  if (name.startsWith('navegador_')) return browserTool(ctx, name, args, str)
   switch (name) {
     case 'memoria_proyecto': {
       const instructions = instructionsOf(ctx.projectId).trim()
@@ -292,6 +363,117 @@ export async function callTool(ctx: McpTaskContext & { questions?: number }, nam
   }
 }
 
+/** Las herramientas del navegador de kywai. Lo que cambia algo en la página pide permiso antes (en cualquier modo). */
+async function browserTool(ctx: McpTaskContext, name: string, args: Record<string, unknown>, str: (v: unknown, max: number) => string): Promise<string | ToolImageResult> {
+  const who = { taskId: ctx.taskId, agentName: ctx.agentName, taskTitle: ctx.taskTitle }
+  const ask = async (action: Msg, what: string, doing: string): Promise<void> => {
+    const site = siteOf(browser.browserState().url)
+    const why = str(args.motivo, 300)
+    const answer = await askPermission({
+      projectId: ctx.projectId,
+      runId: ctx.runId,
+      taskId: ctx.taskId,
+      taskTitle: ctx.taskTitle,
+      agentId: ctx.agentId,
+      agentName: ctx.agentName,
+      action,
+      detail: [
+        `${what} · ${site}`,
+        why ? `Motivo: ${why}` : '',
+        `«Permitir siempre en esta sesión» le deja hacer clic y escribir en ${site} sin volver a preguntar hasta que reinicies kywai.`
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      key: `Navegador:${site}`
+    })
+    if (answer === 'deny') throw new Error('El usuario lo ha denegado. No lo intentes de otra forma: sigue con lo que puedas sin eso y, si sin eso no se puede hacer la tarea, explícalo en tu respuesta.')
+    browser.useByAgent(who, doing)
+  }
+  switch (name) {
+    case 'navegador_estado':
+      browser.useByAgent(who, 'mira qué página hay abierta')
+      return browser.stateForAgent()
+    case 'navegador_leer': {
+      browser.useByAgent(who, 'lee la página')
+      const part = typeof args.parte === 'number' ? args.parte : 1
+      return browser.readForAgent(part)
+    }
+    case 'navegador_captura': {
+      browser.useByAgent(who, 'hace una captura')
+      const png = await browser.captureForAgent()
+      let saved = ''
+      if (args.guardar !== undefined) {
+        const rel = captureRelPath(args.guardar)
+        if (!rel) throw new Error('«guardar» debe ser una ruta relativa dentro de tu carpeta de trabajo, como capturas/paso-1.png')
+        if (!ctx.dir) throw new Error('Esta tarea no tiene carpeta de trabajo donde guardar la captura')
+        const root = resolve(ctx.dir)
+        const abs = resolve(root, rel)
+        if (!abs.startsWith(root + sep)) throw new Error('Esa ruta sale de tu carpeta de trabajo')
+        mkdirSync(dirname(abs), { recursive: true })
+        writeFileSync(abs, png)
+        saved = ` Guardada en ${rel}.`
+      }
+      return { text: `Captura de ${browser.browserState().url || 'una página en blanco'}.${saved}`, image: { data: png.toString('base64'), mimeType: 'image/png' } }
+    }
+    case 'navegador_ir': {
+      const url = str(args.url, 2000)
+      browser.useByAgent(who, 'abre una página')
+      return browser.goForAgent(url)
+    }
+    case 'navegador_atras':
+      browser.useByAgent(who, 'vuelve atrás')
+      return browser.backForAgent()
+    case 'navegador_desplazar': {
+      browser.useByAgent(who, 'se desplaza por la página')
+      const ref = str(args.ref, 12)
+      return browser.scrollForAgent(args.direccion === 'arriba' ? 'arriba' : 'abajo', ref || undefined)
+    }
+    case 'navegador_clic': {
+      browser.useByAgent(who, 'espera tu permiso para hacer clic')
+      const ref = str(args.ref, 12)
+      const el = await browser.describeRef(ref)
+      await ask(tl('hacer clic en el navegador'), `Clic en ${el.label}`, 'hace clic')
+      return browser.clickForAgent(ref)
+    }
+    case 'navegador_escribir': {
+      browser.useByAgent(who, 'espera tu permiso para escribir')
+      const ref = str(args.ref, 12)
+      const text = typeof args.texto === 'string' ? args.texto.slice(0, 5000) : ''
+      const el = await browser.describeRef(ref)
+      const shown = text.length > 200 ? `${text.slice(0, 200)}…` : text
+      await ask(tl('escribir en el navegador'), `Escribir «${shown}» en ${el.label}${args.enviar === true ? ' y pulsar Intro' : ''}`, 'escribe')
+      return browser.typeForAgent(ref, text, args.enviar === true)
+    }
+    case 'navegador_tecla': {
+      const key = args.tecla
+      if (!isBrowserKey(key)) throw new Error(`Tecla no admitida. Usa una de: ${BROWSER_KEYS.join(', ')}`)
+      browser.useByAgent(who, 'espera tu permiso para pulsar una tecla')
+      await ask(tl('pulsar una tecla en el navegador'), `Pulsar ${key}`, 'pulsa una tecla')
+      return browser.keyForAgent(key)
+    }
+    default:
+      throw new Error(`Herramienta desconocida: ${name}`)
+  }
+}
+
+/**
+ * Las herramientas del navegador para Hermes, como un servidor MCP más de su configuración (Hermes no lee
+ * --mcp-config). Lleva su propio token, que solo sirve para el navegador y se anula con releaseBrowserMcp.
+ */
+export function browserMcpForTask(ctx: McpTaskContext): { server: { id: string; title: string; command: string; args: string[]; env: Record<string, string> }; token: string } | null {
+  if (!server || !scriptPath) return null
+  const token = randomBytes(24).toString('hex')
+  sessions.set(token, { ...ctx, browserOnly: true, askPermission: false, questions: 0 })
+  return {
+    token,
+    server: { id: 'kywai-navegador', title: 'Navegador de kywai', command: process.execPath, args: [scriptPath], env: { ELECTRON_RUN_AS_NODE: '1', AICW_MCP_URL: `http://127.0.0.1:${port}`, AICW_MCP_TOKEN: token } }
+  }
+}
+
+export function releaseBrowserMcp(token: string | undefined): void {
+  if (token) sessions.delete(token)
+}
+
 /**
  * El servidor MCP por stdio (JSON-RPC, un mensaje por línea). No depende de nada: lo ejecuta Electron como Node.
  * Cada petición tools/list o tools/call se pasa a kywai con el token de la tarea.
@@ -315,7 +497,7 @@ function post(path, body) {
     })
     req.on('error', ko)
     // Pedir permiso espera a que el usuario conteste (puede tardar horas): sin límite.
-    if (!(body && body.name === 'pedir_permiso')) req.setTimeout(60000, () => req.destroy(new Error('kywai no respondió a tiempo')))
+    if (!(body && /^(pedir_permiso|navegador_(clic|escribir|tecla))$/.test(body.name))) req.setTimeout(60000, () => req.destroy(new Error('kywai no respondió a tiempo')))
     req.end(data)
   })
 }
@@ -336,7 +518,9 @@ async function handle(msg) {
     if (method === 'tools/call') {
       const r = await post('/call', { name: params && params.name, arguments: (params && params.arguments) || {} })
       const text = r.text !== undefined ? String(r.text) : String(r.error || 'Error')
-      return send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text }], isError: !!(r.isError || r.error) } })
+      const content = [{ type: 'text', text }]
+      if (r.image && r.image.data) content.push({ type: 'image', data: String(r.image.data), mimeType: String(r.image.mimeType || 'image/png') })
+      return send({ jsonrpc: '2.0', id, result: { content, isError: !!(r.isError || r.error) } })
     }
     if (method === 'resources/list') return send({ jsonrpc: '2.0', id, result: { resources: [] } })
     if (method === 'prompts/list') return send({ jsonrpc: '2.0', id, result: { prompts: [] } })
