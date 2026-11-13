@@ -72,7 +72,7 @@ import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, markAnswered, openPending, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, withoutMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
-import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
+import { CHAT_STYLE, USER_SUMMARY, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
 import { supportsResume } from './agentSessions'
 import { conversationOfMessage, conversationOfRun, currentChat, findMessage, lastRunSession, locateRun, rememberRunSession, runChat } from './conversations'
@@ -5753,7 +5753,9 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
           '',
           '## Corrección pedida por el verificador',
           'Ya hiciste esta tarea; otro agente comprobó el resultado contra la petición y el criterio de aceptación y vio estos fallos. Corrige exactamente eso sobre lo que ya hay (no empieces de cero) y comprueba que queda bien:',
-          meta.fixRequest
+          meta.fixRequest,
+          '',
+          'Tu respuesta final sigue siendo para el usuario: cuenta el resultado tal como queda ahora, como si lo entregaras por primera vez. No narres la revisión ni la corrección.'
         ]
       : []),
     ...(meta.resume
@@ -7252,7 +7254,7 @@ async function finalAnswer(run: Run, planner: AgentConfig, ts: Task[]): Promise<
     ...results,
     '',
     '## Qué debes responder',
-    'Redacta la respuesta final para el usuario, como si hubieras hecho tú el trabajo con tu equipo: qué se ha hecho y dónde está (archivos, rutas), cómo probarlo o usarlo, qué decisiones se tomaron que le convenga saber, y qué quedó fuera, falló o conviene revisar (sin esconder nada). Si el trabajo fue «a dos manos» (opción A y opción B con un juez), di dónde está cada opción, cuál recomienda el juez y por qué, y que puede pedir que se siga con la otra. Entre 5 y 20 líneas, en Markdown sencillo, sin listas de tareas ni de agentes (eso ya lo ve), sin inventar nada que no esté arriba. Solo el texto de la respuesta, sin preámbulos.',
+    `Redacta la respuesta final para el usuario, como si hubieras hecho tú el trabajo con tu equipo. Esta respuesta ${USER_SUMMARY} Si algo falló o conviene que lo revise, dilo sin esconderlo, en una frase. Si el trabajo fue «a dos manos» (opción A y opción B con un juez), di dónde está cada opción, cuál recomienda el juez y por qué, y que puede pedir que se siga con la otra. Entre 3 y 10 líneas, en Markdown sencillo, sin listas de tareas ni de agentes (eso ya lo ve), sin inventar nada que no esté arriba. Solo el texto de la respuesta, sin preámbulos.`,
     `Cómo escribirla: ${CHAT_STYLE}`
   ].join('\n')
   const ctrl = new AbortController()

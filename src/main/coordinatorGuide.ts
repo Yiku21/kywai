@@ -73,6 +73,13 @@ export function mentionsApp(text: string): boolean {
 export const CHAT_STYLE =
   'empieza por el resultado o la respuesta en una o dos frases; después, párrafos cortos (2 o 3 frases) separados por una línea en blanco; los pasos, opciones o hallazgos en lista (numerada si hay orden), un punto por idea; **negrita** solo para lo que no se puede pasar por alto; títulos (##) solo si la respuesta es larga; para citar una parte de un documento, nómbrala con palabras («apartado 3.1» o su título), nunca con «§» ni otros símbolos o abreviaturas que el usuario tenga que adivinar. Todo lo que el usuario tenga que copiar y pegar (código, órdenes de terminal, JSON, una política, configuración, un .env…) va SIEMPRE en su propio bloque ``` con su lenguaje (```json, ```bash…), aunque sea una línea, para que salga en una tarjeta con botón de copiar; nunca suelto dentro de una frase ni de un punto de la lista (el chat se comería sus * y _ como cursiva y se copiaría roto): termina la frase en «:» y pon el bloque debajo. Entre `comillas` dentro de una frase, solo nombres cortos (un archivo, un botón, un comando de una palabra). Nada de muros de texto, de relleno ni de repetir lo que el usuario ya ve.'
 
+/**
+ * Para quién es la respuesta de una tarea: el usuario quiere el archivo que pidió y lo importante, no el parte
+ * técnico. Va en el encargo de cada tarea y en la respuesta final del coordinador.
+ */
+export const USER_SUMMARY =
+  'es para el usuario, que no ha visto el trabajo y no tiene por qué saber programar. Primero, qué se le entrega y con qué nombre de archivo (lo que pidió: el PDF, el vídeo, la página, el documento). Después, solo lo que le sirve para usarlo o decidir: las conclusiones, un aviso que deba conocer, lo que quedó fuera. Pocas líneas y palabras llanas. No cuentes cómo se hizo: nada de nombres de funciones, números de línea, scripts, archivos intermedios (json, datos, borradores), criterios de aceptación, revisiones o correcciones entre agentes, ni recados para otras tareas, salvo que la petición fuera precisamente sobre el código o el usuario lo haya pedido.'
+
 /** Sección «Cómo funciona kywai» para el prompt del coordinador. */
 export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[] {
   const ownCode = isInside(opts.projectDir, e.codeDir)
@@ -225,7 +232,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
         '- Los robots libres juegan, se saludan y despiertan a un compañero dormido con un susto amistoso. Son animaciones locales: no gastan cuota ni cambian los archivos del proyecto. Las interrumpen el trabajo real, las transferencias o el usuario al escribir; Reducir efectos las desactiva. Están en escritorio, cliente y navegador, no en el mundo nativo de Órbita.',
         '- El repertorio ambiental incluye bailes compartidos, imitaciones con guiños y saltos, choques de antenas con un destello y visitas de ánimo con un corazón al compañero cansado que esté libre. No cambian la cuota ni el cansancio real del agente.',
         '- Con música sonando, los robots libres permanecen despiertos y muestran «Bailando»: siguen el pulso del reproductor o de la música ambiental, incluso con las luces musicales apagadas. Sin BPM se balancean suavemente y usan los golpes detectados. El trabajo real, escribir y Reducir efectos tienen prioridad.',
-        '- Los archivos que entrega cada tarea aparecen en el chat agrupados en una carpeta que se despliega al pulsarla (y en la pestaña Resultados).',
+        '- Los archivos que entrega cada tarea aparecen en el chat (y en la pestaña Resultados): el que se pidió (el PDF, el vídeo, la página) sale suelto y delante, con Abrir y Descargar, y los archivos de trabajo quedan plegados debajo. El mensaje de cada tarea es un resumen corto para el usuario: las notas «Para la memoria» y las revisiones entre agentes no salen en el chat (están en Memoria y en el registro de la tarea).',
         '- Cambios de cada tarea: bajo su mensaje, «N archivos cambiados» despliega el diff de cada archivo; «Deshacer» deja sus archivos como estaban aunque después cambiaran otros (si chocan las mismas líneas, no deshace nada y lo dice), y «Pedir cambios» prepara una continuación. Si dos tareas coinciden en el tiempo, la segunda trabaja en una copia aparte de la carpeta y sus cambios se integran al terminar; si chocan, ella misma resuelve las marcas de conflicto. Así que puedes repartir en paralelo sin miedo a que se pisen, aunque dividir trabajo acoplado sigue empeorando el resultado.'
       ])
   ]
@@ -235,6 +242,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
 export function taskGuideRules(projectDir: string, e: GuideEnv = env): string[] {
   const rules = [
     `- Tu respuesta final sale en el chat: ${CHAT_STYLE}`,
+    `- Esa respuesta ${USER_SUMMARY} Lo técnico que deba saber el siguiente agente va en «Para la memoria», que no sale en el chat.`,
     '- Si la tarea pide algo que no puedes producir de verdad (audio, música, voz, vídeo, o imágenes si no tienes una herramienta para generarlas), no entregues archivos vacíos ni de mentira: haz lo más cercano que sí puedas (por ejemplo, código que lo genere) y explícalo en tu respuesta.',
     '- No hagas git commit ni git push, ni publiques nada (GitHub, paquetes, webs), salvo que la tarea lo pida expresamente: deja los cambios en los archivos para que el usuario los revise.'
   ]

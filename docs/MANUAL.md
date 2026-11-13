@@ -1342,13 +1342,15 @@ pide ceñirse a la corrección y a lo pedido, nada de gustos. **Solo un «CUMPLE
 | Veredicto «FALLOS» | El autor corrige sobre lo que ya hay (recibe la lista), **hasta 2 veces**, y cada corrección se vuelve a verificar |
 | Sigue fallando tras las 2 correcciones | **Un relevo** a otro agente fuerte libre (nunca el autor ni un modelo local para lo que no es fácil), con las notas del verificador, los archivos que cambió el autor y lo que contó (sus pruebas). No retoma la sesión del autor: es otro CLI |
 | El relevo tampoco supera la revisión (o no hay a quién pasársela) | **«Requiere intervención»**: aviso en la campana [«Te necesita»](#te-necesita-lo-que-espera-una-decisión-tuya) con las notas y queda en la memoria como pendiente |
-| Veredicto «CUMPLE» | Terminada y verificada: «✔ Claude comprobó el resultado: cumple» (o «tras 2 correcciones», «y el relevo a…»), con lo que dicen las pruebas detrás |
+| Veredicto «CUMPLE» | Terminada y verificada. No se anuncia en el chat (no hay nada que tengas que mirar): «Claude: cumple», con lo que dicen las pruebas, queda entre los pasos de la tarea. Solo sale en el mensaje si las pruebas fallan |
 
 Las correcciones **cuentan por tarea**: el relevo no reinicia la cuenta, ni retomar la tarea tras cerrar la app, así
 que no hay bucles. **Ejecución y verificación van por separado**: una tarea «sin verificar» o que «requiere
 intervención» está terminada y sus archivos se quedan (los abres, los ves en «N archivos cambiados» y puedes
-deshacerla), pero no se presenta como aprobada. En el chat lo ves en el mensaje de la tarea («Claude comprobó … y vio
-fallos; Codex los corrige (corrección 1 de 2)», el relevo y el veredicto final). La verificación cuenta en «Uso y
+deshacerla), pero no se presenta como aprobada. El ir y venir («Claude comprobó … y vio fallos; Codex los corrige
+(corrección 1 de 2)») **no sale en el chat**: queda en el registro de la tarea (despliega sus pasos y pulsa «Abrir el
+registro completo»). En el mensaje solo aparece el veredicto si te toca mirar algo: «⚠ Sin verificar», «⚠ Requiere
+intervención» o unas pruebas que fallan. La verificación cuenta en «Uso y
 coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
@@ -1475,8 +1477,8 @@ ejemplo), el chat las separa así:
   choque al integrar o repetirla con otro modelo), sigue en **su mismo mensaje**, que **baja al final del chat**. Lo
   de antes queda plegado entre sus pasos, junto con el motivo de la repetición. Mientras espera turno dice **«En
   cola»**, no «Detenida». Si la retoma otro agente (el relevo), ese agente abre su propio mensaje.
-- **La revisión la firma quien la hizo.** «Codex comprobó «…» y vio fallos; Claude los corrige» sale como mensaje
-  de **Codex**, con su avatar, y no dentro del mensaje de Claude.
+- **La revisión no ocupa el chat.** «Codex comprobó «…» y vio fallos; Claude los corrige» ya no sale como mensaje:
+  se guarda en el registro de la tarea, y la tarea sigue en su mismo bloque hasta que entrega.
 - **El trabajo de un becario** sale con su jefe y la marca **«Claude · Becario»**. Cuando el becario acaba su parte
   (o devuelve la tarea a su jefe), deja su puesto libre. Si tenías abierto su panel en el 3D, dice con quién sigue
   la tarea y a los 4 segundos pasa al panel del jefe.
@@ -1569,6 +1571,20 @@ o conviene revisar, sin inventar nada. La lista de tareas con su ✓/✗ queda d
 plegada. Si el coordinador está ocupado o no responde, se queda la lista de siempre.
 
 ### Entregables en una carpeta
+
+**Lo que pediste va delante.** Si entre los archivos de una tarea hay uno que destaca como resultado (el PDF, el
+vídeo, la página, el documento), sale **suelto, con Abrir y Descargar**, y el resto (json, scripts, datos, capturas)
+queda debajo en una carpeta plegada **«Archivos de trabajo»**. Es la misma regla de la pestaña Resultados. Con más de
+tres resultados principales (una tanda de imágenes) o si ninguno destaca, va todo en la carpeta, como abajo. Una
+tarea registra como mucho 60 archivos como entregables, y esos 60 se eligen empezando por los resultados: antes iban
+por orden alfabético y 60 JSON de `api/` dejaban fuera el `reporte.pdf` que se había pedido. En Órbita el chat sigue
+enseñando la carpeta entera.
+
+**El mensaje es un resumen para ti.** A cada agente (y a Hermes en la respuesta final) se le pide decir qué entrega
+y con qué nombre de archivo, y después solo lo que te sirve para usarlo o decidir, en pocas líneas y sin detalle
+técnico (funciones, scripts, archivos intermedios, recados para otras tareas), salvo que la petición fuera sobre el
+código. La sección «Para la memoria» de su respuesta se guarda en la pestaña Memoria y **no se escribe en el chat**.
+Lo técnico sigue a un clic: despliega los pasos de la tarea o «N archivos cambiados».
 
 Cuando una tarea entrega varios archivos, el chat los agrupa en **una carpeta plegada** (con su nombre, cuántos
 archivos son, de qué tipo y quién los hizo) en vez de ponerlos uno detrás de otro. Al pulsarla se despliega para
@@ -1908,7 +1924,7 @@ reinicios:
   - **Confirmado**: lo dijiste tú. El coordinador anota lo que decides o prefieres en tus mensajes («todo en
     TypeScript»); también puedes añadirlo en la pestaña o escribir `/recuerda …` en el chat (admite
     `/recuerda decisión: …`, `pendiente: …`, `preferencia: …`).
-  - **Provisional**: lo anotó un agente al terminar su tarea (sección «Para la memoria» de su respuesta). Los
+  - **Provisional**: lo anotó un agente al terminar su tarea (sección «Para la memoria» de su respuesta, que no sale en el chat). Los
     agentes lo tienen en cuenta pero lo comprueban. Confírmalo, edítalo o bórralo; la pestaña avisa de cuántos
     hay por revisar. Cada tarea normal (no las consultas rápidas, los mensajes directos ni las piezas del estudio
     de vídeo) deja **siempre** una línea «Hecho en «tarea»: …» con lo que hizo y dónde, más de 0 a 3 líneas con
