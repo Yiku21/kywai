@@ -19,6 +19,7 @@ import { initInbox } from './inbox'
 
 const plans: Array<{ agent: string; prompt: string }> = []
 let hermesOff: string | null = null
+let hermesFails = false
 let projectId = ''
 let image = ''
 
@@ -38,6 +39,7 @@ beforeAll(() => {
     presence: async (a) => (a.id === 'hermes' ? hermesOff : null),
     run: async (o) => {
       if (o.mode === 'plan') plans.push({ agent: o.agent.id, prompt: o.prompt })
+      if (o.mode === 'plan' && o.agent.id === 'hermes' && hermesFails) return { ok: false, text: 'x', usage: { input: 0, output: 0 }, errorKind: 'failed', errorMessage: 'Hermes: terminó con error' }
       return { ok: true, text: '{"reply":"Hecho.","tasks":[]}', usage: { input: 1, output: 1 } }
     }
   })
@@ -72,5 +74,18 @@ describe('Hermes coordina siempre', () => {
     await settle()
     expect(plans.at(-1)!.agent).toBe('claude')
     expect(systemTexts().at(-1)).toMatch(/Hermes no coordina esta vez \(Hermes no está instalado\): lo hace Claude/)
+  })
+
+  it('si Hermes falla dos veces seguidas, las dos veces coordina Claude', async () => {
+    hermesOff = null
+    await refreshPresence()
+    hermesFails = true
+    for (const text of ['primera', 'hazlo']) {
+      const before = plans.length
+      await sendMessage({ projectId, text, filePaths: [] })
+      await settle()
+      expect(plans.slice(before).map((p) => p.agent)).toContain('claude')
+    }
+    hermesFails = false
   })
 })

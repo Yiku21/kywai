@@ -100,10 +100,9 @@ providers:
     expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, [], true)).split(',')).toContain('vision')
   })
 
-  it('al coordinar, Hermes solo recibe el navegador de kywai (nada más de Extensiones)', () => {
+  it('al coordinar, Hermes no recibe servidores de Extensiones (su gateway rechazaría la sesión entera)', () => {
     const toolsets = (args: string[]): string[] => args[args.indexOf('-t') + 1].split(',')
-    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, ['kywai-navegador', 'github']))).toContain('kywai-navegador')
-    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, ['kywai-navegador', 'github']))).not.toContain('github')
+    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, ['kywai-navegador', 'github']))).not.toContain('kywai-navegador')
     expect(toolsets(hermesArgs('/tmp/q.txt', '', 'work', undefined, ['kywai-navegador', 'github']))).toContain('github')
   })
 

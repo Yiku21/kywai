@@ -3924,5 +3924,4 @@ export const en: Record<string, string> = {
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "Live from the server computer: use it like a normal website.",
   // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
-  "Coordinar la petición": "Coordinate the request",
 }

@@ -10,8 +10,6 @@ import { tr } from '@shared/i18n'
 
 /** Para planificar, solo herramientas de consulta: nada de archivos, terminal ni subagentes propios. */
 export const HERMES_PLAN_TOOLSETS = 'web,memory,skills,todo,session_search'
-/** El servidor del navegador de kywai (el único servidor extra que Hermes tiene al planificar). */
-export const HERMES_PLAN_BROWSER = 'kywai-navegador'
 export const HERMES_WORK_TOOLSETS = 'web,file,terminal,memory,skills,todo,vision'
 
 /** Avisos de arranque, actualizaciones e identificadores que no forman parte de la respuesta. */
@@ -31,8 +29,10 @@ const PROVIDER_RE = /^[\w.\-:]+$/
 export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string, mcpNames: string[] = [], images = false): string[] {
   const args = ['chat', '-Q', '--query-file', queryFile.replace(/\\/g, '/'), '--ignore-rules']
   // Los servidores MCP de Extensiones entran como «toolsets» con su nombre (solo al trabajar, no al planificar). Al
-  // planificar o responder, solo el navegador de kywai en modo lectura (para leer una web que web_extract no lee).
-  const extra = mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n) && (mode === 'work' || n === HERMES_PLAN_BROWSER))
+  // planificar, ninguno: «hermes chat» abre la sesión en su gateway, que valida -t con SU configuración (~/.hermes) y
+  // no con la de HERMES_MANAGED_DIR; un servidor que solo existe ahí («kywai-navegador») hace que rechace la sesión
+  // entera («unknown or invalid toolset name», 13 nov) y Hermes no puede coordinar.
+  const extra = mode === 'work' ? mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n)) : []
   // Con capturas adjuntas, Hermes planifica igual y las mira con su herramienta de visión (vision_analyze).
   if (mode === 'plan' && images) extra.push('vision')
   args.push('-t', [mode === 'plan' ? HERMES_PLAN_TOOLSETS : HERMES_WORK_TOOLSETS, ...extra].join(','))
@@ -73,7 +73,8 @@ export function createHermesParser(): JsonlParser {
           text,
           usage,
           errorKind: 'failed',
-          errorMessage: clip(`Hermes: ${stderrSummary(outcome.stderrTail) || (text ? 'terminó con error' : 'no devolvió respuesta')}`, 220)
+          // Sin nada en stderr, su propio aviso (p. ej. «Hermes couldn't start the model connection: …») dice más que «terminó con error».
+          errorMessage: clip(`Hermes: ${stderrSummary(outcome.stderrTail) || stderrSummary(text) || 'no devolvió respuesta'}`, 220)
         }
       }
       return { ok: true, text, usage }
@@ -94,7 +95,7 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
     const res = await runCli({
       command: 'hermes',
       args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, opts.extraMcp?.names, !!opts.images?.length),
-      ...(opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
+      ...(opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
       cwd: opts.cwd,
       stdin: '',
       signal: AbortSignal.any([opts.signal, slow.signal]),

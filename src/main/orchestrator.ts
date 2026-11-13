@@ -683,35 +683,6 @@ function headOf(s: string): string {
   return s.split(/[:(]/)[0]
 }
 
-/**
- * El navegador de kywai para Hermes mientras coordina o responde: solo las herramientas de leer (abrir, leer, captura,
- * desplazarse), con su token propio que se anula al terminar. null si no se puede (sin ventana o ámbito gestionado).
- */
-function plannerBrowser(run: Run, planner: AgentConfig): { extraMcp: ExtraMcp; release: () => void } | null {
-  const b = browserMcpForTask({
-    projectId: run.projectId,
-    runId: run.id,
-    taskId: `plan-${run.id}`,
-    taskTitle: tr('Coordinar la petición'),
-    agentId: planner.id,
-    agentName: planner.name,
-    browserReadOnly: true
-  })
-  if (!b) return null
-  const h = hermesMcp([{ ...b.server, transport: 'stdio', url: '', headers: {}, agents: [] }], join(getConfig().workspaceRoot, 'mcp'), taskTag())
-  if ('skipped' in h) {
-    releaseBrowserMcp(b.token)
-    return null
-  }
-  return {
-    extraMcp: { names: h.names, args: [], env: h.env },
-    release: () => {
-      releaseBrowserMcp(b.token)
-      removeFiles([h.dir])
-    }
-  }
-}
-
 /** Best available agent for a piece of work, by strengths/role keyword overlap. */
 function bestAgentFor(text: string, exclude: Set<AgentId> = new Set()): AgentConfig | null {
   const cfg = getConfig()
@@ -4810,9 +4781,6 @@ async function planRun(
     const ctrl = new AbortController()
     run.planController = ctrl
     const planStart = Date.now()
-    // Hermes coordina con el navegador de kywai solo para leer: si le das un enlace que su web_extract no lee (una web
-    // hecha con JavaScript, como las documentaciones), lo abre ahí en vez de responder de memoria.
-    const planBrowser = planner.provider === 'hermes' ? plannerBrowser(run, planner) : null
     const res = await runner({
       agent: planner,
       model: planner.model,
@@ -4821,7 +4789,6 @@ async function planRun(
       cwd: store.workRoot(run.projectId),
       mode: 'plan',
       images: imageAttachments(run),
-      ...(planBrowser ? { extraMcp: planBrowser.extraMcp } : {}),
       signal: ctrl.signal,
       onActivity: (text, kind) => {
         if (!sharedAgent && kind === 'tool') setRuntime(planner.id, { lastActivity: text })
@@ -4834,7 +4801,6 @@ async function planRun(
       onRateLimit
     })
     run.planController = undefined
-    planBrowser?.release()
     if (planningAgents.get(planner.id) === run.id) planningAgents.delete(planner.id)
     logCall(run, 'plan', planner, planner.model, res, planStart, undefined, planEffortFor(planner.provider))
     if (run.cancelled) return null
@@ -5084,12 +5050,6 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
             : planner.provider === 'hermes'
               ? `Hay imágenes adjuntas (capturas, fotos): míralas antes de responder con tu herramienta de visión (vision_analyze), con estas rutas: ${imageAttachments(run, true).join(', ')}. Si no puedes abrirlas y la respuesta depende de lo que se ve en ellas, crea UNA tarea corta (fácil, de texto, "quick": true) para Claude o Codex que las mire y responda. No le pidas al usuario que te las describa.`
               : 'Hay imágenes adjuntas y tú no puedes verlas: si la respuesta depende de lo que se ve en ellas, crea UNA tarea corta (fácil, de texto) para Claude o Codex que las mire y responda. No le pidas al usuario que te las describa.'
-        ]
-      : []),
-    // Enlaces que la descarga normal no lee (webs hechas con JavaScript): Hermes los abre en el navegador de kywai.
-    ...(planner.provider === 'hermes' && /https?:\/\//i.test(run.userText)
-      ? [
-          'Si el mensaje trae un enlace y web_extract no lo lee bien (sale vacío, a medias, solo el menú o pide activar JavaScript, como muchas documentaciones), ábrelo con el navegador de kywai antes de responder: «navegador_ir» con la dirección y «navegador_leer» (con «parte» si sigue). Solo lees, no hace falta permiso. Nunca respondas de memoria diciendo que la página no se dejó leer. Si pide iniciar sesión, dile al usuario que entre en la pestaña «Navegador».'
         ]
       : []),
     '',
