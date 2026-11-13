@@ -13,8 +13,9 @@
   color: var(--text-1);
   font-size: 13px;
   outline: none;
-  /* Menús de todos los días: aparecen casi al instante (lo que más se usa, menos se anima). */
-  animation: popIn var(--dur-fast) var(--ease);
+  /* Menús de todos los días: aparecen casi al instante (lo que más se usa, menos se anima), creciendo desde donde
+     nacen. */
+  animation: popIn 160ms var(--ease);
   transform-origin: top center;
 }
 
@@ -26,7 +27,7 @@
 @keyframes popIn {
   from {
     opacity: 0;
-    transform: translateY(-2px) scale(0.99);
+    transform: translateY(calc(var(--m, 1) * -5px)) scale(calc(1 - var(--m, 1) * 0.05));
   }
   to {
     opacity: 1;

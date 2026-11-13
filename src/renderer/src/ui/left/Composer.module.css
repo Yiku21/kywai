@@ -205,8 +205,9 @@
   background: var(--text-1);
   transition:
     background-color var(--dur) var(--ease),
-    transform var(--dur-fast) var(--ease),
+    transform var(--spring-bouncy-ms, 120ms) var(--spring-bouncy, ease),
     opacity var(--dur) var(--ease);
+  overflow: hidden;
 }
 
 .send:hover:not(:disabled) {
@@ -215,7 +216,25 @@
 }
 
 .send:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: scale(0.88);
+  transition-duration: 70ms;
+  transition-timing-function: ease-out;
+}
+
+/* Al enviar, la flecha sale disparada por la derecha y vuelve a entrar por la izquierda (Composer le pone data-sent). */
+.send[data-sent] > svg {
+  animation: sendFly 420ms var(--ease) both;
+}
+
+@keyframes sendFly {
+  40% {
+    translate: calc(var(--m, 1) * 26px) 0;
+    opacity: 0;
+  }
+  41% {
+    translate: calc(var(--m, 1) * -26px) 0;
+    opacity: 0;
+  }
 }
 
 .send:disabled {

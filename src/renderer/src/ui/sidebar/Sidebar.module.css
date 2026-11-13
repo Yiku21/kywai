@@ -131,11 +131,19 @@
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--dur-fast) var(--ease);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    scale var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease);
 }
 
 .item:hover:not(:disabled) {
   background: var(--bg-hover);
+}
+
+/* Al pulsar una fila, cede un poco y vuelve. */
+.item:active:not(:disabled) {
+  scale: calc(1 - var(--m, 1) * 0.025);
+  transition-duration: var(--dur-fast), 70ms;
 }
 
 .item:focus-visible {

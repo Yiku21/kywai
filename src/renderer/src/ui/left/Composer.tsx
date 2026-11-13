@@ -801,7 +801,14 @@ export function Composer() {
           <button
             type="button"
             className={s.send}
-            onClick={() => void send()}
+            onClick={(e) => {
+              // La flecha sale disparada (Composer.module.css): se quita y se vuelve a poner para repetirla cada vez.
+              const btn = e.currentTarget
+              delete btn.dataset.sent
+              void btn.offsetWidth
+              btn.dataset.sent = ''
+              void send()
+            }}
             disabled={!canSend}
             aria-label={simulate ? t('Enviar (simulación)') : isDemo ? t('Enviar al equipo real') : t('Enviar')}
             title={blockedReason ?? (simulate ? t('Enviar (simulación)') : isDemo ? t('Enviar al equipo real') : t('Enviar'))}

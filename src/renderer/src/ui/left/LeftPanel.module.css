@@ -133,6 +133,14 @@
   background: var(--bg-hover);
 }
 
+.tab:active .tabIcon {
+  scale: calc(1 - var(--m, 1) * 0.18);
+}
+
+.tabIcon {
+  transition: scale 80ms ease-out;
+}
+
 .tab:focus-visible {
   outline-offset: -2px;
 }

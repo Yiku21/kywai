@@ -3,13 +3,33 @@
   grid-template-columns: 40px minmax(0, 1fr);
   column-gap: 12px;
   align-items: start;
-  animation: msgIn var(--dur-slow) var(--ease);
+  /* Cada mensaje sube a su sitio y se asienta con muelle; el tuyo, además, sale de la caja de escribir (crece desde
+     abajo). */
+  animation: msgIn var(--spring-ms, 0ms) var(--spring, ease) both;
+  transform-origin: 20% 100%;
+}
+
+.msgMine {
+  animation-name: msgMineIn;
 }
 
 @keyframes msgIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(calc(var(--m, 1) * 12px));
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes msgMineIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--m, 1) * 26px)) scale(calc(1 - var(--m, 1) * 0.04));
+  }
+  40% {
+    opacity: 1;
   }
 }
 
@@ -937,10 +957,25 @@
   opacity: 0.6;
 }
 
+.ratingBtn > svg {
+  transition: scale var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease), rotate var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease);
+}
+
+.ratingBtn:active:not(:disabled) > svg {
+  scale: 0.8;
+  transition-duration: 70ms;
+}
+
 .ratingOn {
   color: var(--text-1);
   border-color: var(--border);
   background: var(--bg-surface);
+}
+
+/* El pulgar elegido da un saltito y se queda un poco inclinado. */
+.ratingOn > svg {
+  scale: 1.12;
+  rotate: -8deg;
 }
 
 .replyQuote {

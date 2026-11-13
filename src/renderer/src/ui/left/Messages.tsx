@@ -122,7 +122,7 @@ function UserMessage({ m }: { m: ChatMessage }) {
   const menu = useMessageMenu(m, { user: { text: parts.request } })
   const editing = useComposer((c) => c.editing === m.id)
   return (
-    <article className={s.msg} onContextMenu={menu.onContextMenu}>
+    <article className={cx(s.msg, s.msgMine)} onContextMenu={menu.onContextMenu}>
       <span className={cx(s.avatar, s.userAvatar)} aria-hidden="true">
         {fromBoard ? <SquareKanban size={18} /> : m.routine ? <CalendarClock size={18} /> : <User size={18} />}
       </span>

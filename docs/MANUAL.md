@@ -3775,6 +3775,10 @@ pelo y se asienta.
   encoge hacia la caja de escribir (ahí van los adjuntos) y cada adjunto cae en su sitio con un saltito, uno detrás
   de otro; si te vas sin soltar, solo funde. En el Tablero, la tarea que arrastras también es una tarjeta con su
   texto y la columna «Por hacer» se abre un pelo para recibirla.
+- **Cada clic**: tu mensaje sale de la caja de escribir y sube a su sitio, y la flecha de Enviar sale disparada; los
+  mensajes de los agentes suben y se asientan. Cualquier **✓** (copiado, guardado, elegido) salta al aparecer, el pulgar
+  que eliges da un saltito, las filas de la barra ceden al pulsarlas, los menús crecen desde donde nacen (rápidos: se
+  usan a diario) y lo que se despliega (pasos de una tarea, detalles) se abre y se cierra con suavidad.
 
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.

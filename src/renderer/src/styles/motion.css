@@ -125,6 +125,46 @@
   box-shadow: 0 0 14px color-mix(in srgb, var(--warn) 70%, transparent);
 }
 
+/* Hecho: cualquier ✓ que aparece (copiado, guardado, elegido…) salta al llegar. */
+svg.lucide-check,
+svg.lucide-check-check,
+svg.lucide-circle-check,
+svg.lucide-circle-check-big {
+  animation: kwCheckPop var(--spring-bouncy-ms) var(--spring-bouncy) both;
+}
+
+@keyframes kwCheckPop {
+  from {
+    scale: calc(1 - var(--m) * 0.7);
+    rotate: calc(var(--m) * -25deg);
+  }
+}
+
+/* Lo que se despliega (detalles de una tarea, pasos, ajustes plegados) se abre y se cierra con suavidad en vez de
+   aparecer de golpe. */
+:root {
+  interpolate-size: allow-keywords;
+}
+
+details::details-content {
+  height: 0;
+  opacity: 0;
+  overflow: clip;
+  transition:
+    height var(--spring-soft-ms) var(--spring-soft),
+    opacity var(--dur) var(--ease),
+    content-visibility var(--spring-soft-ms) allow-discrete;
+}
+
+details[open]::details-content {
+  height: auto;
+  opacity: 1;
+}
+
+:root[data-calm] details::details-content {
+  transition: opacity var(--dur) var(--ease), content-visibility var(--dur) allow-discrete;
+}
+
 /* Errores que se notan: el campo con aria-invalid se pone en rojo (lib/shake.ts lo hace temblar) y el aviso
    (role="alert") entra con una sacudida corta junto al campo. */
 :is(input, textarea, select)[aria-invalid='true'] {
