@@ -1271,6 +1271,12 @@ vídeos de prueba) sin salir en el chat. Ahora:
     que quedó hecho.
 - **No castiga al agente**: en «Cómo rinde cada agente» una tarea bloqueada no cuenta como «Falló o pasó a otro», y por
   tanto tampoco para la mala racha.
+- **El aviso solo dice qué te falta**: el texto rojo de la tarea (Tareas → Por revisar, en escritorio, web y Órbita),
+  el de la tarjeta del 3D, «Te necesita» y el mensaje del chat dejan fuera las secciones que el agente escribe para
+  el equipo («Para la memoria», «Habilidad nueva»), y el aviso rojo va en texto llano: sin `**`, comillas de código ni
+  `##`. Las tareas que ya estaban bloqueadas se limpian al arrancar. En el código: `src/shared/blockedNotice.ts`
+  (`withoutTeamNotes`, `plainNotice`, `cleanBlockedError`), usado por `blockedReason`/`blockedText` y por
+  `sanitizeState` en `src/main/projects.ts`.
 
 En un mensaje directo («@Codex …») «BLOQUEADA» no significa nada especial: la respuesta sale tal cual. En el código:
 `handleBlocked`, `blockedNeedsYou` y `settleBlocked` en `src/main/orchestrator.ts` (pruebas G, G3 y G4 de

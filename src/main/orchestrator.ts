@@ -70,6 +70,7 @@ import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpda
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
+import { plainNotice, withoutTeamNotes } from '@shared/blockedNotice'
 import { addMemory, markAnswered, openPending, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, withoutMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, USER_SUMMARY, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
@@ -6846,7 +6847,9 @@ function warnOutOfScope(run: Run, t: Task, owner: AgentConfig, changed: string[]
 export function blockedReason(text: string): string | null {
   const m = /^[\s>*_#`]*BLOQUEADA\s*[:.\-–—]\s*([\s\S]*)/i.exec(text ?? '')
   if (!m) return null
-  const reason = m[1].replace(/^[*_`\s]+/, '').replace(/\s+/g, ' ').trim()
+  // Solo lo que el usuario tiene que saber, en texto llano: el aviso no pinta markdown y las notas «Para la memoria»
+  // o «Habilidad nueva» son para el equipo.
+  const reason = plainNotice(withoutTeamNotes(m[1].replace(/^[*_`\s]+/, '')))
   return clip(reason ? tr('Bloqueada: {reason}', { reason }) : tr('Bloqueada: el agente no pudo hacer la tarea'), 400)
 }
 
@@ -6904,9 +6907,9 @@ async function handlePermissionNeed(run: Run, t: Task, exec: AgentConfig, parent
   pushTask(t)
 }
 
-/** Lo que explicó el agente al bloquearse, sin el «BLOQUEADA:» del principio. */
+/** Lo que explicó el agente al bloquearse, sin el «BLOQUEADA:» del principio ni sus notas para el equipo. */
 export function blockedText(text: string): string {
-  return (text ?? '').trim().replace(/^[\s>*_#`]*BLOQUEADA\s*[:.\-–—]\s*/i, '').replace(/^[*_`\s]+/, '').trim()
+  return withoutTeamNotes((text ?? '').trim().replace(/^[\s>*_#`]*BLOQUEADA\s*[:.\-–—]\s*/i, '').replace(/^[*_`\s]+/, ''))
 }
 
 /**

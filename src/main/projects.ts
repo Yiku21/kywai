@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { Artifact, ArtifactKind, Attachment, ChatMessage, ChatVersion, ChatVersions, ProjectFileRef, ProjectState, ProjectSummary, Task } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
+import { cleanBlockedError } from '@shared/blockedNotice'
 import { reopensWork } from '@shared/chatOrder'
 import { emit, emitMobileOnly } from './events'
 
@@ -101,6 +102,15 @@ function sanitizeState(state: ProjectState): ProjectState {
       t.status = 'cancelled'
       t.error = t.error ?? INTERRUPTED_ERROR
       t.finishedAt = t.finishedAt ?? Date.now()
+      touched = true
+    }
+  }
+  // Avisos de «Bloqueada» de antes de limpiarlos: sin markdown ni las notas «Para la memoria».
+  for (const t of state.tasks) {
+    if (!t.needsYou || !t.error) continue
+    const clean = cleanBlockedError(t.error)
+    if (clean && clean !== t.error) {
+      t.error = clean
       touched = true
     }
   }
