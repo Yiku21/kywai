@@ -1913,6 +1913,10 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
 - **Zonas de clic más grandes.** Los botones (`.iconBtn`, `.btn`, «Me sirvió», el nombre del agente) responden en
   un área de al menos 32 px aunque se vean más pequeños, y de 44 px en pantallas táctiles (`--hit-min` en
   `styles/motion.css`, con `pointer: coarse`). El área crece con un `::after` invisible, sin cambiar el aspecto.
+- **Pantallas vacías con ejemplos que se pulsan.** Con el Tablero vacío salen tres ejemplos («Haz la página de
+  precios», «Escribe las pruebas del carrito», «/video las novedades de la semana»): un toque lo deja escrito en
+  «Nueva tarjeta» para cambiarlo o añadirlo. Sin rutinas salen tres (cada mañana revisar dependencias, al llegar un PR
+  revisarlo, los viernes resumen de la semana) que abren «Nueva rutina» ya rellena. Componente `ExampleChips`.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),

@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import { copyText } from '@/lib/clipboard'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
+import { ExampleChips } from '../common/ExampleChips'
 import v from './Views.module.css'
 import s from './RoutinesView.module.css'
 import { locale, t } from '@/lib/i18n'
@@ -49,6 +50,7 @@ export function RoutinesView() {
   const mode = useCowork((st) => st.mode)
   const editable = !!api && mode === 'live' && !!project
   const [creating, setCreating] = useState(false)
+  const [seed, setSeed] = useState<RoutineSeed | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const idL = useId()
   const pid = project?.id ?? ''
@@ -83,6 +85,7 @@ export function RoutinesView() {
         {editable &&
           (creating ? (
             <RoutineForm
+              seed={seed}
               onCancel={() => setCreating(false)}
               onSave={async (input) => {
                 const ok = await call(() => api!.createRoutine(pid, input))
@@ -91,7 +94,11 @@ export function RoutinesView() {
               }}
             />
           ) : (
-            <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary, s.newBtn)} onClick={() => setCreating(true)}>
+            <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary, s.newBtn)} onClick={() => {
+                setSeed(undefined)
+                setCreating(true)
+              }}
+            >
               <Plus size={14} aria-hidden="true" />
               {t('Nueva rutina')}
             </button>
@@ -106,8 +113,18 @@ export function RoutinesView() {
             <span className={u.emptyText}>
               {mode === 'demo'
                 ? t('En la demo no hay rutinas: aparecen con los agentes reales.')
-                : t('Por ejemplo: cada mañana a las 8:30, «revisa las dependencias y avísame de las que tengan fallos de seguridad»; o, al llegar un PR de GitHub, «revísalo».')}
+                : t('Elige una para empezar y cámbiala a tu gusto:')}
             </span>
+            {editable && (
+              <ExampleChips
+                label={t('Ejemplos')}
+                examples={ROUTINE_EXAMPLES.map((r) => ({ text: r.name, label: r.label }))}
+                onPick={(name) => {
+                  setSeed(ROUTINE_EXAMPLES.find((r) => r.name === name))
+                  setCreating(true)
+                }}
+              />
+            )}
           </div>
         ) : (
           <ul className={s.list}>
@@ -376,10 +393,34 @@ function defaultTrigger(type: RoutineTriggerType, prev?: RoutineTrigger): Routin
   }
 }
 
-function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave: (input: RoutineInput) => Promise<boolean>; onCancel: () => void }) {
-  const [name, setName] = useState(initial?.name ?? '')
-  const [request, setRequest] = useState(initial?.request ?? '')
-  const [trigger, setTrigger] = useState<RoutineTrigger>(initial?.trigger ?? { type: 'daily', time: '09:00' })
+/** Un ejemplo que rellena el formulario de una rutina nueva. */
+type RoutineSeed = { name: string; label: string; request: string; trigger: RoutineTrigger }
+
+const ROUTINE_EXAMPLES: RoutineSeed[] = [
+  {
+    name: t('Revisión de dependencias'),
+    label: t('Cada mañana a las 8:30: revisar las dependencias'),
+    request: t('Revisa las dependencias del proyecto y dime cuáles tienen fallos de seguridad o versiones nuevas importantes.'),
+    trigger: { type: 'daily', time: '08:30' }
+  },
+  {
+    name: t('Revisar PR'),
+    label: t('Al llegar un PR de GitHub: revisarlo'),
+    request: t('Revisa el PR que acaba de llegar: qué cambia, si hay fallos y qué mejorarías.'),
+    trigger: { type: 'webhook' }
+  },
+  {
+    name: t('Resumen del viernes'),
+    label: t('Los viernes a las 17:00: resumen de la semana'),
+    request: t('Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente.'),
+    trigger: { type: 'weekly', time: '17:00', days: [5] }
+  }
+]
+
+function RoutineForm({ initial, seed, onSave, onCancel }: { initial?: Routine; seed?: RoutineSeed; onSave: (input: RoutineInput) => Promise<boolean>; onCancel: () => void }) {
+  const [name, setName] = useState(initial?.name ?? seed?.name ?? '')
+  const [request, setRequest] = useState(initial?.request ?? seed?.request ?? '')
+  const [trigger, setTrigger] = useState<RoutineTrigger>(initial?.trigger ?? seed?.trigger ?? { type: 'daily', time: '09:00' })
   const [askApproval, setAskApproval] = useState(initial?.askApproval === true)
   const [busy, setBusy] = useState(false)
   const id = useId()

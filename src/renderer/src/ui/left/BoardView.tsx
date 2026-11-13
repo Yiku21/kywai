@@ -1,10 +1,11 @@
-import { useEffect, useId, useState, type DragEvent, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
 import { ArrowDown, ArrowUp, ChevronsUp, LoaderCircle, MessageSquare, Pause, Pencil, Play, Plus, RotateCcw, SquareKanban, Trash2 } from 'lucide-react'
 import { BOARD_COLUMNS, cardsIn, MAX_BOARD_TEXT, type Board, type BoardCard, type BoardColumnId, type BoardCommand } from '@shared/board'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
+import { ExampleChips } from '../common/ExampleChips'
 import v from './Views.module.css'
 import s from './BoardView.module.css'
 import { locale, t } from '@/lib/i18n'
@@ -22,6 +23,9 @@ const COLUMN_EMPTY: Record<BoardColumnId, string> = {
   waiting: t('Nada te espera.'),
   done: t('Aún no ha terminado ninguna.')
 }
+
+// Ejemplos del tablero vacío: un toque los deja escritos en «Nueva tarjeta».
+const BOARD_EXAMPLES = [{ text: t('Haz la página de precios') }, { text: t('Escribe las pruebas del carrito') }, { text: t('/video las novedades de la semana') }]
 
 function when(ts: number | undefined): string {
   if (!ts) return ''
@@ -45,6 +49,7 @@ export function BoardView() {
   const [busy, setBusy] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const inputId = useId()
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Al abrir la pestaña (o cambiar de proyecto) se pide el tablero; lo demás llega por board.updated.
   useEffect(() => {
@@ -114,6 +119,7 @@ export function BoardView() {
           </label>
           <textarea
             id={inputId}
+            ref={inputRef}
             className={s.textarea}
             value={draft}
             maxLength={MAX_BOARD_TEXT}
@@ -157,8 +163,17 @@ export function BoardView() {
           <span className={u.emptyText}>
             {mode === 'demo'
               ? t('En la demo no hay tablero: aparece con los agentes reales.')
-              : t('Por ejemplo: «Haz la página de precios», «Escribe las pruebas del carrito», «/video las novedades de la semana». Déjalas todas y vuelve luego a ver los resultados.')}
+              : t('Déjalas todas y vuelve luego a ver los resultados.')}
           </span>
+          {editable && (
+            <ExampleChips
+              examples={BOARD_EXAMPLES}
+              onPick={(text) => {
+                setDraft(text)
+                inputRef.current?.focus()
+              }}
+            />
+          )}
         </div>
       ) : (
         <div className={s.columns}>
