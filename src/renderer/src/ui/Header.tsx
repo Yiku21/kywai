@@ -44,6 +44,10 @@ export function Header() {
           onClick={(e) => {
             // Con el ratón no se queda marcado con el aro de foco (con el teclado sí).
             if (e.detail > 0) e.currentTarget.blur()
+            // Una vuelta rápida sobre sí mismo, como el logo de la web (con «rotate» para no pisar su otro movimiento).
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              e.currentTarget.querySelector('svg')?.animate([{ rotate: '0deg' }, { rotate: '360deg' }], { duration: 720, easing: 'cubic-bezier(0.3, 0.7, 0.15, 1)' })
+            }
             window.dispatchEvent(new Event(TOGGLE_SIDEBAR_EVENT))
           }}
           title={t('Abrir o plegar la barra lateral')}
