@@ -35,6 +35,7 @@ import { ViewerBusy } from './viewers/shared'
 // Los visores de documentos pesan (docx-preview, SheetJS…): se cargan la primera vez que hacen falta.
 const DocxView = lazy(() => import('./viewers/DocxView'))
 const SheetView = lazy(() => import('./viewers/SheetView'))
+const SlidesView = lazy(() => import('./viewers/SlidesView'))
 
 /**
  * Panel de vista previa de archivos, como el de Claude: se abre a la derecha del chat (en el sitio del espacio 3D) al
@@ -348,6 +349,9 @@ function PreviewContent({
       break
     case 'sheet':
       if (url) return <Viewer><SheetView url={url} /></Viewer>
+      break
+    case 'slides':
+      if (url) return <Viewer><SlidesView url={url} /></Viewer>
       break
     case 'table':
       if (text != null) return <Viewer><SheetView text={text} /></Viewer>

@@ -37,6 +37,8 @@ export type PreviewKind =
   | 'sheet'
   /** CSV o TSV: se ve como tabla y, con el interruptor, como texto. */
   | 'table'
+  /** Presentación de PowerPoint (.pptx): diapositivas que lee pptx.ts. */
+  | 'slides'
   | 'other'
 
 const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif'])
@@ -49,6 +51,7 @@ const CODE = new Set([
 ])
 const TEXT = new Set(['txt', 'log', 'text', 'rst'])
 const WORD = new Set(['docx', 'docm', 'dotx', 'dotm'])
+const SLIDES = new Set(['pptx', 'pptm', 'ppsx', 'ppsm', 'potx', 'potm'])
 const SHEET = new Set(['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'xltm', 'ods', 'fods', 'numbers'])
 
 function ext(name: string): string {
@@ -69,6 +72,7 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (e === 'pdf') return 'pdf'
   if (WORD.has(e)) return 'word'
   if (SHEET.has(e)) return 'sheet'
+  if (SLIDES.has(e)) return 'slides'
   if (e === 'csv' || e === 'tsv') return 'table'
   if (VIDEO.has(e)) return 'video'
   if (AUDIO.has(e)) return 'audio'
@@ -82,6 +86,7 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (m === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'word'
   if (m === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || m === 'application/vnd.ms-excel') return 'sheet'
   if (m === 'text/csv') return 'table'
+  if (m === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'slides'
   if (m.startsWith('text/') || (!e && !m)) return 'text'
   return 'other'
 }

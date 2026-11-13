@@ -154,3 +154,124 @@
   color: var(--text-1);
   font-weight: 600;
 }
+
+/* ---------- Presentación ---------- */
+
+.slides {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  background: var(--bg-panel);
+}
+
+.slideFigure {
+  margin: 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slideFrame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 8px 26px rgba(0, 0, 0, 0.18);
+}
+
+.slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  color: #000;
+  font-family: Calibri, Carlito, 'Segoe UI', var(--font-sans, system-ui), sans-serif;
+  /* Las letras de la diapositiva van en su tamaño de diseño: no se ajustan al zoom de kywai. */
+  text-size-adjust: none;
+}
+
+.slideNum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.slideHidden {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shape {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.shapeSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.text,
+.cellText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+}
+
+.cellText {
+  position: static;
+  height: 100%;
+}
+
+.para {
+  margin: 0;
+}
+
+.bullet {
+  display: inline-block;
+  text-indent: 0;
+}
+
+.slideTable {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.slideTable td {
+  padding: 0;
+  border: 1px solid #fff;
+  vertical-align: top;
+}
+
+.slideMissing {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+}

@@ -4154,6 +4154,11 @@ equipo, sin subirlos a ningún sitio ni tener Office instalado (y también desde
   abandonada y tiene fallos de seguridad).
 - **CSV y TSV:** como tabla, con el interruptor **👁 / `</>`** para ver el texto. Se lee tal cual: «007» sigue siendo
   «007» y no se convierte en número ni en fecha.
+- **PowerPoint** (`.pptx`, `.ppsx`, `.potx`): las diapositivas una debajo de otra, del ancho del panel y numeradas, con
+  su fondo, textos (tamaños, colores, negritas, viñetas y números), formas (también las dibujadas a mano), imágenes
+  recortadas, líneas, grupos y tablas, y lo fijo del patrón y del diseño (logos, franjas). Las diapositivas ocultas
+  salen marcadas. Los gráficos, SmartArt y vídeos salen como un recuadro con su nombre («solo se ve en PowerPoint»).
+  Lo lee kywai mismo (`viewers/pptx.ts`, sin librerías: el archivo es un zip con XML) y lo pinta `SlidesView`.
 
 Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
 

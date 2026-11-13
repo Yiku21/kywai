@@ -35,6 +35,12 @@ describe('panel de vista previa', () => {
     expect(isTextual('sheet')).toBe(false)
   })
 
+  it('abre las presentaciones de PowerPoint como diapositivas', () => {
+    expect(previewKind('charla.pptx')).toBe('slides')
+    expect(previewKind('pase.PPSX')).toBe('slides')
+    expect(isTextual('slides')).toBe(false)
+  })
+
   it('sin extensión conocida, se fía del tipo MIME', () => {
     expect(previewKind('pegado', 'image/png')).toBe('image')
     expect(previewKind('archivo.raro', 'application/pdf')).toBe('pdf')
