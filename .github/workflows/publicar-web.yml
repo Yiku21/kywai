@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.despliegue.outputs.page_url }}
+      url: ${{ steps.intento1.outputs.page_url || steps.intento2.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Comprobar que no se ha colado código de la app
@@ -39,5 +39,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
-      - id: despliegue
+      # A veces GitHub aún no «ve» el artefacto recién subido y el primer intento falla («No artifacts named
+      # github-pages»). Se reintenta en la misma ejecución: relanzar la ejecución entera no sirve, porque deja dos
+      # artefactos con el mismo nombre y deploy-pages se niega («Multiple artifacts»).
+      - id: intento1
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - if: steps.intento1.outcome == 'failure'
+        run: sleep 30
+      - id: intento2
+        if: steps.intento1.outcome == 'failure'
         uses: actions/deploy-pages@v4

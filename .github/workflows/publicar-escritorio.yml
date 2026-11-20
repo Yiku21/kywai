@@ -245,3 +245,25 @@ jobs:
           EOF
           gh release create "v${V}" dist/* --repo "${GITHUB_REPOSITORY}" --target "${TARGET}" \
             --title "kywai ${V}" --notes-file notas.md --latest
+      - name: Apuntar los botones de descarga de la web a la nueva versión
+        # web/descargas.json es la copia fija de los enlaces (la que se ve sin JavaScript o si la API de GitHub
+        # no responde). Se rehace con la Release recién creada y se vuelve a publicar la web.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.revisar.outputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for intento in 1 2 3; do
+            git fetch --quiet origin master && git checkout --quiet -B master origin/master
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${V}" \
+              --jq '{tag_name, published_at, html_url, assets: [.assets[] | select(.name | test("\\.(dmg|exe|AppImage|apk)$")) | {name, size, browser_download_url}]}' \
+              > web/descargas.json
+            git add web/descargas.json
+            git diff --cached --quiet && break
+            git commit --quiet -m "[skip] Botones de descarga de la web a la versión ${V}"
+            git push --quiet origin HEAD:master && break
+            [ "$intento" = 3 ] && { echo "::error::No se pudo guardar web/descargas.json"; exit 1; }
+            sleep 5
+          done
+          gh workflow run publicar-web.yml --repo "$GITHUB_REPOSITORY" --ref master
