@@ -2110,6 +2110,36 @@ un plano), dilo y se hará con código. Las piezas visuales (imágenes, póstere
 webs ni las apps) van con **esfuerzo medio**: ahí manda el ojo, no el razonamiento, y con esfuerzo alto Opus llegó
 a pasar más de 4 minutos pensando en silencio antes de empezar un mapa.
 
+### Imágenes con Draw Things (gratis, en tu Mac)
+
+Si tienes **Draw Things** (drawthings.ai) abierto en tu Mac con su servidor encendido (**Draw Things → Ajustes →
+API Server**, HTTP, puerto 7860), kywai dibuja con él **todas** las imágenes nuevas: gratis, sin clave y con el modelo,
+los pasos y el sampler que tengas puestos en la app (por ejemplo Z Image Turbo 8-bit, 8 pasos: ~40 s por imagen en un
+Mac mini). kywai solo le manda el texto y, si hace falta, el tamaño (vertical 768×1344, horizontal 1344×768; la
+cuadrada sale al tamaño que tengas puesto).
+
+- **En el chat**: «hazme una imagen de un gato astronauta en acuarela», «dibújame…», «genera un póster de…». El
+  coordinador pone la imagen en el campo `"image"` de su plan (el texto en inglés y el formato) y kywai la dibuja en el
+  acto, sin tareas; sale en el chat con Abrir y Descargar y queda en `artifacts/imagenes/` (o
+  `.ai-cowork/entregables/imagenes/` en una carpeta tuya). Hasta 4 por mensaje.
+- **Los agentes** la dibujan con la herramienta **`generar_imagen`** del servidor de kywai (Claude, Codex, Gemini,
+  Hermes en sus tareas) o **`generate_image`** (Gemma y los demás modelos de LM Studio dentro de kywai): para una web,
+  una presentación o lo que necesite imágenes nuevas. Para editar una imagen que ya existe siguen con Pillow o
+  ImageMagick.
+- **El estudio de vídeo** (/video) también lo usa primero para las ilustraciones, el presentador y «Probar con mi
+  escena».
+- **kywai cloud**: con «Prestar los modelos de este equipo» encendido en la app de tu Mac, la nube pide las imágenes
+  a tu Draw Things por el mismo puente que LM Studio y Ollama. Por el puente solo pasan `GET /` (sus ajustes) y
+  `POST /sdapi/v1/txt2img` con texto, tamaño (256–2048) y una imagen; nunca otro modelo ni img2img.
+- **Orden de motores** (`src/main/imageMaker.ts`): Draw Things → ComfyUI (si ya está encendido) → Gemini con tu clave
+  → el motor gratis de internet (una cada 45 s). Si Draw Things está cerrado, se pasa al siguiente sin fallar.
+- **Ajustes → Extensiones → Estudio de vídeo** dice si está conectado y con qué modelo («Imágenes en tu Mac (Draw
+  Things)»). `KYWAI_DRAWTHINGS_URL` cambia la dirección; `KYWAI_NO_DRAWTHINGS=1` lo apaga.
+
+Código: `src/main/drawThings.ts` (motor y puente), `src/main/imageMaker.ts` (orden de motores), `generar_imagen` en
+`src/main/coworkMcp.ts`, `generate_image` en `src/main/agents/localTools.ts` y `drawPlannedImages` en
+`src/main/orchestrator.ts`. No hace falta el puente MCP de LM Studio para Draw Things: kywai habla con él directamente.
+
 ### Los agentes retoman su sesión en las continuaciones
 
 Cuando una petición continúa, amplía o corrige lo que un agente hizo en la anterior («ahora añade el teléfono al
@@ -4477,7 +4507,8 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 
 1. **Voz** de cada escena con Voicebox o Gemini si los hay (ver «Voz» más abajo) y si no con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
    italiano, japonés, chino e hindi). Sin Kokoro, la voz del sistema (`say` en macOS, la de Windows, espeak-ng en Linux).
-2. **Imágenes.** Por defecto, con **ComfyUI** (comfy.org) si está encendido en el equipo donde corren los agentes:
+2. **Imágenes.** Si **Draw Things** está abierto en el Mac con su API Server, va primero (ver «Imágenes con Draw
+   Things»); tras dos fallos seguidos, sigue con lo de abajo. Si no, por defecto, con **ComfyUI** (comfy.org) si está encendido en el equipo donde corren los agentes:
    gratis, sin clave y sin salir del equipo. kywai lo busca en `http://127.0.0.1:8188` y, si no, en
    `http://127.0.0.1:8000` (el de la app de escritorio; otra dirección con la variable `KYWAI_COMFYUI_URL`), usa el primer modelo SDXL que tenga (o SD 1.5; otro con `KYWAI_COMFYUI_CHECKPOINT`;
    FLUX y SD3 necesitan otro flujo y se saltan; **Qwen-Image** (Apache-2.0) sí tiene el suyo: si ComfyUI tiene su modelo
@@ -6545,6 +6576,10 @@ los temas oscuros y claro en Perla, Refugio y la Oficina de día (borde de luz m
     abajo) y, con la barra unida del todo (`data-fused` + `:root[data-logo-fused]`), sube su rectángulo `--bar-reach`
     píxeles para envolver el logo: barra y logo son una sola pieza de cristal, sin el canto brillante que dejaba una
     raya bajo el logo. El líquido de `LogoBridge` solo se ve mientras se une.
+    **Brillo al pasar el ratón en las pestañas** (20 nov 2026, arreglado por aviso de Yil): en los grupos con gota
+    (`data-gotas`), los hijos se ponen `position: relative` para quedar sobre la gota; la pieza del brillo que se
+    desliza (`data-glide-pill`, `lib/touchFeedback.ts`) queda excluida, porque si deja de ser `absolute` se coloca
+    tras la última pestaña y el brillo sale a la derecha, vacío.
 - **Perla** (Marfil): claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
 - **Ónix** (Grafito): negro neutro con detalles dorados.
 - **Esmeralda** (Bosque): verde bosque profundo con oro.
