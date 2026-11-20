@@ -6501,8 +6501,22 @@ mapas; entre paréntesis, cómo se llamaban cuando eran temas sueltos:
 - **Frost Glass** (Órbita): cristal esmerilado, como la app del móvil. El espacio 3D ocupa toda la ventana y el
   chat, la cabecera, las barras, los menús y las ventanas flotan encima como cristal que lo deja ver difuminado; el
   mundo se centra en la zona que deja libre el chat.
-- **Vidrio líquido** (nuevo, `liquido`): el cristal de Apple en el Mac (Liquid Glass), sobre el mismo espacio a
-  pantalla completa que Frost Glass pero con una ciudad de colores de aurora. El vidrio es gris neutro y casi opaco
+- **Amatista** (`liquido`; hasta el 20 nov 2026 se llamaba «Vidrio líquido»): la ciudad con colores de aurora
+  (violeta, verde agua y rosa). Con la Interfaz en Normal, sus paneles son un esmerilado gris neutro.
+
+**Interfaz: Normal o Vidrio líquido** (20 nov 2026, pedido por Yil: «que la interfaz vidrio líquido sea una opción en
+sí misma»). En ⚙ → Ajustes → General → Apariencia, debajo de «Tema», y en el menú ⚙ (Ajustes rápidos). El tema elige
+el fondo del espacio y los colores; la Interfaz elige si el chat, los Ajustes, los paneles y la barra lateral son los
+de siempre o cristal líquido, y se combina con cualquier tema (mapas, decorados, Oficina, Ciudad digital). Se guarda en
+cada dispositivo (`aicowork.uiStyle`; no va al servidor porque Órbita no tiene el cristal 3D). Quien tenía el antiguo
+tema «Vidrio líquido» pasa solo a Amatista + Interfaz Vidrio líquido y lo ve igual. Por dentro: `lib/theme.ts`
+(`uiStyle`, `setUiStyle`, `glassOf(tema, interfaz)`) pone `data-glass="liquid"` en `<html>`; `theme-liquido.css` lleva
+el vidrio en `:root:root[data-glass='liquid']`, teñido con el color flotante de cada tema (`--float-rgb`): oscuro en
+los temas oscuros y claro en Perla, Refugio y la Oficina de día (borde de luz más fino y sin sombra en las letras).
+`scene/World.tsx` monta el cristal de verdad con la Interfaz en Vidrio líquido, sea cual sea el tema.
+
+- **Vidrio líquido** (la Interfaz): el cristal de Apple en el Mac (Liquid Glass), sobre el mismo espacio a
+  pantalla completa que Frost Glass. El vidrio es gris neutro y casi opaco
   (el texto se lee sobre cualquier cosa), toma el color de lo que tiene detrás y lleva un borde de luz desigual, más
   brillante arriba a la izquierda. En el escritorio y en Chrome, cerca del borde del chat, la barra lateral, la barra
   del espacio y los menús, lo de detrás se dobla y se estira como en el canto de una lente (`lib/liquidGlass.ts`: un
