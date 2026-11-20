@@ -190,22 +190,27 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   donde no se puede escribir (abierta desde el `.dmg`, «translocada» por macOS o en una carpeta sin permiso) avisa con
   «Descargar» y abre la página de la Release como antes. Las apps del Mac anteriores a este cambio aún abren la página:
   hay que descargar la nueva una última vez a mano.
-- **Ventana de «Novedades»** (desde el 10 nov 2026, `src/main/whatsNew.ts` y `WhatsNewDialog.tsx`). La primera vez
-  que kywai se abre después de actualizarse sale una ventana con las mejoras: el título de cada commit entre la versión
-  que había y la nueva, del más nuevo al más viejo (como mucho 30, «y N cambios más»). En las apps de la Release los
-  saca de GitHub (comparando las etiquetas `v0.1.<n>` del repositorio público) y trae «Ver en GitHub»; en las
-  compiladas en el equipo, del clon de git. Se quitan las publicaciones automáticas de Órbita, las fusiones y las
-  «versiones de prueba». Sale una sola vez por versión (al cerrarla queda apuntada en `novedades-vistas.json`, en la
-  carpeta de datos); en una instalación nueva, en el navegador y en el asistente inicial no sale. Si no se sabe qué
-  versión había (la primera vez que se abre una versión con esta ventana) pero kywai ya estaba configurado, sale igual
-  con los últimos 12 cambios hasta la versión instalada («Estos son los últimos cambios»). Sin internet dice que
-  no pudo cargar la lista. Los títulos de los commits se enseñan tal cual (en español): escríbelos pensando en quien
-  usa la app. Para probarla en desarrollo: `AICW_WHATS_NEW=1`.
-  **También en el navegador, el cliente de escritorio y Órbita:** el servidor guarda las novedades de su versión
-  (`novedades-ultimas.json`) y las da con `latestWhatsNew` (web y cliente) y `GET /api/mobile/v1/server/news`
-  (Órbita, capacidad `whatsNew`). Cada dispositivo apunta por su cuenta qué versión vio (el navegador en su
-  `localStorage`, `kywai.novedades.vista`; Órbita en sus preferencias), así que cada uno la ve una vez aunque se
-  conecte horas después. Si el servidor no pudo leer la lista de cambios, en esos dispositivos no sale.
+- **Ventana de «Novedades»: notas de parche** (desde el 20 nov 2026, `src/shared/patchNotes.ts`,
+  `src/main/whatsNew.ts` y `WhatsNewDialog.tsx`). La primera vez que kywai se abre después de actualizarse sale una
+  ventana como las notas de un parche: arriba y en grande lo **destacado**, cada cosa con su explicación corta y, si
+  la tiene, un botón «Probarlo» que abre su sitio en Ajustes; al final, en pequeño, las **mejoras** y los **arreglos**
+  en una línea cada uno. Todo sale en el idioma de la app (español si falta la traducción).
+  Las notas van **dentro de la app** (`src/shared/patchNotes.ts`), así que salen igual en el self host, en la app
+  descargada, en **kywai cloud** y en la **web**, sin leer GitHub ni git (antes en la nube no salía nunca: el
+  contenedor corre sin empaquetar y sin git). Cada nota tiene un id fijo; al cerrar la ventana se apuntan como vistas
+  (`novedades-vistas.json` en la carpeta de datos) y no vuelven a salir. En una instalación nueva se dan todas por
+  vistas; si kywai ya estaba configurado pero no se sabe qué vio (venía de la versión que enseñaba commits, o un
+  navegador nuevo), salen las de la última semana. Las notas «solo nube» salen solo en kywai cloud y las «solo
+  equipo» solo en la app instalada.
+  **Navegador, cliente de escritorio (también el de kywai cloud) y Órbita** piden las notas al servidor
+  (`latestWhatsNew` y `GET /api/mobile/v1/server/news`, capacidad `whatsNew`) y cada uno apunta qué vio (el navegador
+  en `localStorage`, `kywai.novedades.notas`; Órbita en sus preferencias). Órbita enseña de momento los títulos en el
+  idioma de la cuenta. En la nube las notas nuevas salen al desplegar la imagen nueva.
+  **Cómo se añade una nota** (cada mejora, en su mismo commit): arriba del todo en `src/shared/patchNotes.ts`, con id
+  `AAAA-MM-DD-tema`, `tipo` (`destacado`, `mejora` o `arreglo`), título en los 5 idiomas y, en los destacados, una
+  explicación de una o dos frases; `abrir` y `solo` son opcionales (el archivo explica cada campo). Lo interno
+  (pruebas, documentos, despliegues) no lleva nota. `whatsNew.test.ts` falla si una nota está mal escrita. Para
+  probar la ventana en desarrollo: `AICW_WHATS_NEW=1`.
 - **«Buscar actualizaciones…»** en esas versiones no usa git: pregunta a GitHub y espera la respuesta. Dice la versión
   instalada y si es la última («Tienes la última versión (0.1.N), comprobado en GitHub») o si hay una nueva: en
   Windows, en el AppImage y en el Mac se está descargando y el botón «Instalar y reiniciar» la instala ya (o en cuanto
@@ -222,6 +227,10 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   `xattr -cr "/Applications/kywai.app"`.
 - Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
   `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
+  Si ese clon ya no está (no hay `source-dir.txt` o su carpeta no tiene `.git`) o apunta al antiguo repositorio
+  público (`Yiku21/kywai` o `Yiku21/ai-cowork`, hoy el escaparate sin código), la app se actualiza desde las Releases
+  del escaparate como una descargada (`isOrphanSourceBuild` en `src/main/updater.ts`, que le pone el destino con
+  `setFeedURL`). Un clon de `Yiku21/kywai-original` sigue con su clon.
 - Las descargas de la Release se llaman `kywai-Setup-<versión>.exe`, `kywai-<versión>-<arch>.dmg/.zip` y
   `kywai-<versión>-<arch>.AppImage`, igual que lo compilado en el propio equipo (`npm run dist:*`). El servidor acepta
   para sus clientes de Windows tanto `kywai-Setup-*` como el nombre antiguo `AI-Cowork-Setup-*` (`clientRelease.ts`).
