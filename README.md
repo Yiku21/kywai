@@ -33,4 +33,6 @@ This is kywai's public showcase: the [kywai.app](https://kywai.app) website, the
 
 ### Licencia · License
 
-[Functional Source License (FSL-1.1-ALv2)](LICENSE): libre para usar, no para revender como producto o servicio que compita. Cada versión pasa a Apache 2.0 a los dos años.
+kywai es gratis para usar, pero no es de código abierto: [licencia de uso](LICENSE). Las versiones del 19 y 20 de noviembre de 2026 salieron con la FSL y las anteriores con MIT.
+
+kywai is free to use but not open source: see the [license](LICENSE).

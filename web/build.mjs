@@ -87,7 +87,7 @@ for(const idioma of IDIOMAS) {
     } else if(pagina.id==='funciones'||pagina.id==='conectores') {
       content=renderEscaparate(pagina.id,{s:showcase,composio:COMPOSIO[idioma.code],composioData,guides,t,url,base,img:idioma.code,esc})
     } else if(pagina.id==='descargas') {
-      content=intro(t['download.title'],s.choose,`<p class="download-note">${esc(s.downloadNote)}</p><p class="release-meta">${esc(s.versions)} <strong id="dl-version">${esc(RELEASE.tag_name.replace(/^v/,''))}</strong> · <a href="${RELEASES}">${esc(s.notes)}</a> · <a href="https://github.com/Yiku21/kywai">${esc(s.source)}</a></p>`)
+      content=intro(t['download.title'],s.choose,`<p class="download-note">${esc(s.downloadNote)}</p><p class="release-meta">${esc(s.versions)} <strong id="dl-version">${esc(RELEASE.tag_name.replace(/^v/,''))}</strong> · <a href="${RELEASES}">${esc(s.notes)}</a></p>`)
         +`<section class="downloads-page"><div class="wrap"><div class="platform-grid">`
         +osCard('mac','macOS',s.chip,download('mac-arm','Apple silicon · .dmg')+download('mac-intel','Intel · .dmg'),s.mac,`<p class="platform-tip">${esc(s.chipHelp)}</p>`)
         +osCard('win','Windows',t['download.win'],download('win',s.installer+' · .exe'),s.win)
