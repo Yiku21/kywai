@@ -181,6 +181,8 @@ jobs:
         working-directory: codigo
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # La app ya no cabe en la memoria que Node da por defecto en macOS (se paraba con «heap out of memory»).
+          NODE_OPTIONS: --max-old-space-size=6144
         run: |
           npx electron-vite build
           npx electron-builder ${{ matrix.args }} --publish never \
