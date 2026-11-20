@@ -23,6 +23,10 @@
         "zh": {
           "name": "Kywai 静居",
           "hint": "面朝大海的温室天文台，设有工作坊和共享树木"
+        },
+        "hi": {
+          "name": "Kywai Retreat",
+          "hint": "समुद्र किनारे ग्रीनहाउस वेधशाला, वर्कशॉप और एक साझा पेड़ के साथ"
         }
       }
     },
@@ -49,6 +53,10 @@
         "zh": {
           "name": "海底世界",
           "hint": "充满鱼群、水母和发光珍珠的活力珊瑚礁"
+        },
+        "hi": {
+          "name": "समुद्र के नीचे",
+          "hint": "मछलियों, जेलीफ़िश और रोशनी के मोती वाली जीवंत चट्टान"
         }
       }
     },
@@ -75,6 +83,10 @@
         "zh": {
           "name": "经典",
           "hint": "网络空间行动中心，配有服务器和全息核心"
+        },
+        "hi": {
+          "name": "क्लासिक",
+          "hint": "साइबरस्पेस संचालन केंद्र, सर्वरों और होलोग्राफ़िक कोर के साथ"
         }
       }
     },
@@ -101,6 +113,10 @@
         "zh": {
           "name": "Órbita",
           "hint": "地球上空的空间站，带有漂浮码头和天象仪"
+        },
+        "hi": {
+          "name": "Órbita",
+          "hint": "पृथ्वी के ऊपर स्टेशन, तैरते डॉक और एक तारामंडल के साथ"
         }
       }
     },
@@ -127,6 +143,10 @@
         "zh": {
           "name": "象牙",
           "hint": "奥林匹斯花园：浅色石材、拱门和水渠"
+        },
+        "hi": {
+          "name": "हाथीदाँत",
+          "hint": "ओलंपस का बगीचा: हल्का पत्थर, मेहराबें और पानी की नहरें"
         }
       }
     },
@@ -153,6 +173,10 @@
         "zh": {
           "name": "石墨",
           "hint": "热能工厂，有齿轮、蒸汽和琥珀色反应堆"
+        },
+        "hi": {
+          "name": "ग्रेफ़ाइट",
+          "hint": "गियर, भाप और अंबर रिएक्टर वाली थर्मल फ़ैक्ट्री"
         }
       }
     },
@@ -179,6 +203,10 @@
         "zh": {
           "name": "森林",
           "hint": "精灵林间空地：树木、木平台和萤火虫"
+        },
+        "hi": {
+          "name": "जंगल",
+          "hint": "परियों का मैदान: पेड़, लकड़ी के मंच और जुगनू"
         }
       }
     },
@@ -205,6 +233,10 @@
         "zh": {
           "name": "Matrix",
           "hint": "代码与雾气之间的城市，带有数据核心"
+        },
+        "hi": {
+          "name": "Matrix",
+          "hint": "कोड और कोहरे के बीच शहर, डेटा कोर के साथ"
         }
       }
     },
@@ -231,6 +263,10 @@
         "zh": {
           "name": "EVA-01",
           "hint": "收容舱，带有防爆门和能量胶囊"
+        },
+        "hi": {
+          "name": "EVA-01",
+          "hint": "ब्लास्ट दरवाज़ों और ऊर्जा कैप्सूल वाला नियंत्रण कक्ष"
         }
       }
     },
@@ -257,6 +293,10 @@
         "zh": {
           "name": "靛蓝",
           "hint": "深色、简洁的面板，原始外观"
+        },
+        "hi": {
+          "name": "इंडिगो",
+          "hint": "गहरे, सादे पैनल, मूल लुक"
         }
       }
     },
@@ -283,6 +323,10 @@
         "zh": {
           "name": "Frost Glass",
           "hint": "带高光的蓝色玻璃，与手机应用一致"
+        },
+        "hi": {
+          "name": "फ़्रॉस्ट ग्लास",
+          "hint": "चमक वाला नीला काँच, मोबाइल ऐप जैसा"
         }
       }
     },
@@ -309,6 +353,10 @@
         "zh": {
           "name": "珍珠",
           "hint": "明亮温暖：象牙白、绿色和金色"
+        },
+        "hi": {
+          "name": "मोती",
+          "hint": "हल्का और गर्म: हाथीदाँत, हरा और सुनहरा"
         }
       }
     },
@@ -335,6 +383,10 @@
         "zh": {
           "name": "缟玛瑙",
           "hint": "石墨黑配金色细节"
+        },
+        "hi": {
+          "name": "गोमेद",
+          "hint": "सुनहरे विवरणों के साथ ग्रेफ़ाइट काला"
         }
       }
     },
@@ -361,6 +413,10 @@
         "zh": {
           "name": "翡翠",
           "hint": "深林绿配金色"
+        },
+        "hi": {
+          "name": "पन्ना",
+          "hint": "सुनहरे के साथ गहरा जंगली हरा"
         }
       }
     },
@@ -387,6 +443,10 @@
         "zh": {
           "name": "霓虹",
           "hint": "黑色与霓虹绿"
+        },
+        "hi": {
+          "name": "नियॉन",
+          "hint": "काला और नियॉन हरा"
         }
       }
     },
@@ -413,6 +473,10 @@
         "zh": {
           "name": "紫外",
           "hint": "紫色与青柠绿，像初号机"
+        },
+        "hi": {
+          "name": "अल्ट्रावायलेट",
+          "hint": "बैंगनी और नींबू हरा, Unit-01 जैसा"
         }
       }
     },
@@ -439,6 +503,10 @@
         "zh": {
           "name": "圣物匣",
           "hint": "玻璃与黄金：切割水晶核心和玻璃平台"
+        },
+        "hi": {
+          "name": "Relicario",
+          "hint": "काँच और सोना: तराशे क्रिस्टल का कोर और काँच के मंच"
         }
       }
     },
@@ -465,6 +533,10 @@
         "zh": {
           "name": "织机",
           "hint": "银线在空间中交织，点缀金色火花"
+        },
+        "hi": {
+          "name": "Telar",
+          "hint": "अंतरिक्ष में बुने चाँदी के धागे, सुनहरी चमक के साथ"
         }
       }
     },
@@ -491,6 +563,10 @@
         "zh": {
           "name": "Halloween",
           "hint": "南瓜、蜡烛、月亮和蝙蝠，在紫色的夜晚"
+        },
+        "hi": {
+          "name": "हैलोवीन",
+          "hint": "बैंगनी रात में कद्दू, मोमबत्तियाँ, चाँद और चमगादड़"
         }
       }
     },
@@ -517,6 +593,10 @@
         "zh": {
           "name": "圣诞",
           "hint": "雪花、礼物、亮灯的树和雪景球"
+        },
+        "hi": {
+          "name": "क्रिसमस",
+          "hint": "बर्फ़, तोहफ़े, जगमगाते पेड़ और एक स्नो ग्लोब"
         }
       }
     },
@@ -543,6 +623,10 @@
         "zh": {
           "name": "办公室",
           "hint": "企业办公室，可在空间中用「夜间模式」切换白天或夜晚"
+        },
+        "hi": {
+          "name": "दफ़्तर",
+          "hint": "दफ़्तर, दिन में या स्पेस में “रात मोड” के साथ रात में"
         }
       }
     },
@@ -569,6 +653,10 @@
         "zh": {
           "name": "办公室 · 夜晚",
           "hint": "企业办公室，可在空间中用「夜间模式」切换白天或夜晚"
+        },
+        "hi": {
+          "name": "दफ़्तर · रात",
+          "hint": "दफ़्तर, दिन में या स्पेस में “रात मोड” के साथ रात में"
         }
       }
     }
@@ -601,6 +689,10 @@
         "zh": {
           "summary": "协调者：规划工作并分配给其他代理，跨会话保留记忆。",
           "account": "需要一个模型提供方（OmniRoute、Nous Portal、OpenRouter 或其他账户）。"
+        },
+        "hi": {
+          "summary": "समन्वयक: काम की योजना बनाकर दूसरों में बाँटता है, सेशनों के पार मेमोरी के साथ।",
+          "account": "एक मॉडल प्रदाता चाहिए (OmniRoute, Nous Portal, OpenRouter या कोई दूसरा खाता)।"
         }
       }
     },
@@ -631,6 +723,10 @@
         "zh": {
           "summary": "设计、文案和高质量代码。",
           "account": "使用你的 Claude 订阅（Pro 或 Max）。"
+        },
+        "hi": {
+          "summary": "डिज़ाइन, लेखन और उच्च गुणवत्ता वाला कोड।",
+          "account": "आपकी Claude सब्सक्रिप्शन (Pro या Max) के साथ।"
         }
       }
     },
@@ -661,6 +757,10 @@
         "zh": {
           "summary": "编程和技术任务；唯一能生成图片的。",
           "account": "使用你的 ChatGPT 账户。"
+        },
+        "hi": {
+          "summary": "प्रोग्रामिंग और तकनीकी काम; अकेला जो तस्वीरें बनाता है।",
+          "account": "आपके ChatGPT खाते के साथ।"
         }
       }
     },
@@ -691,6 +791,10 @@
         "zh": {
           "summary": "分析、调研和长文档。",
           "account": "使用 Google AI Studio 的 API 密钥（免费）或 Gemini Code Assist 企业账户。自 2026 年 6 月起，个人 Google 账户改用 Antigravity CLI。"
+        },
+        "hi": {
+          "summary": "विश्लेषण, खोज और लंबे दस्तावेज़।",
+          "account": "Google AI Studio API कुंजी (मुफ़्त) या Gemini Code Assist बिज़नेस खाते के साथ। जून 2026 से निजी Google खाते Antigravity CLI इस्तेमाल करते हैं।"
         }
       }
     },
@@ -721,6 +825,10 @@
         "zh": {
           "summary": "视频，以及其他代理配额用完时的后援。",
           "account": "使用你的 Muse Code 订阅（Meta 账户）。"
+        },
+        "hi": {
+          "summary": "वीडियो, और जब दूसरों का कोटा ख़त्म हो जाए तब बैकअप।",
+          "account": "आपकी Muse Code सब्सक्रिप्शन (Meta खाता) के साथ।"
         }
       }
     },
@@ -751,6 +859,10 @@
         "zh": {
           "summary": "AI 结对编程：用你选择的模型编辑你仓库中的文件。",
           "account": "仅支持 API 密钥（OpenAI、Anthropic、Google、OpenRouter…）：不使用你的 ChatGPT 或 Claude 订阅。"
+        },
+        "hi": {
+          "summary": "AI के साथ जोड़ी में प्रोग्रामिंग: आपके चुने मॉडल से आपकी रिपॉज़िटरी की फ़ाइलें बदलता है।",
+          "account": "केवल API कुंजियों के साथ (OpenAI, Anthropic, Google, OpenRouter…): यह आपकी ChatGPT या Claude सब्सक्रिप्शन इस्तेमाल नहीं करता।"
         }
       }
     },
@@ -781,6 +893,10 @@
         "zh": {
           "summary": "通过 Aider 把 DeepSeek 的模型用作编程代理（DeepSeek 没有自己的终端程序）。",
           "account": "使用 DeepSeek API 密钥（按量付费，非常便宜）：DeepSeek 没有月度订阅。"
+        },
+        "hi": {
+          "summary": "Aider के ज़रिए कोडिंग एजेंट के रूप में DeepSeek के मॉडल (DeepSeek का अपना टर्मिनल प्रोग्राम नहीं है)।",
+          "account": "DeepSeek API कुंजी के साथ (जितना इस्तेमाल उतना भुगतान, बहुत सस्ता): DeepSeek की कोई मासिक सब्सक्रिप्शन नहीं है।"
         }
       }
     },
@@ -811,6 +927,10 @@
         "zh": {
           "summary": "开源的终端编程代理，支持很多提供商。",
           "account": "使用你的 ChatGPT Plus/Pro、GitHub Copilot、GitLab Duo 或 SuperGrok 订阅（opencode auth login），或 API 密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल के लिए ओपन-सोर्स कोडिंग एजेंट, कई प्रदाताओं के साथ।",
+          "account": "आपकी ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo या SuperGrok सब्सक्रिप्शन (opencode auth login), या API कुंजियों के साथ।"
         }
       }
     },
@@ -841,6 +961,10 @@
         "zh": {
           "summary": "GitHub Copilot 的终端编程代理。",
           "account": "使用你的 GitHub Copilot 订阅（copilot login）。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में GitHub Copilot का कोडिंग एजेंट।",
+          "account": "आपकी GitHub Copilot सब्सक्रिप्शन (copilot login) के साथ।"
         }
       }
     },
@@ -871,6 +995,10 @@
         "zh": {
           "summary": "Cursor 的终端代理。",
           "account": "使用你的 Cursor 账户（agent login，在浏览器中）或 CURSOR_API_KEY。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Cursor का एजेंट।",
+          "account": "आपके Cursor खाते (agent login, ब्राउज़र में) या CURSOR_API_KEY के साथ।"
         }
       }
     },
@@ -901,6 +1029,10 @@
         "zh": {
           "summary": "Amp（ampcode.com）的终端编程代理。",
           "account": "使用有额度或订阅的 Amp 账户；用于脚本时需要 AMP_API_KEY。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Amp (ampcode.com) का कोडिंग एजेंट।",
+          "account": "क्रेडिट या सब्सक्रिप्शन वाले Amp खाते के साथ; स्क्रिप्ट के लिए यह AMP_API_KEY माँगता है।"
         }
       }
     },
@@ -931,6 +1063,10 @@
         "zh": {
           "summary": "带工具的编程与自动化代理，来自 Agentic AI Foundation（原 Block）。",
           "account": "通过各自的程序使用你的 Claude、ChatGPT、Copilot 或 Cursor 订阅，或使用 API 密钥或本地模型。"
+        },
+        "hi": {
+          "summary": "Agentic AI Foundation (पहले Block) का टूल वाला कोडिंग और ऑटोमेशन एजेंट।",
+          "account": "उनके प्रोग्रामों के ज़रिए आपकी Claude, ChatGPT, Copilot या Cursor सब्सक्रिप्शन, या API कुंजी या लोकल मॉडल इस्तेमाल करता है।"
         }
       }
     },
@@ -961,6 +1097,10 @@
         "zh": {
           "summary": "Moonshot AI（Kimi）的终端编程代理。",
           "account": "使用你的 Kimi Code 会员（在浏览器中登录），无需 API 密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Moonshot AI (Kimi) का कोडिंग एजेंट।",
+          "account": "आपकी Kimi Code सदस्यता के साथ (ब्राउज़र में साइन इन), बिना API कुंजी।"
         }
       }
     },
@@ -991,6 +1131,10 @@
         "zh": {
           "summary": "Mistral 的终端编程代理。",
           "account": "使用你的 Mistral 账户（Le Chat Pro 或 Team）或 Mistral API 密钥；也支持本地模型。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Mistral का कोडिंग एजेंट।",
+          "account": "आपके Mistral खाते (Le Chat Pro या Team) या Mistral API कुंजी के साथ; लोकल मॉडल के साथ भी।"
         }
       }
     },
@@ -1021,6 +1165,10 @@
         "zh": {
           "summary": "xAI（Grok）的终端编程代理。",
           "account": "使用你的 SuperGrok 或 X Premium Plus 订阅（在浏览器中登录），无需 API 密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में xAI (Grok) का कोडिंग एजेंट।",
+          "account": "आपकी SuperGrok या X Premium Plus सब्सक्रिप्शन के साथ (ब्राउज़र में साइन इन), बिना API कुंजी।"
         }
       }
     },
@@ -1051,6 +1199,10 @@
         "zh": {
           "summary": "终端中的自主编程代理，支持很多模型提供商。",
           "account": "使用你的 Cline 账户或 ChatGPT Plus/Pro 订阅（在浏览器中登录），或你自己的 API 密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में स्वायत्त कोडिंग एजेंट, कई मॉडल प्रदाताओं के साथ।",
+          "account": "आपके Cline खाते या ChatGPT Plus/Pro सब्सक्रिप्शन (ब्राउज़र में साइन इन), या अपनी API कुंजी के साथ।"
         }
       }
     },
@@ -1081,6 +1233,10 @@
         "zh": {
           "summary": "Continue 的终端编程代理（测试版）。",
           "account": "使用你的 Continue 账户（在浏览器中登录）或 Anthropic API 密钥；不使用 Claude 或 ChatGPT 订阅。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Continue का कोडिंग एजेंट (बीटा)।",
+          "account": "आपके Continue खाते (ब्राउज़र में साइन इन) या Anthropic API कुंजी के साथ; यह Claude या ChatGPT सब्सक्रिप्शन इस्तेमाल नहीं करता।"
         }
       }
     },
@@ -1111,6 +1267,10 @@
         "zh": {
           "summary": "开源的软件开发代理（OpenHands）。",
           "account": "使用你的 OpenHands Cloud 账户（在浏览器中登录）或你自己的 API 密钥。"
+        },
+        "hi": {
+          "summary": "ओपन-सोर्स सॉफ़्टवेयर डेवलपमेंट एजेंट (OpenHands)।",
+          "account": "आपके OpenHands Cloud खाते (ब्राउज़र में साइन इन) या अपनी API कुंजी के साथ।"
         }
       }
     },
@@ -1141,6 +1301,10 @@
         "zh": {
           "summary": "Factory 的终端编程代理。",
           "account": "使用你的 Factory 套餐（Pro 或更高）；在无界面模式下需要你账户的 FACTORY_API_KEY。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Factory का कोडिंग एजेंट।",
+          "account": "आपके Factory प्लान (Pro या ऊपर) के साथ; headless मोड में यह आपके खाते की FACTORY_API_KEY माँगता है।"
         }
       }
     },
@@ -1171,6 +1335,10 @@
         "zh": {
           "summary": "Augment 的终端编程代理（测试版）。",
           "account": "使用你的 Augment 套餐（在浏览器中登录）。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Augment का कोडिंग एजेंट (बीटा)।",
+          "account": "आपके Augment प्लान के साथ (ब्राउज़र में साइन इन)।"
         }
       }
     },
@@ -1201,6 +1369,10 @@
         "zh": {
           "summary": "JetBrains 的终端编程代理。",
           "account": "使用你的 JetBrains AI 订阅（JetBrains 账户）、Junie API 密钥或你自己的密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में JetBrains का कोडिंग एजेंट।",
+          "account": "आपकी JetBrains AI सब्सक्रिप्शन (JetBrains खाता), Junie API कुंजी या अपनी कुंजियों के साथ।"
         }
       }
     },
@@ -1231,6 +1403,10 @@
         "zh": {
           "summary": "Charm 的终端界面编程代理。",
           "account": "使用你的 GitHub Copilot、ChatGPT 或 Grok 账户（crush login）、Charm Hyper 或你自己的 API 密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल इंटरफ़ेस वाला Charm का कोडिंग एजेंट।",
+          "account": "आपके GitHub Copilot, ChatGPT या Grok खाते (crush login), Charm Hyper या अपनी API कुंजियों के साथ।"
         }
       }
     },
@@ -1261,6 +1437,10 @@
         "zh": {
           "summary": "处理本地文件、代码和命令的代理（基于 Codex 的新版本）。",
           "account": "使用你的 ChatGPT 账户（在浏览器中登录）、API 密钥或本地模型。"
+        },
+        "hi": {
+          "summary": "लोकल फ़ाइलों, कोड और कमांड के साथ काम करने वाला एजेंट (नया संस्करण, Codex पर आधारित)।",
+          "account": "आपके ChatGPT खाते (ब्राउज़र में साइन इन), API कुंजियों या लोकल मॉडल के साथ।"
         }
       }
     },
@@ -1291,6 +1471,10 @@
         "zh": {
           "summary": "带工具的助手，可在终端中运行代码和处理文件。",
           "account": "使用你的 ChatGPT Plus/Pro 或 SuperGrok 订阅，或 API 密钥（不支持 Claude 订阅）。"
+        },
+        "hi": {
+          "summary": "टर्मिनल से कोड चलाने और फ़ाइलें संभालने के टूल वाला सहायक।",
+          "account": "आपकी ChatGPT Plus/Pro या SuperGrok सब्सक्रिप्शन, या API कुंजियों के साथ (Claude सब्सक्रिप्शन के साथ नहीं)।"
         }
       }
     },
@@ -1321,6 +1505,10 @@
         "zh": {
           "summary": "跨会话拥有持久记忆的编程代理。",
           "account": "使用你的 Letta 账户，或通过「letta connect」使用你的 ChatGPT、GitHub Copilot、Kimi、xAI… 订阅"
+        },
+        "hi": {
+          "summary": "सेशनों के पार स्थायी मेमोरी वाला कोडिंग एजेंट।",
+          "account": "आपके Letta खाते के साथ या, «letta connect» से, आपकी ChatGPT, GitHub Copilot, Kimi, xAI… सब्सक्रिप्शन के साथ"
         }
       }
     },
@@ -1351,6 +1539,10 @@
         "zh": {
           "summary": "支持多种 AI 提供商的编程代理。",
           "account": "使用你的 Claude Code、Codex（ChatGPT）或 GitHub Copilot 订阅（forge provider login）或 API 密钥。"
+        },
+        "hi": {
+          "summary": "अलग-अलग AI प्रदाताओं वाला कोडिंग एजेंट।",
+          "account": "आपकी Claude Code, Codex (ChatGPT) या GitHub Copilot सब्सक्रिप्शन (forge provider login) या API कुंजियों के साथ।"
         }
       }
     },
@@ -1381,6 +1573,10 @@
         "zh": {
           "summary": "带工具的个人助手（不仅限于代码），有自己的网关。",
           "account": "使用你的 ChatGPT/Codex 或 GitHub Copilot 订阅，或复用你已登录的 Claude 程序；也支持 API 密钥。"
+        },
+        "hi": {
+          "summary": "टूल वाला निजी सहायक (केवल कोड के लिए नहीं), अपने गेटवे के साथ।",
+          "account": "आपकी ChatGPT/Codex या GitHub Copilot सब्सक्रिप्शन, या पहले से साइन-इन Claude प्रोग्राम को दोबारा इस्तेमाल करके; API कुंजियाँ भी।"
         }
       }
     },
@@ -1411,6 +1607,10 @@
         "zh": {
           "summary": "AWS 的终端编程代理（Kiro，原 Amazon Q Developer CLI）。",
           "account": "使用你的 Kiro 订阅（kiro-cli login，在浏览器中），或在无界面模式下使用 KIRO_API_KEY（Pro 或更高套餐）。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में AWS का कोडिंग एजेंट (Kiro, पहले Amazon Q Developer CLI)।",
+          "account": "आपकी Kiro सब्सक्रिप्शन (kiro-cli login, ब्राउज़र में) या headless मोड के लिए KIRO_API_KEY (Pro प्लान या ऊपर) के साथ।"
         }
       }
     },
@@ -1441,6 +1641,10 @@
         "zh": {
           "summary": "Qwen（阿里巴巴）的开源终端编程代理。",
           "account": "使用你的阿里云 Qwen Coding Plan（它的密钥和端点 https://coding.dashscope.aliyuncs.com/v1，中国以外使用 coding-intl），或其他提供商（OpenAI、Anthropic、OpenRouter、本地模型）。使用 Qwen 账户的免费访问已于 2026 年 4 月关闭。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Qwen (Alibaba) का ओपन-सोर्स कोडिंग एजेंट।",
+          "account": "आपके Alibaba Cloud Qwen Coding Plan (उसकी कुंजी और endpoint https://coding.dashscope.aliyuncs.com/v1, या चीन के बाहर coding-intl) या किसी दूसरे प्रदाता (OpenAI, Anthropic, OpenRouter, लोकल मॉडल) के साथ। Qwen खाते से मुफ़्त पहुँच अप्रैल 2026 में बंद हो गई।"
         }
       }
     },
@@ -1471,6 +1675,10 @@
         "zh": {
           "summary": "终端中的 Google Antigravity 智能体（agy）；自 2026 年 6 月起，在个人 Google 账户中取代 Gemini CLI。",
           "account": "使用你的 Google 账户：免费版有每周限额，Google AI Pro 或 Ultra 额度更多（首次打开 agy 时在浏览器中登录 Google）。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Google Antigravity एजेंट (agy); जून 2026 से यह निजी Google खातों के लिए Gemini CLI की जगह लेता है।",
+          "account": "आपके Google खाते के साथ: साप्ताहिक सीमा के साथ मुफ़्त, या Google AI Pro या Ultra पर ज़्यादा कोटे के साथ (पहली बार agy खोलने पर ब्राउज़र में Google साइन इन)।"
         }
       }
     },
@@ -1501,6 +1709,10 @@
         "zh": {
           "summary": "Atlassian 的终端编程代理（Rovo Dev），位于 Atlassian CLI（acli）中。",
           "account": "使用在你的 Atlassian Cloud 站点开通了 Rovo Dev 的 Atlassian 账户（acli rovodev auth login，需提供邮箱和 API 令牌）。"
+        },
+        "hi": {
+          "summary": "Atlassian CLI (acli) के अंदर, टर्मिनल में Atlassian का कोडिंग एजेंट (Rovo Dev)।",
+          "account": "आपकी Atlassian Cloud साइट पर Rovo Dev वाले Atlassian खाते के साथ (acli rovodev auth login, आपके ईमेल और API टोकन के साथ)।"
         }
       }
     },
@@ -1531,6 +1743,10 @@
         "zh": {
           "summary": "MiniMax 的终端编程代理（mcode）。",
           "account": "使用你的 MiniMax 账户（mcode login，在浏览器中）；也支持你添加的其他提供商。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में MiniMax का कोडिंग एजेंट (mcode)।",
+          "account": "आपके MiniMax खाते (mcode login, ब्राउज़र में) के साथ; आपके जोड़े दूसरे प्रदाताओं के साथ भी।"
         }
       }
     },
@@ -1561,6 +1777,10 @@
         "zh": {
           "summary": "Qoder（阿里巴巴）的终端编程代理。",
           "account": "使用你的 Qoder 账户（qodercli login，在浏览器中）或个人令牌 QODER_PERSONAL_ACCESS_TOKEN。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Qoder (Alibaba) का कोडिंग एजेंट।",
+          "account": "आपके Qoder खाते (qodercli login, ब्राउज़र में) या निजी टोकन QODER_PERSONAL_ACCESS_TOKEN के साथ।"
         }
       }
     },
@@ -1591,6 +1811,10 @@
         "zh": {
           "summary": "Kilo 的开源编程智能体，在终端中运行，提供数百个模型，其中有几个免费。",
           "account": "使用免费模型无需账户；付费模型需要你的 Kilo 账户（kilo auth login），也可以用你自己的 API 密钥。"
+        },
+        "hi": {
+          "summary": "टर्मिनल में Kilo का ओपन-सोर्स कोडिंग एजेंट, सैकड़ों मॉडलों और कई मुफ़्त मॉडलों के साथ।",
+          "account": "मुफ़्त मॉडलों के लिए किसी खाते की ज़रूरत नहीं; पेड मॉडलों के लिए आपके Kilo खाते (kilo auth login) या अपनी API कुंजियों के साथ।"
         }
       }
     }

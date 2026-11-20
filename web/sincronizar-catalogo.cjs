@@ -21,7 +21,7 @@ async function synchronize() {
         themes: theme.THEMES.map(x => ({ id: x.id, group: theme.CITY_COLORS.some(y => y.id === x.id) ? 'city' : theme.DECORS.some(y => y.id === x.id) ? 'decor' : theme.CORPORATE.some(y => y.id === x.id) ? 'office' : 'world', text: {} })),
         agents: AGENT_CATALOG.map(x => ({ id: x.id, name: x.name, kind: x.kind, verified: x.verified, free: !!x.free, docs: x.cli?.url || '', text: {} }))
       }
-      for (const lang of ['es', 'en', 'pt', 'fr', 'zh']) {
+      for (const lang of ['es', 'en', 'pt', 'fr', 'zh', 'hi']) {
         setCurrentLang(lang)
         theme.THEMES.forEach((x, i) => { result.themes[i].text[lang] = { name: t(x.name), hint: t(x.hint) } })
         AGENT_CATALOG.forEach((x, i) => { result.agents[i].text[lang] = { summary: t(x.summary), account: t(x.account) } })

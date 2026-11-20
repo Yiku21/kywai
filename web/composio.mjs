@@ -6,6 +6,25 @@ export const COMPOSIO = {
  pt:{title:'Suas ferramentas. Um só espaço.',intro:'E-mail, documentos, vendas, desenvolvimento e muito mais. Explore o catálogo Composio que usaremos para conectar seus apps.',search:'Buscar entre {n} serviços',more:'Mostrar mais',details:'Ver integração',count:'serviços no catálogo Composio',status:'Conexão no kywai Cloud: em preparação',note:'Cada usuário autorizará suas próprias contas. As conexões e os dados de uma pessoa nunca serão compartilhados com outra. Disponibilidade e permissões dependem do serviço.',empty:'Nenhum serviço encontrado.',all:'Ver catálogo completo no Composio',desktop:'Também: conexões MCP no desktop',how:'Escolha um app. Autorize sua conta. Defina qual agente pode usá-lo.',step:['Escolha um serviço','Conecte sua própria conta','Controle o acesso dos agentes']},
  fr:{title:'Vos outils. Un seul espace.',intro:'E-mail, documents, ventes, développement et bien plus. Explorez le catalogue Composio que nous utiliserons pour connecter vos apps.',search:'Rechercher parmi {n} services',more:'Afficher plus',details:'Voir l’intégration',count:'services dans le catalogue Composio',status:'Connexion dans kywai Cloud : en préparation',note:'Chaque utilisateur autorisera ses propres comptes. Ses connexions et données ne seront jamais partagées avec un autre utilisateur. Disponibilité et autorisations dépendent du service.',empty:'Aucun service trouvé.',all:'Voir le catalogue complet sur Composio',desktop:'Aussi : connexions MCP sur ordinateur',how:'Choisissez une app. Autorisez votre compte. Choisissez quel agent peut l’utiliser.',step:['Choisissez un service','Connectez votre propre compte','Contrôlez l’accès des agents']},
  zh:{title:'你的工具，集中在同一个空间。',intro:'邮件、文档、销售、开发等。探索我们将用于连接应用的 Composio 目录。',search:'搜索 {n} 项服务',more:'显示更多',details:'查看集成',count:'项服务收录于 Composio 目录',status:'kywai Cloud 连接功能：准备中',note:'每位用户将授权自己的账户。用户之间不会共享连接或数据。可用性和权限取决于各项服务。',empty:'未找到匹配的服务。',all:'查看完整 Composio 目录',desktop:'另有：桌面 MCP 连接',how:'选择应用，授权自己的账户，并决定哪些智能体可以使用。',step:['选择服务','连接自己的账户','控制智能体访问权限']},
+ hi: {
+   "title": "आपके टूल। एक ही वर्कस्पेस।",
+   "intro": "ईमेल, दस्तावेज़, बिक्री, डेवलपमेंट और बहुत कुछ। Composio कैटलॉग देखें, जिससे हम आपके ऐप जोड़ेंगे।",
+   "search": "{n} सेवाएँ खोजें",
+   "more": "और दिखाएँ",
+   "details": "इंटीग्रेशन देखें",
+   "count": "सेवाएँ Composio कैटलॉग में",
+   "status": "kywai Cloud में कनेक्शन: तैयारी में",
+   "note": "हर उपयोगकर्ता अपने खुद के खाते अधिकृत करेगा। एक व्यक्ति के कनेक्शन और डेटा कभी किसी दूसरे के साथ साझा नहीं होंगे। उपलब्धता और अनुमतियाँ हर सेवा पर निर्भर करती हैं।",
+   "empty": "कोई मिलती-जुलती सेवा नहीं मिली।",
+   "all": "पूरा Composio कैटलॉग देखें",
+   "desktop": "साथ ही: डेस्कटॉप MCP कनेक्शन",
+   "how": "एक ऐप चुनें। अपना खाता अधिकृत करें। चुनें कि कौन-सा एजेंट इसे इस्तेमाल कर सकता है।",
+   "step": [
+    "सेवा चुनें",
+    "अपना खाता जोड़ें",
+    "एजेंट की पहुँच नियंत्रित करें"
+   ]
+ },
 }
 export function renderComposio({s,data,base,esc}){
  const label=s.search.replace('{n}',data.items.length)

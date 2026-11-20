@@ -28,7 +28,7 @@ for (const preview of [false, true]) {
       assert.equal(document.querySelectorAll('h1').length, 1, route + ': un título principal')
       assert(!html.includes('{{') && !html.includes('undefined'), route + ': textos completos')
       assert.equal(document.querySelector('link[rel=canonical]').href, origin + '/' + route)
-      assert.equal(document.querySelectorAll('link[rel=alternate]').length, 6)
+      assert.equal(document.querySelectorAll('link[rel=alternate]').length, IDIOMAS.length + 1)
       const legal = [...document.querySelectorAll('.footer-legal a')]
       assert.equal(legal.length, 2, route + ': documentos legales visibles en el pie')
       assert(legal.some(a => a.getAttribute('href').includes('privacidad/')))
