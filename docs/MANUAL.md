@@ -1613,6 +1613,37 @@ en escribirse. Como Hermes no enseña nada hasta terminar, kywai le espera hasta
 siguiente coordinador. Se le piden planes escuetos (cada tarea en 2 a 6 frases, sin repetir la petición, que los
 agentes ya reciben completa), así que se escriben antes.
 
+### Los agentes hacen lo que pides: kywai y tu ordenador
+
+Si pides **hacer** algo, un agente lo hace; nunca te contesta «hazlo tú». Antes, «quita el nvidia que dio error» iba
+como consulta rápida (que solo lee) y el agente te mandaba a «Mis agentes». Ahora:
+
+- El coordinador no manda por la vía rápida lo que hay que hacer: crea una tarea normal para Claude, Codex o Gemini.
+- Si una consulta rápida resulta pedir una acción, el agente responde «ACTUAR: …» y kywai la pasa al momento a una
+  tarea con herramientas y permiso para actuar (sale en la tarea: «Hay que hacerlo, no solo mirarlo»).
+
+**Manejar kywai** (`src/main/kywaiControl.ts`, en el servidor MCP de kywai):
+
+- `kywai_agentes`: lista Mis agentes con id, modelo, si está encendido, quién coordina y su último error.
+- `kywai_agente`: quitar, encender, apagar o poner a coordinar un agente. **Quitar siempre lo confirmas tú.**
+- `kywai_ajustes`: lee o cambia idioma, tema, agentes a la vez, permisos de los agentes y visto bueno a los planes.
+  Los dos últimos (de seguridad) **siempre los confirmas tú**.
+
+**Usar tu ordenador** (`src/main/computerControl.ts`; no en kywai Cloud):
+
+- Con acceso completo, los agentes pueden trabajar fuera de la carpeta del proyecto cuando se lo pides (tus
+  Descargas, el Escritorio, programas, ajustes del sistema). Sin pedirlo, fuera de ella solo lo imprescindible.
+- Para lo que solo se hace con el ratón: `ordenador_captura` (ver la pantalla principal), `ordenador_clic`,
+  `ordenador_escribir` (pega el texto y deja el portapapeles como estaba), `ordenador_tecla` (enter, cmd+c,
+  alt+tab…) y `ordenador_abrir` (un programa, un archivo o carpeta, una web). Mac con Quartz y System Events, Windows
+  con PowerShell, Linux con xdotool.
+- **Mac, la primera vez**: Ajustes del Sistema › Privacidad y seguridad › **Accesibilidad** (ratón y teclado) y
+  **Grabación de pantalla** (capturas) para kywai; después, reinicia kywai. Si falta, el agente te lo dice.
+
+Permisos, iguales para todo: con **acceso completo** actúan solos; con **«Preguntarme antes»** (o «Solo la carpeta del
+proyecto») cada acción te pide permiso. **Borrar, pagar, comprar, publicar o enviar lo confirmas siempre tú**, aunque
+tengan acceso completo. Cada acción queda escrita en la tarea, y «Detener» la corta.
+
 ### Respuestas rápidas: lo sencillo lo contesta el coordinador
 
 Una pregunta sencilla no pasa por un plan, un encargo y otro agente que arranca desde cero: la contesta el
