@@ -1,17 +1,17 @@
-// Navegación y textos de las páginas nuevas. La web conserva sus cinco idiomas.
+// Navegación y textos de las páginas nuevas. La web tiene seis idiomas (el hindi usa las rutas del inglés, como el chino).
 export const PAGINAS = [
-  { id: 'inicio', file: 'inicio', paths: ['', '', '', '', ''] },
-  { id: 'como', paths: ['how-it-works/', 'como-funciona/', 'como-funciona/', 'fonctionnement/', 'how-it-works/'] },
-  { id: 'funciones', paths: ['features/', 'funciones/', 'funcionalidades/', 'fonctionnalites/', 'features/'] },
-  { id: 'agentes', paths: ['agents/', 'agentes/', 'agentes/', 'agents/', 'agents/'] },
-  { id: 'conectores', paths: ['connectors/', 'conectores/', 'conectores/', 'connecteurs/', 'connectors/'] },
-  { id: 'dispositivos', paths: ['devices/', 'dispositivos/', 'dispositivos/', 'appareils/', 'devices/'] },
-  { id: 'temas', paths: ['themes/', 'temas/', 'temas/', 'themes/', 'themes/'] },
-  { id: 'descargas', paths: ['download/', 'descargas/', 'download/', 'telecharger/', 'download/'] },
-  { id: 'cloud', paths: ['cloud/', 'cloud/', 'cloud/', 'cloud/', 'cloud/'] },
-  { id: 'precios', paths: ['pricing/', 'precios/', 'precos/', 'tarifs/', 'pricing/'] },
-  { id: 'guias', paths: ['guides/', 'guias/', 'guias/', 'guides/', 'guides/'] },
-  { id: 'ayuda', paths: ['help/', 'ayuda/', 'ajuda/', 'aide/', 'help/'] },
+  { id: 'inicio', file: 'inicio', paths: ['', '', '', '', '', ''] },
+  { id: 'como', paths: ['how-it-works/', 'como-funciona/', 'como-funciona/', 'fonctionnement/', 'how-it-works/', 'how-it-works/'] },
+  { id: 'funciones', paths: ['features/', 'funciones/', 'funcionalidades/', 'fonctionnalites/', 'features/', 'features/'] },
+  { id: 'agentes', paths: ['agents/', 'agentes/', 'agentes/', 'agents/', 'agents/', 'agents/'] },
+  { id: 'conectores', paths: ['connectors/', 'conectores/', 'conectores/', 'connecteurs/', 'connectors/', 'connectors/'] },
+  { id: 'dispositivos', paths: ['devices/', 'dispositivos/', 'dispositivos/', 'appareils/', 'devices/', 'devices/'] },
+  { id: 'temas', paths: ['themes/', 'temas/', 'temas/', 'themes/', 'themes/', 'themes/'] },
+  { id: 'descargas', paths: ['download/', 'descargas/', 'download/', 'telecharger/', 'download/', 'download/'] },
+  { id: 'cloud', paths: ['cloud/', 'cloud/', 'cloud/', 'cloud/', 'cloud/', 'cloud/'] },
+  { id: 'precios', paths: ['pricing/', 'precios/', 'precos/', 'tarifs/', 'pricing/', 'pricing/'] },
+  { id: 'guias', paths: ['guides/', 'guias/', 'guias/', 'guides/', 'guides/', 'guides/'] },
+  { id: 'ayuda', paths: ['help/', 'ayuda/', 'ajuda/', 'aide/', 'help/', 'help/'] },
 ]
 
 export const SECCIONES = {
@@ -129,5 +129,87 @@ export const SECCIONES = {
     cloudBodies: ['项目和设置属于你的账户。', '每位用户的连接器和服务商账户相互独立。', '新空间的团队起初为空。连接并测试你想使用的智能体。'],
     cloudCta: '打开我的账户', cloudAccess: '申请试用', cloudPricing: '试用不会启用真实收费。目前尚未出售积分或额外存储空间。',
     composioTitle: '通过 Composio 连接你的应用。', composioBody: '我们正在为 kywai Cloud 准备应用连接和事件驱动的自动化。每位用户将授权自己的账户。', composioState: '准备中',
+  },
+  hi: {
+    "labels": [
+     "होम",
+     "यह कैसे काम करता है",
+     "सुविधाएँ",
+     "एजेंट",
+     "कनेक्टर",
+     "डिवाइस",
+     "थीम",
+     "डाउनलोड",
+     "Cloud",
+     "कीमतें",
+     "गाइड",
+     "मदद"
+    ],
+    "skip": "सामग्री पर जाएँ",
+    "menu": "मेनू",
+    "theme": "थीम बदलें",
+    "account": "मेरा खाता",
+    "project": "प्रोजेक्ट",
+    "explore": "kywai को जानें",
+    "choose": "चुनें कि आप kywai कहाँ इस्तेमाल करना चाहते हैं।",
+    "install": "इंस्टॉल कैसे करें",
+    "recommended": "आपके डिवाइस के लिए",
+    "chip": "अपने Mac का चिप चुनें",
+    "downloadNote": "डेस्कटॉप ऐप मुफ़्त है। अपना AI खाता या API कुंजी जोड़ें; प्रदाता के शुल्क और सीमाएँ लागू होती हैं।",
+    "versions": "प्रकाशित संस्करण",
+    "installer": "इंस्टॉलर डाउनलोड करें",
+    "source": "सोर्स कोड",
+    "notes": "रिलीज़ नोट्स",
+    "terminal": "टर्मिनल पसंद है?",
+    "chipHelp": "पता नहीं आपका Mac कौन-सा है? Apple मेनू → About This Mac खोलें और Chip या Processor देखें।",
+    "mac": [
+     "M-सीरीज़ वाले Mac के लिए Apple silicon चुनें, या Intel प्रोसेसर वाले Mac के लिए Intel।",
+     ".dmg फ़ाइल खोलें और kywai को Applications में खींचें।",
+     "Applications से kywai खोलें और अपना पहला एजेंट जोड़ें।"
+    ],
+    "win": [
+     "64-बिट Windows के लिए .exe इंस्टॉलर डाउनलोड करें।",
+     "इंस्टॉलर खोलें और उसके चरणों का पालन करें।",
+     "kywai चालू करें और वह पहला एजेंट चुनें जिसे आप जोड़ना चाहते हैं।"
+    ],
+    "linux": [
+     "अपने कंप्यूटर के लिए AppImage चुनें: x64 या ARM64।",
+     "फ़ाइल की प्रॉपर्टी में इसे प्रोग्राम की तरह चलाने की अनुमति दें।",
+     "AppImage खोलें और शुरुआती सेटअप पूरा करें।"
+    ],
+    "android": [
+     "Órbita APK को अपने Android फ़ोन पर डाउनलोड करें।",
+     "इसे खोलें और जब Android पूछे, तो उस स्रोत से इंस्टॉल करने की अनुमति दें।",
+     "Órbita को अपने कंप्यूटर के kywai से जोड़ें। वह कंप्यूटर चालू और ऑनलाइन रखें।"
+    ],
+    "mobileNote": "Órbita आपके चल रहे kywai का साथी है। शुरुआत डेस्कटॉप ऐप सेट करके करें।",
+    "ios": "iPhone या iPad पर अपने ब्राउज़र में kywai का वेब एक्सेस इस्तेमाल करें। iOS के लिए नेटिव इंस्टॉलर उपलब्ध नहीं है।",
+    "helpTitle": "जब भी ज़रूरत हो, आगे का साफ़ कदम।",
+    "helpIntro": "इंस्टॉलेशन, आपका पहला एजेंट और kywai इस्तेमाल करने के तरीके।",
+    "helpChoice": "डेस्कटॉप या Cloud?",
+    "helpChoiceBody": "डेस्कटॉप ऐप आपके कंप्यूटर पर चलता है। Cloud आपको एक निजी होस्ट किया हुआ स्पेस देता है और अभी केवल आमंत्रण वाला पायलट है।",
+    "contact": "सहायता से संपर्क करें",
+    "manual": "मैनुअल पढ़ें",
+    "support": "प्रोजेक्ट का समर्थन करें",
+    "cloudTitle": "आपका kywai, ब्राउज़र में तैयार।",
+    "cloudIntro": "आपके लिए होस्ट किया गया एक निजी स्पेस, आपके एजेंटों और आपके खातों के साथ।",
+    "pilot": "निजी पायलट",
+    "pilotBody": "Cloud अभी केवल सक्षम पायलट खातों के लिए उपलब्ध है। अगर आपका ईमेल सक्षम नहीं है, तो एक्सेस के लिए हमसे संपर्क करें।",
+    "cloudCards": [
+     "आपका अपना स्पेस",
+     "आपके अपने खाते",
+     "एक एजेंट से शुरू करें"
+    ],
+    "cloudBodies": [
+     "प्रोजेक्ट और सेटिंग्स आपके खाते के हैं।",
+     "कनेक्शन और प्रदाता खाते हर उपयोगकर्ता के लिए अलग रहते हैं।",
+     "नए स्पेस खाली टीम के साथ शुरू होते हैं। जिस एजेंट को आप इस्तेमाल करना चाहते हैं, उसे जोड़ें और आज़माएँ।"
+    ],
+    "cloudCta": "मेरा खाता खोलें",
+    "cloudAccess": "पायलट एक्सेस का अनुरोध करें",
+    "cloudPricing": "पायलट में असली शुल्क नहीं लगते। क्रेडिट और स्टोरेज अपग्रेड अभी खरीदे नहीं जा सकते।",
+    "composioTitle": "आपके ऐप, Composio के ज़रिए जुड़े हुए।",
+    "composioBody": "हम kywai Cloud के लिए प्रबंधित ऐप कनेक्शन और इवेंट-आधारित ऑटोमेशन तैयार कर रहे हैं। हर उपयोगकर्ता अपने खुद के खाते अधिकृत करेगा।",
+    "composioState": "तैयारी में"
   },
 }
