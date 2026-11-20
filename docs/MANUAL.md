@@ -207,7 +207,7 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   en `localStorage`, `kywai.novedades.notas`; Órbita en sus preferencias). Órbita enseña de momento los títulos en el
   idioma de la cuenta. En la nube las notas nuevas salen al desplegar la imagen nueva.
   **Cómo se añade una nota** (cada mejora, en su mismo commit): arriba del todo en `src/shared/patchNotes.ts`, con id
-  `AAAA-MM-DD-tema`, `tipo` (`destacado`, `mejora` o `arreglo`), título en los 5 idiomas y, en los destacados, una
+  `AAAA-MM-DD-tema`, `tipo` (`destacado`, `mejora` o `arreglo`), título en los 6 idiomas (es, en, pt, fr, zh, hi) y, en los destacados, una
   explicación de una o dos frases; `abrir` y `solo` son opcionales (el archivo explica cada campo). Lo interno
   (pruebas, documentos, despliegues) no lleva nota. `whatsNew.test.ts` falla si una nota está mal escrita. Para
   probar la ventana en desarrollo: `AICW_WHATS_NEW=1`.
@@ -469,6 +469,27 @@ de los agentes (`telegram-bot`); el chat enlazado y el proyecto, en `telegram.js
 «Desenlazar» pide un código nuevo; «Quitar el bot» borra el token. Por ahora solo entiende texto (las notas de voz
 vendrán después). Código: `src/main/telegram.ts`, pruebas en `telegram.test.ts`.
 
+### Hablar con kywai por WhatsApp (20 nov 2026)
+
+Como en OpenClaw: kywai se vincula a tu WhatsApp como un dispositivo más (igual que WhatsApp Web) y le escribes en tu
+**chat contigo mismo** («Tú» / «Mensaje a ti mismo»).
+
+1. En kywai: ⚙ → Ajustes → **Conexión → WhatsApp → Vincular**. Sale un QR (se renueva solo cada ~20 s).
+2. En el móvil: WhatsApp → Ajustes → **Dispositivos vinculados → Vincular un dispositivo**, y escanea el QR.
+3. Escribe en tu chat contigo mismo. Lo que escribas entra en el proyecto elegido (desplegable en Ajustes, o
+   `/proyectos` y `/proyecto N`) como un mensaje tuyo. La respuesta del equipo y hasta 3 archivos entregados (de
+   menos de 90 MB) vuelven a ese chat, marcados con 🤖 para distinguirlos de lo tuyo.
+
+kywai **solo lee y escribe tu chat contigo mismo**: nunca los chats con otras personas ni los grupos, y nunca escribe
+a nadie más. Se conecta hacia fuera (Baileys, el protocolo de WhatsApp Web), así que no hace falta abrir puertos: vale
+en el Mac mini, en el PC y en kywai Cloud. No es la API oficial para empresas (esa pide cuenta de Meta Business, otro
+número y una dirección pública; Yil eligió el QR el 20 nov): WhatsApp podría bloquear un número que se use como bot,
+y por eso kywai no escribe a nadie más que a ti. La sesión se guarda en `whatsapp-sesion/` de la carpeta de datos
+(vale como tu WhatsApp Web: no la compartas) y el proyecto en `whatsapp.json`. Al abrir kywai se vuelve a conectar
+sola. **Desvincular** cierra la sesión y la borra; si quitas kywai de Dispositivos vinculados en el móvil, Ajustes lo
+dice y hay que volver a escanear. Por ahora solo entiende texto. Código: `src/main/whatsapp.ts` (lógica, con pruebas
+en `whatsapp.test.ts`) y `src/main/whatsappBaileys.ts` (la conexión).
+
 ### Acceso desde el móvil o el portátil (Tailscale)
 
 Un equipo con kywai abierto (por ejemplo el Mac mini, encendido 24/7) puede servir la app a tus otros
@@ -526,7 +547,7 @@ vuelve a bajar la APK si se ha publicado otra; sin internet sigue ofreciendo la 
 usuario le llega sola la misma Órbita que a la Release, sin bajarla a mano (`src/main/orbitaRelease.ts`).
 
 **La APK se publica sola desde GitHub.** Cada vez que cambia el código de Órbita en `master`, GitHub Actions
-(«Publicar Órbita», `.github/workflows/publicar-orbita.yml`) pasa las pruebas de Android, compila la app firmada con
+(«Publicar Órbita», `.github/workflows/publicar-orbita.yml`, que corre en la máquina de pruebas del Mac mini) pasa las pruebas de Android, compila la app firmada con
 la clave de siempre, comprueba que el certificado es el mismo de la versión anterior (si no, se para: el móvil no la
 instalaría encima) y sube `android/release/` a `master`. Así da igual desde dónde se haga el cambio (PC, Mac mini o
 la nube): al actualizar el servidor, el móvil ya la encuentra. Si falla, la pestaña **Actions** del repositorio dice
@@ -925,7 +946,11 @@ cuatro: se baja la primera vez que eliges una (a `estudio-video/kitten/`; kywai 
 gráfica) y habla unas tres veces más rápido que el habla con el procesador, gastando unos 400 MB de memoria. Por eso
 también funcionan en **kywai cloud**, donde la imagen ya las trae instaladas. Las de Piper se bajan la primera vez que
 las usas (entre 60 y 110 MB cada una, a `estudio-video/piper/`; kywai instala `piper-tts` solo) y desde entonces no
-necesitan conexión; Álvaro y Jorge, de Edge, sí la necesitan siempre. Sin elegir, lee la del idioma de la app (Álvaro en español). El altavoz se
+necesitan conexión; Álvaro y Jorge, de Edge, sí la necesitan siempre. Cuando la muestra ▶ suena, debajo de la voz pone con qué motor y voz ha sonado de verdad (por ejemplo,
+«Sonó con Piper · Claudia»); si no ves ese aviso, esa app aún no tiene esta versión. Si una voz no se puede preparar en ese equipo, la muestra ▶ lo
+dice (por ejemplo, «No se pudo instalar Piper») en vez de sonar con otra; al leer las respuestas, kywai lee con la voz
+de reserva para no quedarse callado y lo avisa al pasar el ratón por el altavoz. En kywai cloud la imagen trae Piper y
+sus seis voces ya bajadas. Sin elegir, lee la del idioma de la app (Álvaro en español). El altavoz se
 enciende y se apaga solo desde el chat (en Ajustes ya no hay un interruptor repetido). Suena con el volumen de «Voces de
 los agentes»; si silencias esas voces, deja de leer, y al activar el altavoz vuelven. El altavoz y la voz se
 recuerdan por dispositivo (escritorio, cliente y navegador; Órbita aún no lo tiene).
@@ -3153,7 +3178,7 @@ amigo está apagado le llega cuando vuelve.
   permiso, quitarle o **Dejar de compartir**. Un invitado ve quién lo compartió y puede **Salir del proyecto**. En
   todos los casos cada uno conserva su copia, que deja de sincronizarse.
 - **Quitar a un amigo** de Amigos también le saca de los proyectos que le compartías.
-- **Topes por plan**: kywai Cloud 1 proyecto compartido con 2 amigos; Pro 5 con 5; Pro Max 20 con 10.
+- **Topes por plan**: kywai Cloud 1 proyecto compartido con 2 amigos; Pro 5 con 5; Pro Max 20 con 15.
 
 **Cómo funciona por dentro.** El portal de Mi cuenta (`portal/compartidos.py` de kywai-cloud) guarda quién está en cada
 proyecto y hace de buzón: una lista ordenada de cambios (`mensaje`, `archivo`, `proyecto`) y los archivos por su huella
@@ -3303,7 +3328,18 @@ En **Ajustes → General → Tus datos → Copia de seguridad** hay dos botones:
 - En la ventana «Pasar a kywai cloud» hay un botón **Guardar copia…** para hacer una antes de pasarte.
 
 Nunca van en la copia: el código de acceso, los equipos emparejados, la llave del móvil, el registro de accesos ni
-las cachés. Solo existe en la app de escritorio de la self host (no en el navegador ni en kywai cloud).
+las cachés.
+
+**Está en todas**: la app de escritorio del servidor, el cliente de escritorio, el navegador y kywai Cloud. En la app
+del servidor se eligen archivo y carpeta con las ventanas del sistema. Desde cualquier otro dispositivo:
+
+- **Guardar copia…** la hace el servidor en `<carpeta de datos>/copias-para-descargar/` (solo la última) y se descarga
+  sola en el dispositivo donde estás (`GET /api/backup-download`; botón «Descargar la copia» por si no).
+- **Cargar copia…** sube el `.kywai` elegido al servidor (`POST /api/backup-upload`, a
+  `<carpeta de datos>/copias-subidas/`, solo la última) y desde ahí se comprueba y se carga igual. El servidor solo
+  carga copias de esa carpeta, nunca una ruta cualquiera que llegue de fuera.
+- En kywai Cloud, al cargar, kywai se vuelve a abrir en el mismo contenedor (código 75) y la copia se coloca al
+  arrancar; las carpetas de trabajo nuevas van a `~/proyectos`.
 Código: `src/main/copiaLocal.ts` (formato, sin Electron, con pruebas), `src/main/copiaLocalApp.ts` (ventanas de
 guardar/abrir y reinicio) y `src/renderer/src/ui/settings/BackupDialog.tsx`. La colocación reutiliza la del paso a la
 nube (`MoveReceiver.begin/ready/placePending` en `mudanzaNube.ts`).
@@ -6181,12 +6217,20 @@ quedarían menos de 160 px, o al chat menos de 180); el espacio cerrado es `spac
 
 ### Idioma
 
-La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⚙ → **Ajustes…** → General →
+La interfaz está en **español**, **inglés**, **portugués**, **francés**, **chino** (simplificado) e **hindi**. ⚙ → **Ajustes…** → General →
 **«Idioma · Language»** es una lista con cada idioma en su propio idioma (Español, English, Português, Français,
-中文); al elegir otro, la ventana se recarga para que todo salga ya
+中文, हिन्दी); al elegir otro, la ventana se recarga para que todo salga ya
 traducido. Se recuerda en cada dispositivo (a diferencia del tema, que es el mismo en todos): la app del Mac,
 el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema si es uno de
-esos cinco (cualquier variante: es-MX cuenta como español, pt-PT como portugués); si no, inglés. Las fechas y los números siguen el idioma elegido.
+esos seis (cualquier variante: es-MX cuenta como español, pt-PT como portugués, hi-IN como hindi); si no, inglés. Las fechas y los números siguen el idioma elegido.
+
+**Hindi y chino en todo kywai.** Además de la app, el hindi está en Órbita, Mi cuenta, kywai.app, los correos y el
+instalador de una línea (que también habla chino). En hindi, las voces de vídeo de Kokoro son Alpha y Beta (mujer) y
+Omega y Psi (hombre); la hoja de cálculo editable sale en inglés (Univer no trae hindi) y los costes en dólares. La
+letra de todos los temas añade las del chino (PingFang, Microsoft YaHei, Noto Sans SC) y el devanagari (Kohinoor
+Devanagari, Nirmala UI, Noto Sans Devanagari) de cada sistema. El asunto del correo de confirmación de registro llega
+en inglés a quien usa hindi (el límite de 255 caracteres de Supabase no deja otro idioma más). Las traducciones al
+hindi se hicieron a partir del inglés: conviene que las repase alguien nativo.
 
 **El idioma sigue a la persona en todo kywai.** Quien empieza en un idioma en kywai.app sigue en él en Mi cuenta
 (cuenta.kywai.app), en los correos de confirmación y de acceso, en los avisos que manda Mi cuenta y en su espacio de
@@ -6465,18 +6509,52 @@ El botón **Música** del espacio digital abre un reproductor con cuatro pestañ
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
 - **Spotifast:** Spotify con tu cuenta Premium, a través de la app [Spotifast](https://spotifast.rocks) (ver más abajo).
 
-**Tu cuenta de YouTube (Premium sin anuncios):** en la pestaña YouTube, debajo de las pestañas, sale «¿Tienes YouTube
-Premium?». Con tu cuenta, el reproductor oficial carga desde youtube.com (en vez de youtube-nocookie, que no usa la
-sesión) y YouTube te reconoce: con Premium no hay anuncios. Sin Premium, iniciar sesión no quita nada.
-- **App de escritorio y cliente:** «Iniciar sesión en YouTube» abre una ventana de Google de verdad dentro de kywai;
-  al volver a YouTube con la sesión puesta se cierra sola. kywai no ve la contraseña: la sesión son las cookies de
-  Google de esta app, y «Cerrar sesión» las borra. Si al iniciar sesión Google dice que el navegador no es seguro, no
-  se puede desde esta app (Google decide qué ventanas acepta).
-- **Navegador:** «Usar mi cuenta» usa la sesión de YouTube que ya tenga ese navegador («Entrar en YouTube» abre
-  la página para iniciarla). «Dejar de usarla» vuelve a youtube-nocookie.
-- Al cambiar, la canción que sonaba se vuelve a cargar donde iba. Se recuerda en cada dispositivo. Iniciar sesión
-  **no quita el bloqueo de discográficas** (error 150) del navegador: eso lo decide cada discográfica para cualquier
-  cuenta.
+**Vídeo flotante:** con un vídeo de YouTube sonando, el botón de imagen en imagen de la cabecera del panel lo saca a
+una ventanita propia para verlo mientras trabajas en otra cosa. Sigue en el segundo en que iba y con el reproductor
+oficial de YouTube (no se descarga nada).
+- **App de escritorio y cliente** (también conectado a kywai cloud): ventana sin marco, **siempre encima** de las demás
+  apps (también a pantalla completa) y en todos los escritorios. Se mueve arrastrando su barra de arriba y cambia de
+  tamaño por los bordes, siempre en 16:9. El vídeo llega directo de YouTube a tu equipo, sin pasar por el servidor.
+- **Web en Chrome o Edge:** usa la «imagen en imagen» del navegador, que también queda siempre encima.
+- **Web en Safari o Firefox:** no tienen esa ventana; se abre una ventana emergente pequeña normal (hay que permitir
+  las ventanas emergentes de la página).
+- Su barra tiene pausa, siguiente y «Volver a kywai». Cerrarla (o pulsar Esc en ella) devuelve el vídeo al panel,
+  donde mientras tanto sale «Traer aquí». La barra, el minirreproductor y la cola siguen mandando como siempre.
+- Solo flotan los vídeos de YouTube: al pasar a Audius o a una radio, o al cerrar la música, vuelve al panel.
+- Recuerda su sitio y tamaño en cada equipo.
+  Código: `src/renderer/src/lib/floatingVideo.ts` (la ventana), `src/main/floatingVideo.ts` (su forma en la app) y
+  `src/shared/floatingVideo.ts`.
+
+**Mi YouTube (tus suscripciones, listas y «Me gusta»):** en la pestaña YouTube, «Conectar mi cuenta» te da un
+código. Abres google.com/device **en cualquier navegador** (el del ordenador o el móvil), inicias sesión allí con tu
+cuenta, escribes el código y das permiso de solo lectura. kywai se conecta solo en unos segundos. Dentro de la app no
+se puede iniciar sesión en Google: Google bloquea las ventanas metidas en apps («This browser or app may not be
+secure») y saltarse ese bloqueo va contra sus normas, por eso se hace así.
+- Luego salen tres pestañas: **Suscripciones** (lo último de tus canales, lo más nuevo primero), **Me gusta** y **Mis
+  listas** (al abrir una, sus vídeos). Un clic lo pone en el reproductor del panel con el resto en la cola, «+» lo
+  añade a la cola y «Poner todo» lo pone entero. Se puede sacar a la ventana flotante como cualquier vídeo.
+- **Lo que no puede salir:** la página de Inicio con recomendaciones, «Ver más tarde» y el historial. Google no se
+  los da a ninguna app. Conectar así **no quita anuncios**: eso solo lo hace la sesión de YouTube Premium en un
+  navegador.
+- Funciona igual en la app, el cliente, la web y **kywai cloud**: la conexión vive donde corre kywai (en la nube, en
+  tu espacio). Solo se guarda la llave de renovación, cifrada como las claves de los agentes, en `mi-youtube.json`
+  de la carpeta de datos. «Desconectar» la revoca en Google y la borra. También puedes quitarle el permiso desde
+  myaccount.google.com → Seguridad → Apps de terceros.
+- Suscripciones mira tus 30 canales más relevantes (4 vídeos de cada uno) y se guarda 20 minutos. Las consultas
+  gastan el cupo diario de la app de kywai en Google; si se acaba, lo dice y se puede probar al día siguiente.
+- **Para el mantenimiento:** hace falta la app de kywai en Google Cloud, con la API de datos de YouTube activada y un
+  cliente OAuth de tipo «TV y dispositivos de entrada limitada». Su id y su secreto van en `BUILT_IN` de
+  `src/main/myYoutube.ts` (en apps instaladas Google no los considera secretos) o en las variables
+  `KYWAI_YOUTUBE_CLIENT_ID` y `KYWAI_YOUTUBE_CLIENT_SECRET`. Sin ellos la pestaña dice que aún no está lista.
+  Mientras Google no revise la app (el permiso youtube.readonly es «sensible»), solo pueden entrar las cuentas
+  añadidas como usuarios de prueba (hasta 100).
+  Código: `src/main/myYoutube.ts`, `src/shared/myYoutube.ts` y `ui/space/MyYoutubeBox.tsx`.
+
+**YouTube Premium sin anuncios en el navegador:** en la web, «Usar mi cuenta» hace que el reproductor cargue desde
+youtube.com (en vez de youtube-nocookie) con la sesión de YouTube que ya tenga ese navegador («Entrar en YouTube» abre
+la página para iniciarla); con Premium no hay anuncios. «Dejar de usarla» vuelve a youtube-nocookie. Iniciar sesión
+**no quita el bloqueo de discográficas** (error 150). En la app de escritorio y el cliente ya no hay botón para iniciar
+sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para borrarla.
   Código: `src/main/youtubeAccount.ts`, `lib/youtubeAccount.ts` y `ui/space/YoutubeAccountRow.tsx`.
 
 **Spotifast** es una app de escritorio gratis y de código abierto (licencia MIT, de Carmine Paolino) para escuchar
@@ -6736,6 +6814,12 @@ suscripciones no gasta créditos. Se ven y se recargan en Mi cuenta → **Crédi
   | kywai Pro Max | 50 $ | 130 GB | 2.500 | 3.000 | 6 GB · 4 vCPU | 10 | 100 | 300 min |
 
   Subir de plan cobra ya la parte del mes que queda y da al momento el espacio y la diferencia de créditos del mes.
+  **Mejorar en 2 clics:** la tarjeta de la suscripción (arriba en Plan y pagos) enseña el plan siguiente con lo que se
+  gana (espacio, créditos, agentes a la vez, voz) y el botón «Mejorar a …». El primer clic abre una ventanita con lo que
+  se paga hoy (aproximado, la parte del mes que queda) y el precio desde la renovación; el segundo, «Confirmar la
+  mejora», hace el cambio. «Cambiar de plan» va justo debajo, antes de las facturas, y marca el siguiente plan como
+  «Recomendado para ti». Con Pro Max la tarjeta dice que ya tienes el plan más completo. Bajar sigue a un clic (no cobra).
+  «Tarjeta y facturas en Stripe ↗» (arriba a la derecha de la tarjeta) abre el portal de Stripe.
   La RAM y los procesadores del nuevo plan llegan al espacio en un minuto como mucho, sin reiniciarlo.
   Con **Pro Max**, «Escribir a soporte» (Mi cuenta → Ayuda y cuenta) manda el correo marcado como prioritario.
   Bajar cambia el precio desde la próxima renovación y solo se puede si los archivos caben. Las ampliaciones de espacio
@@ -7014,10 +7098,14 @@ npm run typecheck
 npx vitest run
 ```
 
-**Pruebas automáticas en GitHub («Probar»).** Cada PR y cada cambio en `master` pasa solo, en GitHub Actions
+**Pruebas automáticas en GitHub («Probar»).** Cada PR pasa solo, con GitHub Actions
 (`.github/workflows/probar.yml`), los tipos, todas las pruebas de vitest y la compilación de la app; si cambia
 `android/`, también las pruebas de Órbita. El resultado sale en el propio PR: con una ✗ roja no se fusiona hasta
-arreglarlo (en «Details» se ve qué prueba falló). Corre solo en Linux para gastar pocos minutos en los repos privados.
+arreglarlo (en «Details» se ve qué prueba falló). Corre en el **Mac mini** (la «máquina de pruebas», ver abajo), que no
+gasta minutos de GitHub: los 2.000 minutos gratis al mes de los repos privados se acabaron el 20 de noviembre a mitad
+de mes. Por lo mismo ya no se repite al fusionar en `master`; a mano, Actions → Probar → «Run workflow». Si el Mac mini
+está apagado, la prueba espera en cola hasta que vuelva (un PR con la prueba «en espera» no se fusiona sin pasarla
+antes en local).
 Tras compilar, las **pruebas de pantalla** (`scripts/e2e/app.e2e.mjs`, Playwright) abren la app como una persona la
 primera vez, en una carpeta de datos vacía y sin agentes reales: comprueban que arranca sin errores en la consola, que
 sale el asistente con los agentes, que «Omitir por ahora» deja la caja del chat lista y que al volver a abrirla no lo
@@ -7030,9 +7118,17 @@ abre la app con las mismas pruebas de pantalla, ahora en macOS de verdad, y comp
 Studio (puerto 1234) y Ollama (11434) responden, tienen un modelo y contestan a un mensaje corto
 (`scripts/e2e/local.e2e.mjs`). Si uno no está abierto, su prueba se salta; para exigirlo, en GitHub → Settings →
 Secrets and variables → Actions → Variables, `KYWAI_EXIGIR_LOCAL=lmstudio,ollama`. Si algo falla, GitHub manda un
-correo y el detalle queda en Actions. Corre en una «máquina de pruebas» de GitHub instalada en el Mac mini, que no gasta
-minutos, y solo en kywai-original. Instalación, una vez, en el Mac mini: en GitHub, kywai-original → Settings → Actions →
-Runners → New self-hosted runner → macOS, copiar el token y ejecutar `bash scripts/instalar-pruebas-mac.sh <token>`.
+correo y el detalle queda en Actions. Corre en la «máquina de pruebas» del Mac mini y solo en kywai-original.
+
+**La máquina de pruebas del Mac mini.** Es el programa oficial de GitHub (un «self-hosted runner») instalado en el Mac
+mini: GitHub solo avisa y el Mac hace el trabajo, así que no gasta minutos. En ella corren «Probar», «Publicar Órbita»,
+«Noche en el Mac mini» y, en kywai-cloud, «Comprobar portal». Instalación, una vez por repositorio, en el Mac mini: en
+GitHub, el repositorio → Settings → Actions → Runners → New self-hosted runner → macOS, copiar el token (caduca en una
+hora) y ejecutar `bash scripts/instalar-pruebas-mac.sh <token>` (kywai-original) o
+`bash scripts/instalar-pruebas-mac.sh <token> kywai-cloud`. Quedan como servicios en `~/kywai-pruebas` y
+`~/kywai-pruebas-cloud` y arrancan solos al iniciar sesión. Java, Node y el SDK de Android los bajan los flujos la
+primera vez; el portal usa el `python3.12` de Homebrew. Nunca se usa en el repositorio público. La web, los
+instaladores y las Releases siguen en el escaparate público, donde los minutos son gratis.
 Las pruebas abren la app con su propia carpeta de datos (`KYWAI_APPDATA_PRUEBAS`), sin tocar la del kywai instalado.
 Las pruebas del zip de «Archivos del servidor» descomprimen con `bsdtar` (en Linux, paquete `libarchive-tools`);
 sin él comprueban el zip sin descomprimirlo.
