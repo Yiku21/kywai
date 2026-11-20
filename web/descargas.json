@@ -1,37 +1,37 @@
 {
-  "tag_name": "v0.1.588",
-  "published_at": "2026-11-15T00:12:40Z",
-  "html_url": "https://github.com/Yiku21/kywai/releases/tag/v0.1.588",
+  "tag_name": "v0.1.1022",
+  "published_at": "2026-11-20T17:31:34Z",
+  "html_url": "https://github.com/Yiku21/kywai/releases/tag/v0.1.1022",
   "assets": [
     {
-      "name": "kywai-0.1.588-arm64.AppImage",
-      "size": 168072130,
-      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.588/kywai-0.1.588-arm64.AppImage"
+      "name": "kywai-0.1.1022-arm64.AppImage",
+      "size": 180487930,
+      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.1022/kywai-0.1.1022-arm64.AppImage"
     },
     {
-      "name": "kywai-0.1.588-arm64.dmg",
-      "size": 168535557,
-      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.588/kywai-0.1.588-arm64.dmg"
+      "name": "kywai-0.1.1022-arm64.dmg",
+      "size": 180911330,
+      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.1022/kywai-0.1.1022-arm64.dmg"
     },
     {
-      "name": "kywai-0.1.588-x64.dmg",
-      "size": 175341020,
-      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.588/kywai-0.1.588-x64.dmg"
+      "name": "kywai-0.1.1022-x64.dmg",
+      "size": 187720566,
+      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.1022/kywai-0.1.1022-x64.dmg"
     },
     {
-      "name": "kywai-0.1.588-x86_64.AppImage",
-      "size": 166812769,
-      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.588/kywai-0.1.588-x86_64.AppImage"
+      "name": "kywai-0.1.1022-x86_64.AppImage",
+      "size": 179232508,
+      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.1022/kywai-0.1.1022-x86_64.AppImage"
     },
     {
       "name": "kywai-orbita.apk",
-      "size": 3968873,
-      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.588/kywai-orbita.apk"
+      "size": 4034409,
+      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.1022/kywai-orbita.apk"
     },
     {
-      "name": "kywai-Setup-0.1.588.exe",
-      "size": 149877379,
-      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.588/kywai-Setup-0.1.588.exe"
+      "name": "kywai-Setup-0.1.1022.exe",
+      "size": 160864022,
+      "browser_download_url": "https://github.com/Yiku21/kywai/releases/download/v0.1.1022/kywai-Setup-0.1.1022.exe"
     }
   ]
 }
