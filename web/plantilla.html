@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{meta.title}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="{{meta.desc}}">
+<meta name="theme-color" content="#0a0e1a">
+<link rel="canonical" href="{{canonical}}">
+{{hreflangs}}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="kywai">
+<meta property="og:title" content="{{meta.title}}">
+<meta property="og:description" content="{{meta.desc}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{site}}assets/og.png">
+<meta property="og:locale" content="{{ogLocale}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{meta.title}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{meta.title}}">
+<meta name="twitter:description" content="{{meta.desc}}">
+<meta name="twitter:image" content="{{site}}assets/og.png">
+<meta name="keywords" content="Claude Code, Codex CLI, Gemini CLI, AI agents, multi-agent, agent orchestration, MCP, LM Studio, Ollama, open source">
+<script type="application/ld+json">{{jsonld}}</script>
+<link rel="icon" href="{{base}}assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{base}}assets/apple-touch-icon.png">
+<link rel="preload" href="{{base}}assets/fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{base}}assets/site.css">
+</head>
+<body class="page-{{pageId}}">
+<a class="skip" href="#main">{{site.skip}}</a>
+<header class="top">
+  <div class="wrap">
+    {{logoDefs}}<a class="brand" href="{{home}}" aria-label="Kywai"><svg class="logo" viewBox="{{logoViewBox}}" aria-hidden="true"><use href="#kywai-logo"/></svg></a>
+    {{navigation}}
+    <details class="lang">
+      <summary aria-label="{{nav.lang}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>{{langLabel}}</summary>
+      <ul>{{langLinks}}</ul>
+    </details>
+    <button class="theme-toggle" type="button" aria-label="{{site.theme}}" title="{{site.theme}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 0 1 11.2 3a9 9 0 1 0 9.8 9.8Z"/></svg></button>
+    <a class="btn account-link" href="{{accountUrl}}" aria-label="{{nav.account}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-3a7 7 0 0 1 14 0v3"/></svg><span class="account-label">{{nav.account}}</span></a>
+    <a class="btn btn-primary" href="{{downloadUrl}}">{{nav.download}}</a>
+  </div>
+</header>
+
+<main id="main">
+{{content}}
+</main>
+{{footer}}
+<script type="application/json" id="site-config">{{siteConfig}}</script>
+<script src="{{base}}assets/site.js" defer></script>
+<script src="{{base}}assets/mascota/mascota.js" defer></script>
+</body>
+</html>

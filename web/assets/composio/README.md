@@ -1,0 +1,1 @@
+Marcas servidas por https://logos.composio.dev/api/{slug}, copiadas sin modificar para las primeras 36 entradas del catálogo. Cada marca pertenece a su titular. Catálogo: https://docs.composio.dev/toolkits. No se envían datos del visitante a este proveedor al explorar la web.

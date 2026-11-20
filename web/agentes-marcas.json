@@ -1,0 +1,254 @@
+[
+  {
+    "id": "hermes",
+    "path": "web/assets/agentes/hermes.png",
+    "source": "https://web-assets.nousresearch.com/marketing/64ae3d30463049bd9e6f380cda9cd9538a0f4edb/assets/hermes-agent/icon.png",
+    "website": "https://hermes-agent.nousresearch.com/",
+    "bytes": 4100
+  },
+  {
+    "id": "claude",
+    "path": "web/assets/agentes/claude.svg",
+    "source": "https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/cd02a42d9-Vq_H3mgS.svg",
+    "website": "https://claude.ai/",
+    "bytes": 2558
+  },
+  {
+    "id": "codex",
+    "path": "web/assets/agentes/codex.svg",
+    "source": "https://chatgpt.com/cdn/assets/favicon-c80e01a96037.svg",
+    "website": "https://chatgpt.com/codex",
+    "bytes": 4258
+  },
+  {
+    "id": "gemini",
+    "path": "web/assets/agentes/gemini.png",
+    "source": "https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png",
+    "website": "https://gemini.google.com/",
+    "bytes": 61823
+  },
+  {
+    "id": "muse",
+    "path": "web/assets/agentes/muse.ico",
+    "source": "https://dev.meta.ai/favicon.ico?favicon.0__pei86aoyzg.ico",
+    "website": "https://dev.meta.ai/docs/muse-code",
+    "bytes": 32038
+  },
+  {
+    "id": "aider",
+    "path": "web/assets/agentes/aider.png",
+    "source": "https://aider.chat/assets/icons/apple-touch-icon.png",
+    "website": "https://aider.chat/docs/scripting.html",
+    "bytes": 26544
+  },
+  {
+    "id": "deepseek",
+    "path": "web/assets/agentes/deepseek.ico",
+    "source": "https://www.deepseek.com/favicon.ico",
+    "website": "https://www.deepseek.com/",
+    "bytes": 209762
+  },
+  {
+    "id": "opencode",
+    "path": "web/assets/agentes/opencode.svg",
+    "source": "https://opencode.ai/docs/favicon.svg",
+    "website": "https://opencode.ai/docs/cli/",
+    "bytes": 613
+  },
+  {
+    "id": "copilot",
+    "path": "web/assets/agentes/copilot.svg",
+    "source": "https://github.com/primer/octicons/blob/main/icons/copilot-24.svg",
+    "website": "https://github.com/features/copilot",
+    "bytes": 1690
+  },
+  {
+    "id": "cursor",
+    "path": "web/assets/agentes/cursor.svg",
+    "source": "https://cursor.com/docs-static/favicon.svg",
+    "website": "https://cursor.com/docs/cli/headless",
+    "bytes": 4190
+  },
+  {
+    "id": "amp",
+    "path": "web/assets/agentes/amp.svg",
+    "source": "https://ampcode.com/favicon.svg?v=2",
+    "website": "https://ampcode.com/docs/cli/execute-mode",
+    "bytes": 3524
+  },
+  {
+    "id": "goose",
+    "path": "web/assets/agentes/goose.png",
+    "source": "https://goose-docs.ai/img/favicon.ico",
+    "website": "https://goose-docs.ai/",
+    "bytes": 2906
+  },
+  {
+    "id": "kimi",
+    "path": "web/assets/agentes/kimi.ico",
+    "source": "https://www.kimi.com/favicon.ico",
+    "website": "https://www.kimi.com/code/docs/en/",
+    "bytes": 15086
+  },
+  {
+    "id": "mistral-vibe",
+    "path": "web/assets/agentes/mistral-vibe.ico",
+    "source": "https://docs.mistral.ai/favicons/favicon.ico",
+    "website": "https://docs.mistral.ai/mistral-vibe/introduction/quickstart",
+    "bytes": 15406
+  },
+  {
+    "id": "grok",
+    "path": "web/assets/agentes/grok.png",
+    "source": "https://docs.x.ai/_next/static/media/apple-icon.167itqrsbgzm4.png?dpl=12355879cfa544f7b5e4a3457d7939c14b96a94f",
+    "website": "https://docs.x.ai/build/overview",
+    "bytes": 1622
+  },
+  {
+    "id": "cline",
+    "path": "web/assets/agentes/cline.png",
+    "source": "https://docs.cline.bot/mintlify-assets/_mintlify/favicons/cline-efdc8260/vRJes0HWuVRZUl-S/_generated/favicon/android-chrome-192x192.png",
+    "website": "https://docs.cline.bot/cline-cli/overview",
+    "bytes": 3292
+  },
+  {
+    "id": "continue",
+    "path": "web/assets/agentes/continue.png",
+    "source": "https://docs.continue.dev/favicon.ico?favicon.0jk6d3lxvxamz.ico",
+    "website": "https://docs.continue.dev/cli/quickstart",
+    "bytes": 32528
+  },
+  {
+    "id": "openhands",
+    "path": "web/assets/agentes/openhands.png",
+    "source": "https://docs.openhands.dev/mintlify-assets/_mintlify/favicons/allhandsai/NJyVpY-OoVetrcKF/_generated/favicon/android-chrome-192x192.png",
+    "website": "https://docs.openhands.dev/openhands/usage/cli/installation",
+    "bytes": 8172
+  },
+  {
+    "id": "droid",
+    "path": "web/assets/agentes/droid.svg",
+    "source": "https://docs.factory.com/favicon.svg",
+    "website": "https://docs.factory.com/cli/droid-exec/overview",
+    "bytes": 6348
+  },
+  {
+    "id": "auggie",
+    "path": "web/assets/agentes/auggie.png",
+    "source": "https://docs.augmentcode.com/mintlify-assets/_mintlify/favicons/augment-mtje7p526w/MMO3uIP-KlW_55xJ/_generated/favicon/android-chrome-192x192.png",
+    "website": "https://docs.augmentcode.com/cli/overview",
+    "bytes": 11939
+  },
+  {
+    "id": "junie",
+    "path": "web/assets/agentes/junie.svg",
+    "source": "https://www.jetbrains.com/junie/ (SVG de la marca en la cabecera)",
+    "website": "https://junie.jetbrains.com/docs/junie-cli.html",
+    "bytes": 344
+  },
+  {
+    "id": "crush",
+    "path": "web/assets/agentes/crush.png",
+    "source": "https://stuff.charm.sh/crush/charm-crush.png",
+    "website": "https://charm.land/",
+    "bytes": 791976
+  },
+  {
+    "id": "open-interpreter",
+    "path": "web/assets/agentes/open-interpreter.svg",
+    "source": "https://www.openinterpreter.com/icon.svg?20bca645e05fa00a",
+    "website": "https://www.openinterpreter.com/docs/terminal/quickstart",
+    "bytes": 156
+  },
+  {
+    "id": "gptme",
+    "path": "web/assets/agentes/gptme.png",
+    "source": "https://gptme.org/docs/_static/logo.png",
+    "website": "https://gptme.org/docs/getting-started.html",
+    "bytes": 188377
+  },
+  {
+    "id": "letta",
+    "path": "web/assets/agentes/letta.svg",
+    "source": "https://docs.letta.com/favicon.svg",
+    "website": "https://docs.letta.com/letta-code/headless/",
+    "bytes": 740
+  },
+  {
+    "id": "forge",
+    "path": "web/assets/agentes/forge.svg",
+    "source": "https://forgecode.dev/shared/brand/favicon.svg",
+    "website": "https://forgecode.dev/",
+    "bytes": 1394
+  },
+  {
+    "id": "openclaw",
+    "path": "web/assets/agentes/openclaw.svg",
+    "source": "https://openclaw.ai/favicon.svg",
+    "website": "https://openclaw.ai/",
+    "bytes": 1381
+  },
+  {
+    "id": "kiro",
+    "path": "web/assets/agentes/kiro.svg",
+    "source": "https://kiro.dev/icon.svg?fe599162bb293ea0",
+    "website": "https://kiro.dev/docs/cli/headless/",
+    "bytes": 1527
+  },
+  {
+    "id": "qwen-code",
+    "path": "web/assets/agentes/qwen-code.png",
+    "source": "https://qwenlm.github.io/qwen-code-docs/favicon.png?v=2",
+    "website": "https://qwenlm.github.io/qwen-code-docs/",
+    "bytes": 26030
+  },
+  {
+    "id": "antigravity",
+    "path": "web/assets/agentes/antigravity.svg",
+    "source": "https://antigravity.google/favicon.svg",
+    "website": "https://antigravity.google/docs/cli/headless/",
+    "bytes": 5037
+  },
+  {
+    "id": "rovodev",
+    "path": "web/assets/agentes/rovodev.svg",
+    "source": "https://www.atlassian.com/software/rovo-dev (símbolo SVG de la cabecera)",
+    "website": "https://www.atlassian.com/software/rovo-dev",
+    "bytes": 1728
+  },
+  {
+    "id": "minimax",
+    "path": "web/assets/agentes/minimax.png",
+    "source": "https://code.minimax.io/docs/mintlify-assets/_mintlify/favicons/agent-en/RrLMm1BmnhcYtr3S/_generated/favicon/android-chrome-192x192.png",
+    "website": "https://agent.minimax.io/docs/cli/quick-start",
+    "bytes": 10911
+  },
+  {
+    "id": "qoder",
+    "path": "web/assets/agentes/qoder.svg",
+    "source": "https://qoder.com/favIcon.svg",
+    "website": "https://qoder.com/",
+    "bytes": 73379
+  },
+  {
+    "id": "kilo",
+    "path": "web/assets/agentes/kilo.svg",
+    "source": "https://kilo.ai/docs/favicon/favicon.svg",
+    "website": "https://kilo.ai/docs/cli",
+    "bytes": 674
+  },
+  {
+    "id": "lmstudio",
+    "path": "web/assets/agentes/lmstudio.png",
+    "source": "https://lmstudio.ai/assets/marketing/logo-192x192.png",
+    "website": "https://lmstudio.ai/",
+    "bytes": 12829
+  },
+  {
+    "id": "ollama",
+    "path": "web/assets/agentes/ollama.png",
+    "source": "https://ollama.com/public/apple-touch-icon.png",
+    "website": "https://ollama.com/",
+    "bytes": 5579
+  }
+]

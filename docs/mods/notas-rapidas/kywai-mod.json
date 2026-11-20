@@ -1,0 +1,25 @@
+{
+  "name": "notas-rapidas",
+  "title": "Notas rápidas",
+  "description": "Mod de ejemplo: dos órdenes para el chat, un panel con el estado del equipo y un hook al acabar cada petición.",
+  "version": "1.0.0",
+  "commands": [
+    {
+      "name": "resumen",
+      "description": "Resume lo hecho en el proyecto",
+      "prompt": "Haz un resumen breve de lo que se ha hecho en este proyecto hasta ahora: qué está terminado, qué falta y qué decisiones se tomaron. {args}"
+    },
+    {
+      "name": "revisa",
+      "description": "Revisión crítica de un archivo o de un tema",
+      "prompt": "Revisa con ojo crítico {args}: errores, casos que fallan y cómo mejorarlo. Dame una lista ordenada por importancia."
+    }
+  ],
+  "hooks": [
+    { "on": "request.finished", "run": "echo Petición terminada", "timeout": 10 }
+  ],
+  "panels": [
+    { "id": "equipo", "title": "Estado del equipo", "file": "panel.html" }
+  ],
+  "permissions": ["chat"]
+}

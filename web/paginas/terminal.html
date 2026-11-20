@@ -1,0 +1,32 @@
+<details class="terminal-details" id="install"><summary>{{site.terminal}}</summary>
+<div class="cmd">
+        <h3>{{download.cmdT}}</h3>
+        <p>{{download.cmd}}</p>
+        <div class="os-tabs" role="tablist" aria-label="{{download.cmdT}}">
+          <button type="button" role="tab" id="tab-win" data-guide="win" aria-selected="true">{{download.tabWin}}</button>
+          <button type="button" role="tab" id="tab-mac" data-guide="mac" aria-selected="false">{{download.tabMac}}</button>
+          <button type="button" role="tab" id="tab-lin" data-guide="lin" aria-selected="false">{{download.tabLinux}}</button>
+        </div>
+        <ol class="guide" id="guide-win" role="tabpanel" aria-labelledby="tab-win">
+          <li><span class="n" aria-hidden="true">1</span><div><h4>{{download.win1T}}</h4><p>{{download.win1}}</p></div></li>
+          <li><span class="n" aria-hidden="true">2</span><div><h4>{{download.win2T}}</h4><p>{{download.win2}}</p><div class="cmd-row" data-os="win"><code>irm https://kywai.app/install.ps1 | iex</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div></div></li>
+          <li><span class="n" aria-hidden="true">3</span><div><h4>{{download.win3T}}</h4><p>{{download.win3}}</p></div></li>
+        </ol>
+        <ol class="guide" id="guide-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
+          <li><span class="n" aria-hidden="true">1</span><div><h4>{{download.mac1T}}</h4><p>{{download.mac1}}</p></div></li>
+          <li><span class="n" aria-hidden="true">2</span><div><h4>{{download.mac2T}}</h4><p>{{download.mac2}}</p><div class="cmd-row" data-os="unix"><code>curl -fsSL https://kywai.app/install.sh | bash</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div></div></li>
+          <li><span class="n" aria-hidden="true">3</span><div><h4>{{download.mac3T}}</h4><p>{{download.mac3}}</p></div></li>
+        </ol>
+        <ol class="guide" id="guide-lin" role="tabpanel" aria-labelledby="tab-lin" hidden>
+          <li><span class="n" aria-hidden="true">1</span><div><h4>{{download.lin1T}}</h4><p>{{download.lin1}}</p></div></li>
+          <li><span class="n" aria-hidden="true">2</span><div><h4>{{download.lin2T}}</h4><p>{{download.lin2}}</p><div class="cmd-row" data-os="unix"><code>curl -fsSL https://kywai.app/install.sh | bash</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div></div></li>
+          <li><span class="n" aria-hidden="true">3</span><div><h4>{{download.lin3T}}</h4><p>{{download.lin3}}</p></div></li>
+        </ol>
+        <div class="guide-help">
+          <details><summary>{{download.safeT}}</summary><p>{{download.safe}}</p></details>
+          <details><summary>{{download.helpT}}</summary><p>{{download.help}}</p></details>
+          <details><summary>{{download.nextT}}</summary><p>{{download.next}}</p></details>
+        </div>
+        <p>{{download.cmdOr}}</p>
+      </div>
+</details>

@@ -1,0 +1,1 @@
+Los símbolos SVG de esta carpeta proceden de [Simple Icons](https://github.com/simple-icons/simple-icons), bajo CC0-1.0 (ver LICENSE.md). Se usan para identificar los productos que el usuario puede configurar. Las marcas pertenecen a sus respectivos titulares; su presencia no implica una asociación con kywai.

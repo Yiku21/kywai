@@ -1,0 +1,1598 @@
+{
+  "themes": [
+    {
+      "id": "kywai",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Refugio Kywai",
+          "hint": "Observatorio-invernadero frente al mar, con talleres y un árbol compartido"
+        },
+        "en": {
+          "name": "Kywai Retreat",
+          "hint": "Seaside greenhouse observatory with workshops and a shared tree"
+        },
+        "pt": {
+          "name": "Refúgio Kywai",
+          "hint": "Observatório-estufa à beira-mar, com oficinas e uma árvore compartilhada"
+        },
+        "fr": {
+          "name": "Refuge Kywai",
+          "hint": "Observatoire-serre face à la mer, avec des ateliers et un arbre commun"
+        },
+        "zh": {
+          "name": "Kywai 静居",
+          "hint": "面朝大海的温室天文台，设有工作坊和共享树木"
+        }
+      }
+    },
+    {
+      "id": "submarino",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Fondo marino",
+          "hint": "Un arrecife vivo con peces, medusas y una perla de luz"
+        },
+        "en": {
+          "name": "Undersea",
+          "hint": "A living reef with fish, jellyfish and a pearl of light"
+        },
+        "pt": {
+          "name": "Fundo do mar",
+          "hint": "Um recife vivo com peixes, águas-vivas e uma pérola de luz"
+        },
+        "fr": {
+          "name": "Fonds marins",
+          "hint": "Un récif vivant avec poissons, méduses et perle lumineuse"
+        },
+        "zh": {
+          "name": "海底世界",
+          "hint": "充满鱼群、水母和发光珍珠的活力珊瑚礁"
+        }
+      }
+    },
+    {
+      "id": "mundo-clasico",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Clásico",
+          "hint": "Centro de operaciones del ciberespacio, con servidores y un núcleo holográfico"
+        },
+        "en": {
+          "name": "Classic",
+          "hint": "Cyberspace operations center, with servers and a holographic core"
+        },
+        "pt": {
+          "name": "Clássico",
+          "hint": "Centro de operações do ciberespaço, com servidores e um núcleo holográfico"
+        },
+        "fr": {
+          "name": "Classique",
+          "hint": "Centre d’opérations du cyberespace, avec des serveurs et un noyau holographique"
+        },
+        "zh": {
+          "name": "经典",
+          "hint": "网络空间行动中心，配有服务器和全息核心"
+        }
+      }
+    },
+    {
+      "id": "mundo-orbita",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Órbita",
+          "hint": "Estación sobre la Tierra, con muelles flotantes y un planetario"
+        },
+        "en": {
+          "name": "Órbita",
+          "hint": "Station above the Earth, with floating docks and a planetarium"
+        },
+        "pt": {
+          "name": "Órbita",
+          "hint": "Estação sobre a Terra, com docas flutuantes e um planetário"
+        },
+        "fr": {
+          "name": "Órbita",
+          "hint": "Station au-dessus de la Terre, avec des quais flottants et un planétarium"
+        },
+        "zh": {
+          "name": "Órbita",
+          "hint": "地球上空的空间站，带有漂浮码头和天象仪"
+        }
+      }
+    },
+    {
+      "id": "mundo-marfil",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Marfil",
+          "hint": "Jardín del Olimpo: piedra clara, arcos y canales de agua"
+        },
+        "en": {
+          "name": "Ivory",
+          "hint": "Garden of Olympus: pale stone, arches and water channels"
+        },
+        "pt": {
+          "name": "Marfim",
+          "hint": "Jardim do Olimpo: pedra clara, arcos e canais de água"
+        },
+        "fr": {
+          "name": "Ivoire",
+          "hint": "Jardin de l’Olympe : pierre claire, arches et canaux d’eau"
+        },
+        "zh": {
+          "name": "象牙",
+          "hint": "奥林匹斯花园：浅色石材、拱门和水渠"
+        }
+      }
+    },
+    {
+      "id": "mundo-grafito",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Grafito",
+          "hint": "Fábrica térmica con engranajes, vapor y un reactor ámbar"
+        },
+        "en": {
+          "name": "Graphite",
+          "hint": "Thermal factory with gears, steam and an amber reactor"
+        },
+        "pt": {
+          "name": "Grafite",
+          "hint": "Fábrica térmica com engrenagens, vapor e um reator âmbar"
+        },
+        "fr": {
+          "name": "Graphite",
+          "hint": "Usine thermique avec engrenages, vapeur et un réacteur ambré"
+        },
+        "zh": {
+          "name": "石墨",
+          "hint": "热能工厂，有齿轮、蒸汽和琥珀色反应堆"
+        }
+      }
+    },
+    {
+      "id": "mundo-bosque",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Bosque",
+          "hint": "Claro élfico: árboles, plataformas de madera y luciérnagas"
+        },
+        "en": {
+          "name": "Forest",
+          "hint": "Elven glade: trees, wooden platforms and fireflies"
+        },
+        "pt": {
+          "name": "Floresta",
+          "hint": "Clareira élfica: árvores, plataformas de madeira e vaga-lumes"
+        },
+        "fr": {
+          "name": "Forêt",
+          "hint": "Clairière elfique : arbres, plateformes en bois et lucioles"
+        },
+        "zh": {
+          "name": "森林",
+          "hint": "精灵林间空地：树木、木平台和萤火虫"
+        }
+      }
+    },
+    {
+      "id": "mundo-matrix",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "Matrix",
+          "hint": "Ciudad entre código y niebla, con un núcleo de datos"
+        },
+        "en": {
+          "name": "Matrix",
+          "hint": "City between code and fog, with a data core"
+        },
+        "pt": {
+          "name": "Matrix",
+          "hint": "Cidade entre código e névoa, com um núcleo de dados"
+        },
+        "fr": {
+          "name": "Matrix",
+          "hint": "Ville entre code et brume, avec un noyau de données"
+        },
+        "zh": {
+          "name": "Matrix",
+          "hint": "代码与雾气之间的城市，带有数据核心"
+        }
+      }
+    },
+    {
+      "id": "mundo-eva",
+      "group": "world",
+      "text": {
+        "es": {
+          "name": "EVA-01",
+          "hint": "Cámara de contención con compuertas y una cápsula de energía"
+        },
+        "en": {
+          "name": "EVA-01",
+          "hint": "Containment chamber with blast doors and an energy capsule"
+        },
+        "pt": {
+          "name": "EVA-01",
+          "hint": "Câmara de contenção com comportas e uma cápsula de energia"
+        },
+        "fr": {
+          "name": "EVA-01",
+          "hint": "Chambre de confinement avec portes blindées et une capsule d’énergie"
+        },
+        "zh": {
+          "name": "EVA-01",
+          "hint": "收容舱，带有防爆门和能量胶囊"
+        }
+      }
+    },
+    {
+      "id": "clasico",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Índigo",
+          "hint": "Paneles oscuros y sobrios, el de siempre"
+        },
+        "en": {
+          "name": "Indigo",
+          "hint": "Dark, sober panels, the original look"
+        },
+        "pt": {
+          "name": "Índigo",
+          "hint": "Escuro, painéis sóbrios, o visual original"
+        },
+        "fr": {
+          "name": "Indigo",
+          "hint": "Sombre, panneaux sobres, l'aspect d'origine"
+        },
+        "zh": {
+          "name": "靛蓝",
+          "hint": "深色、简洁的面板，原始外观"
+        }
+      }
+    },
+    {
+      "id": "orbita",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Frost Glass",
+          "hint": "Cristal azulado con brillos, como la app del móvil"
+        },
+        "en": {
+          "name": "Frost Glass",
+          "hint": "Bluish glass with highlights, like the mobile app"
+        },
+        "pt": {
+          "name": "Frost Glass",
+          "hint": "Vidro azulado com brilhos, como o app do celular"
+        },
+        "fr": {
+          "name": "Frost Glass",
+          "hint": "Verre bleuté avec reflets, comme l'app mobile"
+        },
+        "zh": {
+          "name": "Frost Glass",
+          "hint": "带高光的蓝色玻璃，与手机应用一致"
+        }
+      }
+    },
+    {
+      "id": "marfil",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Perla",
+          "hint": "Claro y cálido: marfil, verde y oro"
+        },
+        "en": {
+          "name": "Pearl",
+          "hint": "Light and warm: ivory, green and gold"
+        },
+        "pt": {
+          "name": "Pérola",
+          "hint": "Claro e acolhedor: marfim, verde e dourado"
+        },
+        "fr": {
+          "name": "Perle",
+          "hint": "Clair et chaleureux : ivoire, vert et or"
+        },
+        "zh": {
+          "name": "珍珠",
+          "hint": "明亮温暖：象牙白、绿色和金色"
+        }
+      }
+    },
+    {
+      "id": "grafito",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Ónix",
+          "hint": "Negro grafito con detalles dorados"
+        },
+        "en": {
+          "name": "Onyx",
+          "hint": "Graphite black with golden details"
+        },
+        "pt": {
+          "name": "Ônix",
+          "hint": "Preto grafite com detalhes dourados"
+        },
+        "fr": {
+          "name": "Onyx",
+          "hint": "Noir graphite avec détails dorés"
+        },
+        "zh": {
+          "name": "缟玛瑙",
+          "hint": "石墨黑配金色细节"
+        }
+      }
+    },
+    {
+      "id": "bosque",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Esmeralda",
+          "hint": "Verde bosque profundo con oro"
+        },
+        "en": {
+          "name": "Emerald",
+          "hint": "Deep forest green with gold"
+        },
+        "pt": {
+          "name": "Esmeralda",
+          "hint": "Verde floresta profundo com dourado"
+        },
+        "fr": {
+          "name": "Émeraude",
+          "hint": "Vert forêt profond avec de l'or"
+        },
+        "zh": {
+          "name": "翡翠",
+          "hint": "深林绿配金色"
+        }
+      }
+    },
+    {
+      "id": "matrix",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Neón",
+          "hint": "Negro y verde neón"
+        },
+        "en": {
+          "name": "Neon",
+          "hint": "Black and neon green"
+        },
+        "pt": {
+          "name": "Néon",
+          "hint": "Preto e verde neon"
+        },
+        "fr": {
+          "name": "Néon",
+          "hint": "Noir et vert néon"
+        },
+        "zh": {
+          "name": "霓虹",
+          "hint": "黑色与霓虹绿"
+        }
+      }
+    },
+    {
+      "id": "eva",
+      "group": "city",
+      "text": {
+        "es": {
+          "name": "Ultravioleta",
+          "hint": "Morado y verde lima, como la Unidad 01"
+        },
+        "en": {
+          "name": "Ultraviolet",
+          "hint": "Purple and lime green, like Unit-01"
+        },
+        "pt": {
+          "name": "Ultravioleta",
+          "hint": "Roxo e verde-limão, como a Unidade-01"
+        },
+        "fr": {
+          "name": "Ultraviolet",
+          "hint": "Violet et vert citron, comme l'Unité-01"
+        },
+        "zh": {
+          "name": "紫外",
+          "hint": "紫色与青柠绿，像初号机"
+        }
+      }
+    },
+    {
+      "id": "relicario",
+      "group": "decor",
+      "text": {
+        "es": {
+          "name": "Relicario",
+          "hint": "Cristal y oro: un núcleo tallado y plataformas de vidrio"
+        },
+        "en": {
+          "name": "Reliquary",
+          "hint": "Glass and gold: a cut-crystal core and glass platforms"
+        },
+        "pt": {
+          "name": "Relicário",
+          "hint": "Vidro e ouro: um núcleo de cristal lapidado e plataformas de vidro"
+        },
+        "fr": {
+          "name": "Reliquaire",
+          "hint": "Verre et or : un noyau de cristal taillé et des plateformes de verre"
+        },
+        "zh": {
+          "name": "圣物匣",
+          "hint": "玻璃与黄金：切割水晶核心和玻璃平台"
+        }
+      }
+    },
+    {
+      "id": "telar",
+      "group": "decor",
+      "text": {
+        "es": {
+          "name": "Telar",
+          "hint": "Hilos de plata tejidos en el espacio, con destellos dorados"
+        },
+        "en": {
+          "name": "Loom",
+          "hint": "Silver threads woven through space, with golden sparkles"
+        },
+        "pt": {
+          "name": "Tear",
+          "hint": "Fios de prata tecidos pelo espaço, com faíscas douradas"
+        },
+        "fr": {
+          "name": "Métier à tisser",
+          "hint": "Des fils d'argent tissés dans l'espace, avec des étincelles dorées"
+        },
+        "zh": {
+          "name": "织机",
+          "hint": "银线在空间中交织，点缀金色火花"
+        }
+      }
+    },
+    {
+      "id": "halloween",
+      "group": "decor",
+      "text": {
+        "es": {
+          "name": "Halloween",
+          "hint": "Calabazas, velas, luna y murciélagos en una noche morada"
+        },
+        "en": {
+          "name": "Halloween",
+          "hint": "Pumpkins, candles, a moon and bats on a purple night"
+        },
+        "pt": {
+          "name": "Halloween",
+          "hint": "Abóboras, velas, uma lua e morcegos numa noite roxa"
+        },
+        "fr": {
+          "name": "Halloween",
+          "hint": "Citrouilles, bougies, une lune et des chauves-souris dans une nuit violette"
+        },
+        "zh": {
+          "name": "Halloween",
+          "hint": "南瓜、蜡烛、月亮和蝙蝠，在紫色的夜晚"
+        }
+      }
+    },
+    {
+      "id": "navidad",
+      "group": "decor",
+      "text": {
+        "es": {
+          "name": "Navidad",
+          "hint": "Nieve, regalos, árboles con luces y una bola de nieve"
+        },
+        "en": {
+          "name": "Christmas",
+          "hint": "Snow, presents, lit-up trees and a snow globe"
+        },
+        "pt": {
+          "name": "Natal",
+          "hint": "Neve, presentes, árvores iluminadas e um globo de neve"
+        },
+        "fr": {
+          "name": "Noël",
+          "hint": "Neige, cadeaux, sapins illuminés et une boule à neige"
+        },
+        "zh": {
+          "name": "圣诞",
+          "hint": "雪花、礼物、亮灯的树和雪景球"
+        }
+      }
+    },
+    {
+      "id": "oficina",
+      "group": "office",
+      "text": {
+        "es": {
+          "name": "Oficina",
+          "hint": "Oficina de empresa, de día o de noche con «Modo noche» en el espacio"
+        },
+        "en": {
+          "name": "Office",
+          "hint": "Office, by day or by night with “Night mode” in the space"
+        },
+        "pt": {
+          "name": "Escritório",
+          "hint": "Escritório de empresa, de dia ou de noite com «Modo noite» no espaço"
+        },
+        "fr": {
+          "name": "Bureau",
+          "hint": "Bureau d’entreprise, de jour ou de nuit avec « Mode nuit » dans l’espace"
+        },
+        "zh": {
+          "name": "办公室",
+          "hint": "企业办公室，可在空间中用「夜间模式」切换白天或夜晚"
+        }
+      }
+    },
+    {
+      "id": "sede",
+      "group": "office",
+      "text": {
+        "es": {
+          "name": "Oficina · noche",
+          "hint": "Oficina de empresa, de día o de noche con «Modo noche» en el espacio"
+        },
+        "en": {
+          "name": "Office · night",
+          "hint": "Office, by day or by night with “Night mode” in the space"
+        },
+        "pt": {
+          "name": "Escritório · noite",
+          "hint": "Escritório de empresa, de dia ou de noite com «Modo noite» no espaço"
+        },
+        "fr": {
+          "name": "Bureau · nuit",
+          "hint": "Bureau d’entreprise, de jour ou de nuit avec « Mode nuit » dans l’espace"
+        },
+        "zh": {
+          "name": "办公室 · 夜晚",
+          "hint": "企业办公室，可在空间中用「夜间模式」切换白天或夜晚"
+        }
+      }
+    }
+  ],
+  "agents": [
+    {
+      "id": "hermes",
+      "name": "Hermes",
+      "kind": "builtin",
+      "verified": true,
+      "free": true,
+      "docs": "",
+      "text": {
+        "es": {
+          "summary": "Coordinador: planifica y reparte el trabajo entre los demás, con memoria entre sesiones.",
+          "account": "Necesita un proveedor de modelos (OmniRoute, Nous Portal, OpenRouter u otra cuenta)."
+        },
+        "en": {
+          "summary": "Coordinator: plans and splits the work among the others, with memory across sessions.",
+          "account": "Needs a model provider (OmniRoute, Nous Portal, OpenRouter or another account)."
+        },
+        "pt": {
+          "summary": "Coordenador: planeja e divide o trabalho entre os outros, com memória entre sessões.",
+          "account": "Precisa de um provedor de modelos (OmniRoute, Nous Portal, OpenRouter ou outra conta)."
+        },
+        "fr": {
+          "summary": "Coordinateur : planifie et répartit le travail entre les autres, avec une mémoire entre les sessions.",
+          "account": "Nécessite un fournisseur de modèles (OmniRoute, Nous Portal, OpenRouter ou un autre compte)."
+        },
+        "zh": {
+          "summary": "协调者：规划工作并分配给其他代理，跨会话保留记忆。",
+          "account": "需要一个模型提供方（OmniRoute、Nous Portal、OpenRouter 或其他账户）。"
+        }
+      }
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "kind": "builtin",
+      "verified": true,
+      "free": false,
+      "docs": "",
+      "text": {
+        "es": {
+          "summary": "Diseño, textos y código de calidad.",
+          "account": "Con tu suscripción de Claude (Pro o Max)."
+        },
+        "en": {
+          "summary": "Design, copy and high-quality code.",
+          "account": "With your Claude subscription (Pro or Max)."
+        },
+        "pt": {
+          "summary": "Design, textos e código de alta qualidade.",
+          "account": "Com a sua assinatura do Claude (Pro ou Max)."
+        },
+        "fr": {
+          "summary": "Design, textes et code de haute qualité.",
+          "account": "Avec votre abonnement Claude (Pro ou Max)."
+        },
+        "zh": {
+          "summary": "设计、文案和高质量代码。",
+          "account": "使用你的 Claude 订阅（Pro 或 Max）。"
+        }
+      }
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "kind": "builtin",
+      "verified": true,
+      "free": false,
+      "docs": "",
+      "text": {
+        "es": {
+          "summary": "Programación y tareas técnicas; el único que genera imágenes.",
+          "account": "Con tu cuenta de ChatGPT."
+        },
+        "en": {
+          "summary": "Programming and technical tasks; the only one that generates images.",
+          "account": "With your ChatGPT account."
+        },
+        "pt": {
+          "summary": "Programação e tarefas técnicas; o único que gera imagens.",
+          "account": "Com a sua conta do ChatGPT."
+        },
+        "fr": {
+          "summary": "Programmation et tâches techniques ; le seul qui génère des images.",
+          "account": "Avec votre compte ChatGPT."
+        },
+        "zh": {
+          "summary": "编程和技术任务；唯一能生成图片的。",
+          "account": "使用你的 ChatGPT 账户。"
+        }
+      }
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "kind": "builtin",
+      "verified": true,
+      "free": true,
+      "docs": "",
+      "text": {
+        "es": {
+          "summary": "Análisis, investigación y documentos largos.",
+          "account": "Con una clave de API de Google AI Studio (gratis) o una cuenta de empresa de Gemini Code Assist. Desde junio de 2026, las cuentas personales de Google usan Antigravity CLI."
+        },
+        "en": {
+          "summary": "Analysis, research and long documents.",
+          "account": "With a Google AI Studio API key (free) or a Gemini Code Assist business account. Since June 2026, personal Google accounts use Antigravity CLI."
+        },
+        "pt": {
+          "summary": "Análise, pesquisa e documentos longos.",
+          "account": "Com uma chave de API do Google AI Studio (grátis) ou uma conta empresarial do Gemini Code Assist. Desde junho de 2026, as contas pessoais do Google usam o Antigravity CLI."
+        },
+        "fr": {
+          "summary": "Analyse, recherche et longs documents.",
+          "account": "Avec une clé API Google AI Studio (gratuite) ou un compte professionnel Gemini Code Assist. Depuis juin 2026, les comptes Google personnels utilisent Antigravity CLI."
+        },
+        "zh": {
+          "summary": "分析、调研和长文档。",
+          "account": "使用 Google AI Studio 的 API 密钥（免费）或 Gemini Code Assist 企业账户。自 2026 年 6 月起，个人 Google 账户改用 Antigravity CLI。"
+        }
+      }
+    },
+    {
+      "id": "muse",
+      "name": "Muse",
+      "kind": "builtin",
+      "verified": true,
+      "free": false,
+      "docs": "",
+      "text": {
+        "es": {
+          "summary": "Vídeos y refuerzo cuando los demás no tienen cuota.",
+          "account": "Con tu suscripción de Muse Code (cuenta de Meta)."
+        },
+        "en": {
+          "summary": "Videos and backup when the others are out of quota.",
+          "account": "With your Muse Code subscription (Meta account)."
+        },
+        "pt": {
+          "summary": "Vídeos e reforço quando os outros ficam sem cota.",
+          "account": "Com a sua assinatura do Muse Code (conta Meta)."
+        },
+        "fr": {
+          "summary": "Vidéos et renfort quand les autres n'ont plus de quota.",
+          "account": "Avec votre abonnement Muse Code (compte Meta)."
+        },
+        "zh": {
+          "summary": "视频，以及其他代理配额用完时的后援。",
+          "account": "使用你的 Muse Code 订阅（Meta 账户）。"
+        }
+      }
+    },
+    {
+      "id": "aider",
+      "name": "Aider",
+      "kind": "cli",
+      "verified": true,
+      "free": true,
+      "docs": "https://aider.chat/docs/scripting.html",
+      "text": {
+        "es": {
+          "summary": "Programa en pareja con IA: edita los archivos de tu repositorio con el modelo que elijas.",
+          "account": "Solo con claves de API (OpenAI, Anthropic, Google, OpenRouter…): no usa tu suscripción de ChatGPT ni de Claude."
+        },
+        "en": {
+          "summary": "Pair programming with AI: edits the files in your repository with the model you choose.",
+          "account": "Only with API keys (OpenAI, Anthropic, Google, OpenRouter…): it doesn't use your ChatGPT or Claude subscription."
+        },
+        "pt": {
+          "summary": "Programação em dupla com IA: edita os arquivos do seu repositório com o modelo que você escolher.",
+          "account": "Só com chaves de API (OpenAI, Anthropic, Google, OpenRouter…): não usa a sua assinatura do ChatGPT nem do Claude."
+        },
+        "fr": {
+          "summary": "Programmation en binôme avec l'IA : modifie les fichiers de votre dépôt avec le modèle de votre choix.",
+          "account": "Uniquement avec des clés API (OpenAI, Anthropic, Google, OpenRouter…) : il n'utilise pas votre abonnement ChatGPT ou Claude."
+        },
+        "zh": {
+          "summary": "AI 结对编程：用你选择的模型编辑你仓库中的文件。",
+          "account": "仅支持 API 密钥（OpenAI、Anthropic、Google、OpenRouter…）：不使用你的 ChatGPT 或 Claude 订阅。"
+        }
+      }
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://aider.chat/docs/llms/deepseek.html",
+      "text": {
+        "es": {
+          "summary": "Los modelos de DeepSeek como agente de código, a través de Aider (DeepSeek no tiene programa de terminal propio).",
+          "account": "Con una clave de API de DeepSeek (pago por uso, muy barato): DeepSeek no tiene suscripción mensual."
+        },
+        "en": {
+          "summary": "DeepSeek's models as a coding agent, through Aider (DeepSeek has no terminal program of its own).",
+          "account": "With a DeepSeek API key (pay as you go, very cheap): DeepSeek has no monthly subscription."
+        },
+        "pt": {
+          "summary": "Os modelos do DeepSeek como agente de código, via Aider (o DeepSeek não tem programa de terminal próprio).",
+          "account": "Com uma chave de API do DeepSeek (pague pelo uso, muito barato): o DeepSeek não tem assinatura mensal."
+        },
+        "fr": {
+          "summary": "Les modèles de DeepSeek comme agent de code, via Aider (DeepSeek n'a pas de programme de terminal propre).",
+          "account": "Avec une clé API DeepSeek (paiement à l'usage, très bon marché) : DeepSeek n'a pas d'abonnement mensuel."
+        },
+        "zh": {
+          "summary": "通过 Aider 把 DeepSeek 的模型用作编程代理（DeepSeek 没有自己的终端程序）。",
+          "account": "使用 DeepSeek API 密钥（按量付费，非常便宜）：DeepSeek 没有月度订阅。"
+        }
+      }
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "kind": "cli",
+      "verified": false,
+      "free": true,
+      "docs": "https://opencode.ai/docs/cli/",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de código abierto para la terminal, con muchos proveedores.",
+          "account": "Con tu suscripción de ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo o SuperGrok (opencode auth login), o claves de API."
+        },
+        "en": {
+          "summary": "Open-source coding agent for the terminal, with many providers.",
+          "account": "With your ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo or SuperGrok subscription (opencode auth login), or API keys."
+        },
+        "pt": {
+          "summary": "Agente de código open source para o terminal, com muitos provedores.",
+          "account": "Com a sua assinatura do ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo ou SuperGrok (opencode auth login), ou chaves de API."
+        },
+        "fr": {
+          "summary": "Agent de code open source pour le terminal, avec de nombreux fournisseurs.",
+          "account": "Avec votre abonnement ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo ou SuperGrok (opencode auth login), ou des clés API."
+        },
+        "zh": {
+          "summary": "开源的终端编程代理，支持很多提供商。",
+          "account": "使用你的 ChatGPT Plus/Pro、GitHub Copilot、GitLab Duo 或 SuperGrok 订阅（opencode auth login），或 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "copilot",
+      "name": "GitHub Copilot CLI",
+      "kind": "cli",
+      "verified": true,
+      "free": true,
+      "docs": "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically",
+      "text": {
+        "es": {
+          "summary": "El agente de programación de GitHub Copilot en la terminal.",
+          "account": "Con tu suscripción de GitHub Copilot (copilot login)."
+        },
+        "en": {
+          "summary": "GitHub Copilot's coding agent in the terminal.",
+          "account": "With your GitHub Copilot subscription (copilot login)."
+        },
+        "pt": {
+          "summary": "O agente de código do GitHub Copilot no terminal.",
+          "account": "Com a sua assinatura do GitHub Copilot (copilot login)."
+        },
+        "fr": {
+          "summary": "L'agent de code de GitHub Copilot dans le terminal.",
+          "account": "Avec votre abonnement GitHub Copilot (copilot login)."
+        },
+        "zh": {
+          "summary": "GitHub Copilot 的终端编程代理。",
+          "account": "使用你的 GitHub Copilot 订阅（copilot login）。"
+        }
+      }
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://cursor.com/docs/cli/headless",
+      "text": {
+        "es": {
+          "summary": "El agente de Cursor en la terminal.",
+          "account": "Con tu cuenta de Cursor (agent login, en el navegador) o una clave CURSOR_API_KEY."
+        },
+        "en": {
+          "summary": "Cursor's agent in the terminal.",
+          "account": "With your Cursor account (agent login, in the browser) or a CURSOR_API_KEY."
+        },
+        "pt": {
+          "summary": "O agente do Cursor no terminal.",
+          "account": "Com a sua conta do Cursor (agent login, no navegador) ou uma CURSOR_API_KEY."
+        },
+        "fr": {
+          "summary": "L'agent de Cursor dans le terminal.",
+          "account": "Avec votre compte Cursor (agent login, dans le navigateur) ou une CURSOR_API_KEY."
+        },
+        "zh": {
+          "summary": "Cursor 的终端代理。",
+          "account": "使用你的 Cursor 账户（agent login，在浏览器中）或 CURSOR_API_KEY。"
+        }
+      }
+    },
+    {
+      "id": "amp",
+      "name": "Amp",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://ampcode.com/docs/cli/execute-mode",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de Amp (ampcode.com) en la terminal.",
+          "account": "Con una cuenta de Amp con créditos o suscripción; para scripts pide una clave AMP_API_KEY."
+        },
+        "en": {
+          "summary": "Amp's coding agent (ampcode.com) in the terminal.",
+          "account": "With an Amp account with credits or a subscription; for scripts it asks for an AMP_API_KEY."
+        },
+        "pt": {
+          "summary": "O agente de código do Amp (ampcode.com) no terminal.",
+          "account": "Com uma conta do Amp com créditos ou assinatura; para scripts pede uma AMP_API_KEY."
+        },
+        "fr": {
+          "summary": "L'agent de code d'Amp (ampcode.com) dans le terminal.",
+          "account": "Avec un compte Amp avec des crédits ou un abonnement ; pour les scripts, il demande une AMP_API_KEY."
+        },
+        "zh": {
+          "summary": "Amp（ampcode.com）的终端编程代理。",
+          "account": "使用有额度或订阅的 Amp 账户；用于脚本时需要 AMP_API_KEY。"
+        }
+      }
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://goose-docs.ai/",
+      "text": {
+        "es": {
+          "summary": "Agente de código y automatización con herramientas, de la Agentic AI Foundation (antes de Block).",
+          "account": "Usa tu suscripción de Claude, ChatGPT, Copilot o Cursor a través de sus programas, o una clave de API o un modelo local."
+        },
+        "en": {
+          "summary": "Coding and automation agent with tools, from the Agentic AI Foundation (formerly Block).",
+          "account": "Uses your Claude, ChatGPT, Copilot or Cursor subscription through their programs, or an API key or a local model."
+        },
+        "pt": {
+          "summary": "Agente de código e automação com ferramentas, da Agentic AI Foundation (antes Block).",
+          "account": "Usa a sua assinatura do Claude, ChatGPT, Copilot ou Cursor pelos programas deles, ou uma chave de API ou um modelo local."
+        },
+        "fr": {
+          "summary": "Agent de code et d'automatisation avec des outils, de l'Agentic AI Foundation (anciennement Block).",
+          "account": "Utilise votre abonnement Claude, ChatGPT, Copilot ou Cursor via leurs programmes, ou une clé API ou un modèle local."
+        },
+        "zh": {
+          "summary": "带工具的编程与自动化代理，来自 Agentic AI Foundation（原 Block）。",
+          "account": "通过各自的程序使用你的 Claude、ChatGPT、Copilot 或 Cursor 订阅，或使用 API 密钥或本地模型。"
+        }
+      }
+    },
+    {
+      "id": "kimi",
+      "name": "Kimi Code",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://www.kimi.com/code/docs/en/",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de Moonshot AI (Kimi) en la terminal.",
+          "account": "Con tu membresía de Kimi Code (inicio de sesión en el navegador), sin clave de API."
+        },
+        "en": {
+          "summary": "Moonshot AI's (Kimi) coding agent in the terminal.",
+          "account": "With your Kimi Code membership (sign-in in the browser), no API key."
+        },
+        "pt": {
+          "summary": "O agente de código da Moonshot AI (Kimi) no terminal.",
+          "account": "Com a sua assinatura Kimi Code (login no navegador), sem chave de API."
+        },
+        "fr": {
+          "summary": "L'agent de code de Moonshot AI (Kimi) dans le terminal.",
+          "account": "Avec votre abonnement Kimi Code (connexion dans le navigateur), sans clé API."
+        },
+        "zh": {
+          "summary": "Moonshot AI（Kimi）的终端编程代理。",
+          "account": "使用你的 Kimi Code 会员（在浏览器中登录），无需 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "mistral-vibe",
+      "name": "Mistral Vibe",
+      "kind": "cli",
+      "verified": true,
+      "free": true,
+      "docs": "https://docs.mistral.ai/mistral-vibe/introduction/quickstart",
+      "text": {
+        "es": {
+          "summary": "Agente de código de Mistral en la terminal.",
+          "account": "Con tu cuenta de Mistral (Le Chat Pro o Team) o una clave de API de Mistral; también con modelos locales."
+        },
+        "en": {
+          "summary": "Mistral's coding agent in the terminal.",
+          "account": "With your Mistral account (Le Chat Pro or Team) or a Mistral API key; also with local models."
+        },
+        "pt": {
+          "summary": "O agente de código da Mistral no terminal.",
+          "account": "Com a sua conta da Mistral (Le Chat Pro ou Team) ou uma chave de API da Mistral; também com modelos locais."
+        },
+        "fr": {
+          "summary": "L'agent de code de Mistral dans le terminal.",
+          "account": "Avec votre compte Mistral (Le Chat Pro ou Team) ou une clé API Mistral ; aussi avec des modèles locaux."
+        },
+        "zh": {
+          "summary": "Mistral 的终端编程代理。",
+          "account": "使用你的 Mistral 账户（Le Chat Pro 或 Team）或 Mistral API 密钥；也支持本地模型。"
+        }
+      }
+    },
+    {
+      "id": "grok",
+      "name": "Grok Build",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://docs.x.ai/build/overview",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de xAI (Grok) en la terminal.",
+          "account": "Con tu suscripción de SuperGrok o X Premium Plus (inicio de sesión en el navegador), sin clave de API."
+        },
+        "en": {
+          "summary": "xAI's (Grok) coding agent in the terminal.",
+          "account": "With your SuperGrok or X Premium Plus subscription (sign-in in the browser), no API key."
+        },
+        "pt": {
+          "summary": "O agente de código da xAI (Grok) no terminal.",
+          "account": "Com a sua assinatura SuperGrok ou X Premium Plus (login no navegador), sem chave de API."
+        },
+        "fr": {
+          "summary": "L'agent de code de xAI (Grok) dans le terminal.",
+          "account": "Avec votre abonnement SuperGrok ou X Premium Plus (connexion dans le navigateur), sans clé API."
+        },
+        "zh": {
+          "summary": "xAI（Grok）的终端编程代理。",
+          "account": "使用你的 SuperGrok 或 X Premium Plus 订阅（在浏览器中登录），无需 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "kind": "cli",
+      "verified": false,
+      "free": true,
+      "docs": "https://docs.cline.bot/cline-cli/overview",
+      "text": {
+        "es": {
+          "summary": "Agente de programación autónomo en la terminal, con muchos proveedores de modelos.",
+          "account": "Con tu cuenta de Cline o tu suscripción de ChatGPT Plus/Pro (inicio de sesión en el navegador), o una clave de API propia."
+        },
+        "en": {
+          "summary": "Autonomous coding agent in the terminal, with many model providers.",
+          "account": "With your Cline account or your ChatGPT Plus/Pro subscription (sign-in in the browser), or your own API key."
+        },
+        "pt": {
+          "summary": "Agente de código autônomo no terminal, com muitos provedores de modelos.",
+          "account": "Com a sua conta do Cline ou a sua assinatura do ChatGPT Plus/Pro (login no navegador), ou a sua própria chave de API."
+        },
+        "fr": {
+          "summary": "Agent de code autonome dans le terminal, avec de nombreux fournisseurs de modèles.",
+          "account": "Avec votre compte Cline ou votre abonnement ChatGPT Plus/Pro (connexion dans le navigateur), ou votre propre clé API."
+        },
+        "zh": {
+          "summary": "终端中的自主编程代理，支持很多模型提供商。",
+          "account": "使用你的 Cline 账户或 ChatGPT Plus/Pro 订阅（在浏览器中登录），或你自己的 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "continue",
+      "name": "Continue",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://docs.continue.dev/cli/quickstart",
+      "text": {
+        "es": {
+          "summary": "Agente de código de Continue en la terminal (beta).",
+          "account": "Con tu cuenta de Continue (inicio de sesión en el navegador) o una clave de API de Anthropic; no usa suscripciones de Claude ni de ChatGPT."
+        },
+        "en": {
+          "summary": "Continue's coding agent in the terminal (beta).",
+          "account": "With your Continue account (sign-in in the browser) or an Anthropic API key; it doesn't use Claude or ChatGPT subscriptions."
+        },
+        "pt": {
+          "summary": "O agente de código do Continue no terminal (beta).",
+          "account": "Com a sua conta do Continue (login no navegador) ou uma chave de API da Anthropic; não usa assinaturas do Claude nem do ChatGPT."
+        },
+        "fr": {
+          "summary": "L'agent de code de Continue dans le terminal (bêta).",
+          "account": "Avec votre compte Continue (connexion dans le navigateur) ou une clé API Anthropic ; il n'utilise pas les abonnements Claude ni ChatGPT."
+        },
+        "zh": {
+          "summary": "Continue 的终端编程代理（测试版）。",
+          "account": "使用你的 Continue 账户（在浏览器中登录）或 Anthropic API 密钥；不使用 Claude 或 ChatGPT 订阅。"
+        }
+      }
+    },
+    {
+      "id": "openhands",
+      "name": "OpenHands",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://docs.openhands.dev/openhands/usage/cli/installation",
+      "text": {
+        "es": {
+          "summary": "Agente de desarrollo de software de código abierto (OpenHands).",
+          "account": "Con tu cuenta de OpenHands Cloud (inicio de sesión en el navegador) o una clave de API propia."
+        },
+        "en": {
+          "summary": "Open-source software development agent (OpenHands).",
+          "account": "With your OpenHands Cloud account (sign-in in the browser) or your own API key."
+        },
+        "pt": {
+          "summary": "Agente de desenvolvimento de software open source (OpenHands).",
+          "account": "Com a sua conta do OpenHands Cloud (login no navegador) ou a sua própria chave de API."
+        },
+        "fr": {
+          "summary": "Agent de développement logiciel open source (OpenHands).",
+          "account": "Avec votre compte OpenHands Cloud (connexion dans le navigateur) ou votre propre clé API."
+        },
+        "zh": {
+          "summary": "开源的软件开发代理（OpenHands）。",
+          "account": "使用你的 OpenHands Cloud 账户（在浏览器中登录）或你自己的 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "droid",
+      "name": "Factory Droid",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://docs.factory.com/cli/droid-exec/overview",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de Factory en la terminal.",
+          "account": "Con tu plan de Factory (Pro o superior); en modo sin pantalla pide una clave FACTORY_API_KEY de tu cuenta."
+        },
+        "en": {
+          "summary": "Factory's coding agent in the terminal.",
+          "account": "With your Factory plan (Pro or higher); in headless mode it asks for a FACTORY_API_KEY from your account."
+        },
+        "pt": {
+          "summary": "O agente de código da Factory no terminal.",
+          "account": "Com o seu plano da Factory (Pro ou superior); no modo sem interface pede uma FACTORY_API_KEY da sua conta."
+        },
+        "fr": {
+          "summary": "L'agent de code de Factory dans le terminal.",
+          "account": "Avec votre forfait Factory (Pro ou supérieur) ; en mode sans interface, il demande une FACTORY_API_KEY de votre compte."
+        },
+        "zh": {
+          "summary": "Factory 的终端编程代理。",
+          "account": "使用你的 Factory 套餐（Pro 或更高）；在无界面模式下需要你账户的 FACTORY_API_KEY。"
+        }
+      }
+    },
+    {
+      "id": "auggie",
+      "name": "Auggie",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://docs.augmentcode.com/cli/overview",
+      "text": {
+        "es": {
+          "summary": "Agente de código de Augment en la terminal (beta).",
+          "account": "Con tu plan de Augment (inicio de sesión en el navegador)."
+        },
+        "en": {
+          "summary": "Augment's coding agent in the terminal (beta).",
+          "account": "With your Augment plan (sign-in in the browser)."
+        },
+        "pt": {
+          "summary": "O agente de código da Augment no terminal (beta).",
+          "account": "Com o seu plano da Augment (login no navegador)."
+        },
+        "fr": {
+          "summary": "L'agent de code d'Augment dans le terminal (bêta).",
+          "account": "Avec votre forfait Augment (connexion dans le navigateur)."
+        },
+        "zh": {
+          "summary": "Augment 的终端编程代理（测试版）。",
+          "account": "使用你的 Augment 套餐（在浏览器中登录）。"
+        }
+      }
+    },
+    {
+      "id": "junie",
+      "name": "Junie",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://junie.jetbrains.com/docs/junie-cli.html",
+      "text": {
+        "es": {
+          "summary": "Agente de código de JetBrains en la terminal.",
+          "account": "Con tu suscripción de JetBrains AI (cuenta de JetBrains), una clave de API de Junie o tus propias claves."
+        },
+        "en": {
+          "summary": "JetBrains' coding agent in the terminal.",
+          "account": "With your JetBrains AI subscription (JetBrains account), a Junie API key or your own keys."
+        },
+        "pt": {
+          "summary": "O agente de código da JetBrains no terminal.",
+          "account": "Com a sua assinatura do JetBrains AI (conta JetBrains), uma chave de API do Junie ou as suas próprias chaves."
+        },
+        "fr": {
+          "summary": "L'agent de code de JetBrains dans le terminal.",
+          "account": "Avec votre abonnement JetBrains AI (compte JetBrains), une clé API Junie ou vos propres clés."
+        },
+        "zh": {
+          "summary": "JetBrains 的终端编程代理。",
+          "account": "使用你的 JetBrains AI 订阅（JetBrains 账户）、Junie API 密钥或你自己的密钥。"
+        }
+      }
+    },
+    {
+      "id": "crush",
+      "name": "Crush",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://github.com/charmbracelet/crush",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de Charm con interfaz de terminal.",
+          "account": "Con tu cuenta de GitHub Copilot, ChatGPT o Grok (crush login), Charm Hyper o claves de API propias."
+        },
+        "en": {
+          "summary": "Charm's coding agent with a terminal interface.",
+          "account": "With your GitHub Copilot, ChatGPT or Grok account (crush login), Charm Hyper or your own API keys."
+        },
+        "pt": {
+          "summary": "O agente de código da Charm com interface de terminal.",
+          "account": "Com a sua conta do GitHub Copilot, ChatGPT ou Grok (crush login), Charm Hyper ou as suas próprias chaves de API."
+        },
+        "fr": {
+          "summary": "L'agent de code de Charm avec une interface de terminal.",
+          "account": "Avec votre compte GitHub Copilot, ChatGPT ou Grok (crush login), Charm Hyper ou vos propres clés API."
+        },
+        "zh": {
+          "summary": "Charm 的终端界面编程代理。",
+          "account": "使用你的 GitHub Copilot、ChatGPT 或 Grok 账户（crush login）、Charm Hyper 或你自己的 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "open-interpreter",
+      "name": "Open Interpreter",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://www.openinterpreter.com/docs/terminal/quickstart",
+      "text": {
+        "es": {
+          "summary": "Agente que trabaja con archivos, código y comandos locales (la versión nueva, basada en Codex).",
+          "account": "Con tu cuenta de ChatGPT (inicio de sesión en el navegador), claves de API o modelos locales."
+        },
+        "en": {
+          "summary": "Agent that works with local files, code and commands (the new version, based on Codex).",
+          "account": "With your ChatGPT account (sign-in in the browser), API keys or local models."
+        },
+        "pt": {
+          "summary": "Agente que trabalha com arquivos locais, código e comandos (a nova versão, baseada no Codex).",
+          "account": "Com a sua conta do ChatGPT (login no navegador), chaves de API ou modelos locais."
+        },
+        "fr": {
+          "summary": "Agent qui travaille avec les fichiers locaux, le code et les commandes (la nouvelle version, basée sur Codex).",
+          "account": "Avec votre compte ChatGPT (connexion dans le navigateur), des clés API ou des modèles locaux."
+        },
+        "zh": {
+          "summary": "处理本地文件、代码和命令的代理（基于 Codex 的新版本）。",
+          "account": "使用你的 ChatGPT 账户（在浏览器中登录）、API 密钥或本地模型。"
+        }
+      }
+    },
+    {
+      "id": "gptme",
+      "name": "gptme",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://gptme.org/docs/getting-started.html",
+      "text": {
+        "es": {
+          "summary": "Asistente con herramientas para ejecutar código y manejar archivos desde la terminal.",
+          "account": "Con tu suscripción de ChatGPT Plus/Pro o SuperGrok, o claves de API (no con la suscripción de Claude)."
+        },
+        "en": {
+          "summary": "Assistant with tools to run code and handle files from the terminal.",
+          "account": "With your ChatGPT Plus/Pro or SuperGrok subscription, or API keys (not with the Claude subscription)."
+        },
+        "pt": {
+          "summary": "Assistente com ferramentas para executar código e manipular arquivos pelo terminal.",
+          "account": "Com a sua assinatura do ChatGPT Plus/Pro ou SuperGrok, ou chaves de API (não com a assinatura do Claude)."
+        },
+        "fr": {
+          "summary": "Assistant avec des outils pour exécuter du code et manipuler des fichiers depuis le terminal.",
+          "account": "Avec votre abonnement ChatGPT Plus/Pro ou SuperGrok, ou des clés API (pas avec l'abonnement Claude)."
+        },
+        "zh": {
+          "summary": "带工具的助手，可在终端中运行代码和处理文件。",
+          "account": "使用你的 ChatGPT Plus/Pro 或 SuperGrok 订阅，或 API 密钥（不支持 Claude 订阅）。"
+        }
+      }
+    },
+    {
+      "id": "letta",
+      "name": "Letta Code",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://docs.letta.com/letta-code/headless/",
+      "text": {
+        "es": {
+          "summary": "Agente de código con memoria persistente entre sesiones.",
+          "account": "Con tu cuenta de Letta o, con «letta connect», tu suscripción de ChatGPT, GitHub Copilot, Kimi, xAI…"
+        },
+        "en": {
+          "summary": "Coding agent with persistent memory across sessions.",
+          "account": "With your Letta account or, with «letta connect», your ChatGPT, GitHub Copilot, Kimi, xAI… subscription"
+        },
+        "pt": {
+          "summary": "Agente de código com memória persistente entre sessões.",
+          "account": "Com a sua conta da Letta ou, com «letta connect», a sua assinatura do ChatGPT, GitHub Copilot, Kimi, xAI…"
+        },
+        "fr": {
+          "summary": "Agent de code avec une mémoire persistante entre les sessions.",
+          "account": "Avec votre compte Letta ou, avec « letta connect », votre abonnement ChatGPT, GitHub Copilot, Kimi, xAI…"
+        },
+        "zh": {
+          "summary": "跨会话拥有持久记忆的编程代理。",
+          "account": "使用你的 Letta 账户，或通过「letta connect」使用你的 ChatGPT、GitHub Copilot、Kimi、xAI… 订阅"
+        }
+      }
+    },
+    {
+      "id": "forge",
+      "name": "ForgeCode",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://github.com/antinomyhq/forge",
+      "text": {
+        "es": {
+          "summary": "Agente de programación con distintos proveedores de IA.",
+          "account": "Con tu suscripción de Claude Code, Codex (ChatGPT) o GitHub Copilot (forge provider login) o claves de API."
+        },
+        "en": {
+          "summary": "Coding agent with different AI providers.",
+          "account": "With your Claude Code, Codex (ChatGPT) or GitHub Copilot subscription (forge provider login) or API keys."
+        },
+        "pt": {
+          "summary": "Agente de código com vários provedores de IA.",
+          "account": "Com a sua assinatura do Claude Code, Codex (ChatGPT) ou GitHub Copilot (forge provider login) ou chaves de API."
+        },
+        "fr": {
+          "summary": "Agent de code avec différents fournisseurs d'IA.",
+          "account": "Avec votre abonnement Claude Code, Codex (ChatGPT) ou GitHub Copilot (forge provider login) ou des clés API."
+        },
+        "zh": {
+          "summary": "支持多种 AI 提供商的编程代理。",
+          "account": "使用你的 Claude Code、Codex（ChatGPT）或 GitHub Copilot 订阅（forge provider login）或 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "openclaw",
+      "name": "OpenClaw",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://docs.openclaw.ai/cli/agent.md",
+      "text": {
+        "es": {
+          "summary": "Asistente personal con herramientas (no solo de código), con su propia puerta de enlace.",
+          "account": "Con tu suscripción de ChatGPT/Codex o GitHub Copilot, o reutilizando el programa de Claude ya iniciado; también claves de API."
+        },
+        "en": {
+          "summary": "Personal assistant with tools (not only for code), with its own gateway.",
+          "account": "With your ChatGPT/Codex or GitHub Copilot subscription, or reusing the Claude program you're already signed in to; also API keys."
+        },
+        "pt": {
+          "summary": "Assistente pessoal com ferramentas (não só para código), com gateway próprio.",
+          "account": "Com a sua assinatura do ChatGPT/Codex ou GitHub Copilot, ou reaproveitando o programa do Claude em que você já fez login; também chaves de API."
+        },
+        "fr": {
+          "summary": "Assistant personnel avec des outils (pas seulement pour le code), avec sa propre passerelle.",
+          "account": "Avec votre abonnement ChatGPT/Codex ou GitHub Copilot, ou en réutilisant le programme Claude où vous êtes déjà connecté ; aussi des clés API."
+        },
+        "zh": {
+          "summary": "带工具的个人助手（不仅限于代码），有自己的网关。",
+          "account": "使用你的 ChatGPT/Codex 或 GitHub Copilot 订阅，或复用你已登录的 Claude 程序；也支持 API 密钥。"
+        }
+      }
+    },
+    {
+      "id": "kiro",
+      "name": "Kiro CLI",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://kiro.dev/docs/cli/headless/",
+      "text": {
+        "es": {
+          "summary": "Agente de código de AWS (Kiro, antes Amazon Q Developer CLI) en la terminal.",
+          "account": "Con tu suscripción de Kiro (kiro-cli login, en el navegador) o una clave KIRO_API_KEY (planes Pro o superiores) para el modo sin pantalla."
+        },
+        "en": {
+          "summary": "AWS's coding agent (Kiro, formerly Amazon Q Developer CLI) in the terminal.",
+          "account": "With your Kiro subscription (kiro-cli login, in the browser) or a KIRO_API_KEY (Pro plans or higher) for headless mode."
+        },
+        "pt": {
+          "summary": "O agente de código da AWS (Kiro, antes Amazon Q Developer CLI) no terminal.",
+          "account": "Com a sua assinatura do Kiro (kiro-cli login, no navegador) ou uma KIRO_API_KEY (planos Pro ou superiores) para o modo sem interface."
+        },
+        "fr": {
+          "summary": "L'agent de code d'AWS (Kiro, anciennement Amazon Q Developer CLI) dans le terminal.",
+          "account": "Avec votre abonnement Kiro (kiro-cli login, dans le navigateur) ou une KIRO_API_KEY (forfaits Pro ou supérieurs) pour le mode sans interface."
+        },
+        "zh": {
+          "summary": "AWS 的终端编程代理（Kiro，原 Amazon Q Developer CLI）。",
+          "account": "使用你的 Kiro 订阅（kiro-cli login，在浏览器中），或在无界面模式下使用 KIRO_API_KEY（Pro 或更高套餐）。"
+        }
+      }
+    },
+    {
+      "id": "qwen-code",
+      "name": "Qwen Code",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/auth/",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de código abierto de Qwen (Alibaba) en la terminal.",
+          "account": "Con tu Qwen Coding Plan de Alibaba Cloud (su clave y el endpoint https://coding.dashscope.aliyuncs.com/v1, o coding-intl fuera de China) u otro proveedor (OpenAI, Anthropic, OpenRouter, modelos locales). El acceso gratuito con la cuenta de Qwen cerró en abril de 2026."
+        },
+        "en": {
+          "summary": "Qwen's (Alibaba) open-source coding agent in the terminal.",
+          "account": "With your Alibaba Cloud Qwen Coding Plan (its key and the endpoint https://coding.dashscope.aliyuncs.com/v1, or coding-intl outside China) or another provider (OpenAI, Anthropic, OpenRouter, local models). Free access with the Qwen account closed in April 2026."
+        },
+        "pt": {
+          "summary": "O agente de código open source do Qwen (Alibaba) no terminal.",
+          "account": "Com o seu Qwen Coding Plan da Alibaba Cloud (a chave dele e o endpoint https://coding.dashscope.aliyuncs.com/v1, ou coding-intl fora da China) ou outro provedor (OpenAI, Anthropic, OpenRouter, modelos locais). O acesso gratuito com a conta Qwen foi encerrado em abril de 2026."
+        },
+        "fr": {
+          "summary": "L'agent de code open source de Qwen (Alibaba) dans le terminal.",
+          "account": "Avec votre Qwen Coding Plan d'Alibaba Cloud (sa clé et le point d'accès https://coding.dashscope.aliyuncs.com/v1, ou coding-intl hors de Chine) ou un autre fournisseur (OpenAI, Anthropic, OpenRouter, modèles locaux). L'accès gratuit avec le compte Qwen a fermé en avril 2026."
+        },
+        "zh": {
+          "summary": "Qwen（阿里巴巴）的开源终端编程代理。",
+          "account": "使用你的阿里云 Qwen Coding Plan（它的密钥和端点 https://coding.dashscope.aliyuncs.com/v1，中国以外使用 coding-intl），或其他提供商（OpenAI、Anthropic、OpenRouter、本地模型）。使用 Qwen 账户的免费访问已于 2026 年 4 月关闭。"
+        }
+      }
+    },
+    {
+      "id": "antigravity",
+      "name": "Antigravity CLI",
+      "kind": "cli",
+      "verified": false,
+      "free": true,
+      "docs": "https://antigravity.google/docs/cli/headless/",
+      "text": {
+        "es": {
+          "summary": "El agente de Google Antigravity en la terminal (agy); desde junio de 2026 sustituye a Gemini CLI en las cuentas personales de Google.",
+          "account": "Con tu cuenta de Google: gratis con un límite semanal, o con más cuota en Google AI Pro o Ultra (inicio de sesión de Google en el navegador la primera vez que abres agy)."
+        },
+        "en": {
+          "summary": "The Google Antigravity agent in the terminal (agy); since June 2026 it replaces Gemini CLI for personal Google accounts.",
+          "account": "With your Google account: free with a weekly limit, or with more quota on Google AI Pro or Ultra (Google sign-in in the browser the first time you open agy)."
+        },
+        "pt": {
+          "summary": "O agente do Google Antigravity no terminal (agy); desde junho de 2026 substitui o Gemini CLI nas contas pessoais do Google.",
+          "account": "Com a sua conta do Google: grátis com um limite semanal, ou com mais cota no Google AI Pro ou Ultra (login do Google no navegador na primeira vez que abrir o agy)."
+        },
+        "fr": {
+          "summary": "L'agent Google Antigravity dans le terminal (agy) ; depuis juin 2026, il remplace Gemini CLI pour les comptes Google personnels.",
+          "account": "Avec votre compte Google : gratuit avec une limite hebdomadaire, ou avec plus de quota sur Google AI Pro ou Ultra (connexion Google dans le navigateur la première fois que vous ouvrez agy)."
+        },
+        "zh": {
+          "summary": "终端中的 Google Antigravity 智能体（agy）；自 2026 年 6 月起，在个人 Google 账户中取代 Gemini CLI。",
+          "account": "使用你的 Google 账户：免费版有每周限额，Google AI Pro 或 Ultra 额度更多（首次打开 agy 时在浏览器中登录 Google）。"
+        }
+      }
+    },
+    {
+      "id": "rovodev",
+      "name": "Rovo Dev",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://support.atlassian.com/rovo/docs/rovo-dev-cli-commands/",
+      "text": {
+        "es": {
+          "summary": "El agente de programación de Atlassian (Rovo Dev) en la terminal, dentro de la CLI de Atlassian (acli).",
+          "account": "Con tu cuenta de Atlassian con Rovo Dev en tu sitio de Atlassian Cloud (acli rovodev auth login, con tu correo y un token de API)."
+        },
+        "en": {
+          "summary": "Atlassian's coding agent (Rovo Dev) in the terminal, inside the Atlassian CLI (acli).",
+          "account": "With your Atlassian account with Rovo Dev on your Atlassian Cloud site (acli rovodev auth login, with your email and an API token)."
+        },
+        "pt": {
+          "summary": "O agente de código da Atlassian (Rovo Dev) no terminal, dentro da Atlassian CLI (acli).",
+          "account": "Com a sua conta da Atlassian com Rovo Dev no seu site do Atlassian Cloud (acli rovodev auth login, com seu e-mail e um token de API)."
+        },
+        "fr": {
+          "summary": "L'agent de code d'Atlassian (Rovo Dev) dans le terminal, dans l'Atlassian CLI (acli).",
+          "account": "Avec votre compte Atlassian avec Rovo Dev sur votre site Atlassian Cloud (acli rovodev auth login, avec votre e-mail et un jeton API)."
+        },
+        "zh": {
+          "summary": "Atlassian 的终端编程代理（Rovo Dev），位于 Atlassian CLI（acli）中。",
+          "account": "使用在你的 Atlassian Cloud 站点开通了 Rovo Dev 的 Atlassian 账户（acli rovodev auth login，需提供邮箱和 API 令牌）。"
+        }
+      }
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax Code",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://agent.minimax.io/docs/cli/quick-start",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de MiniMax en la terminal (mcode).",
+          "account": "Con tu cuenta de MiniMax (mcode login, en el navegador); también con otros proveedores que le añadas."
+        },
+        "en": {
+          "summary": "MiniMax's coding agent in the terminal (mcode).",
+          "account": "With your MiniMax account (mcode login, in the browser); also with other providers you add."
+        },
+        "pt": {
+          "summary": "O agente de código da MiniMax no terminal (mcode).",
+          "account": "Com a sua conta da MiniMax (mcode login, no navegador); também com outros provedores que você adicionar."
+        },
+        "fr": {
+          "summary": "L'agent de code de MiniMax dans le terminal (mcode).",
+          "account": "Avec votre compte MiniMax (mcode login, dans le navigateur) ; aussi avec d'autres fournisseurs que vous ajoutez."
+        },
+        "zh": {
+          "summary": "MiniMax 的终端编程代理（mcode）。",
+          "account": "使用你的 MiniMax 账户（mcode login，在浏览器中）；也支持你添加的其他提供商。"
+        }
+      }
+    },
+    {
+      "id": "qoder",
+      "name": "Qoder CLI",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://docs.qoder.com/cli/headless",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de Qoder (Alibaba) en la terminal.",
+          "account": "Con tu cuenta de Qoder (qodercli login, en el navegador) o un token personal QODER_PERSONAL_ACCESS_TOKEN."
+        },
+        "en": {
+          "summary": "Qoder's (Alibaba) coding agent in the terminal.",
+          "account": "With your Qoder account (qodercli login, in the browser) or a personal token QODER_PERSONAL_ACCESS_TOKEN."
+        },
+        "pt": {
+          "summary": "O agente de código do Qoder (Alibaba) no terminal.",
+          "account": "Com a sua conta do Qoder (qodercli login, no navegador) ou um token pessoal QODER_PERSONAL_ACCESS_TOKEN."
+        },
+        "fr": {
+          "summary": "L'agent de code de Qoder (Alibaba) dans le terminal.",
+          "account": "Avec votre compte Qoder (qodercli login, dans le navigateur) ou un jeton personnel QODER_PERSONAL_ACCESS_TOKEN."
+        },
+        "zh": {
+          "summary": "Qoder（阿里巴巴）的终端编程代理。",
+          "account": "使用你的 Qoder 账户（qodercli login，在浏览器中）或个人令牌 QODER_PERSONAL_ACCESS_TOKEN。"
+        }
+      }
+    },
+    {
+      "id": "kilo",
+      "name": "Kilo CLI",
+      "kind": "cli",
+      "verified": true,
+      "free": true,
+      "docs": "https://kilo.ai/docs/cli",
+      "text": {
+        "es": {
+          "summary": "Agente de programación de código abierto de Kilo en la terminal, con cientos de modelos y varios gratuitos.",
+          "account": "Sin cuenta con sus modelos gratuitos; con tu cuenta de Kilo (kilo auth login) para los de pago, o tus propias claves de API."
+        },
+        "en": {
+          "summary": "Kilo's open-source coding agent in the terminal, with hundreds of models and several free ones.",
+          "account": "No account needed with its free models; with your Kilo account (kilo auth login) for paid ones, or your own API keys."
+        },
+        "pt": {
+          "summary": "Agente de programação de código aberto da Kilo no terminal, com centenas de modelos e vários gratuitos.",
+          "account": "Sem conta com os modelos gratuitos; com a sua conta da Kilo (kilo auth login) para os pagos, ou as suas próprias chaves de API."
+        },
+        "fr": {
+          "summary": "L'agent de programmation open source de Kilo dans le terminal, avec des centaines de modèles dont plusieurs gratuits.",
+          "account": "Sans compte avec ses modèles gratuits ; avec votre compte Kilo (kilo auth login) pour les modèles payants, ou vos propres clés API."
+        },
+        "zh": {
+          "summary": "Kilo 的开源编程智能体，在终端中运行，提供数百个模型，其中有几个免费。",
+          "account": "使用免费模型无需账户；付费模型需要你的 Kilo 账户（kilo auth login），也可以用你自己的 API 密钥。"
+        }
+      }
+    }
+  ]
+}
