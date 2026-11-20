@@ -1758,6 +1758,24 @@ En «Uso y coste» cada petición guarda su vía (`lane`: direct, agent o full) 
   usan más de 1 000 personas, kywai la instala sin preguntar y lo dice en el chat; si no, sale la tarjeta de siempre
   para que elijas. Se apaga con `autoSkills: false`.
 
+### El coordinador se adelanta a lo que necesitas (20 nov 2026)
+
+No hace falta conocer las habilidades, los especialistas ni las órdenes de kywai. El coordinador lee la conversación
+entera (lo que pediste antes, tus archivos, tu negocio o tu proyecto), entiende qué quieres conseguir y elige él los
+agentes, los especialistas, las habilidades y las órdenes («/video», «/radar»…) que hagan falta. Si para que el
+resultado te sirva falta un paso que no dijiste (los textos además de la foto del producto, comprobar lo programado, la
+versión vertical de un vídeo), lo añade al plan y te lo cuenta en una frase.
+
+- **Sin visto bueno** (ni «Pedir mi visto bueno a cada plan» ni «Preguntarme antes»): lo hace solo. Lo que añade va en
+  el plan y, si es algo que se repite (el informe de cada lunes), te deja la tarjeta «Crear rutina» sin preguntar.
+- **Con visto bueno**: lo que añade sale en el plan para que lo quites si no lo quieres, y lo que vendría después
+  (repetirlo cada semana, publicarlo, otra versión) te lo ofrece en una sola pregunta al final o como rutina.
+- **Rutinas**: no pregunta nada, porque no estás delante; hace lo que pediste y deja anotado lo que convendría después.
+- **Nunca por su cuenta** lo que no tiene vuelta atrás o sale fuera: publicar, enviar mensajes o correos, pagar,
+  cambiar precios o pedidos de la tienda o borrar. Eso lo deja listo el agente y lo confirmas tú.
+
+Está en la sección «Adelántate» de `src/main/coordinatorGuide.ts` y vale con cualquier coordinador.
+
 ### Lo siguiente que pedirías (sugerencia en gris)
 
 Al acabar bien una respuesta, el coordinador adivina por el hilo de la conversación cuál será tu próxima petición
@@ -1935,7 +1953,8 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
   «Denegar», «Permitir una vez» o «Permitir siempre en esta sesión». Sale también en el chat con los mismos botones.
 - **Una tarea bloqueada** (ver [abajo](#tareas-bloqueadas-le-falta-algo-no-es-un-error)): el agente dijo que le falta
   algo para terminarla. «Darla por buena así», «Contestarle en el chat» o «Pasársela a otro agente».
-- **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo.
+- **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo, y la petición que se pausó al llegar a su
+  **tope por petición** (con «Seguir de todas formas» o «Quitar»).
 
 Solo cuenta lo que espera algo de ti. **Lo terminado no va aquí**: la última petición acabada de cada proyecto sale
 arriba en **Resultados**, en «Recién terminado», con su número en la barra lateral, «Visto» y «Marcar todo como visto»
@@ -2843,6 +2862,36 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   y entrega una tabla corta con la recomendada. Las claves, en los Secretos del proyecto (`/secreto NOMBRE valor`),
   nunca en el código. Sale de dos reels de «repos de GitHub que sustituyen herramientas de pago»; el texto es de kywai.
 
+- **Especialistas de tienda, negocio, vídeo, bolsa y SEO** (desde el 20 de noviembre de 2026, `src/main/specialistSkills.ts`):
+  nueve habilidades con el método de un oficio, para que Hermes pueda encargar trabajo de negocio a cualquier agente
+  sin que el usuario monte nada. La idea sale de los 16 agentes incorporados de **Orkas** (Orkas-AI/Orkas, MIT), que
+  traen cada uno su flujo, sus normas de calidad y lo que no les toca; el texto es de kywai, en español y resumido.
+  - `tienda-elegir-producto`: qué producto vender o probar (demanda, competencia, margen de contribución por unidad,
+    proveedor, riesgo) y una prueba pequeña y reversible; sin tope de dinero no propone cantidades.
+  - `tienda-textos-de-producto`: título, ventajas con su prueba, descripción, preguntas, textos de las fotos y el
+    guion plano a plano de un anuncio del producto (que luego hace «/video»); lee `cliente-ideal.md` si existe.
+  - `tienda-resenas-clientes`: por qué compran, qué gusta y qué duele, con porcentajes sobre reseñas únicas, citas
+    reales sin datos personales y qué arreglar primero.
+  - `tienda-analizar-ventas`: ventas, margen, devoluciones, anuncios y stock de las exportaciones, con definiciones
+    fijas, un script guardado para repetirlo y el «puente» de qué movió el margen.
+  - `tienda-operar`: precios, promociones, stock, fichas y pedidos. Enseña antes la vista previa campo a campo; solo
+    aplica por una app conectada que de verdad lo permita (Composio o un MCP de la tienda), nunca simula un cambio,
+    no repite a ciegas un reembolso y marca cada cosa como preparada, aplicada, comprobada, fallida o desconocida.
+  - `negocio-informe-semanal`: una página con las cifras de la semana, qué cambió, lo que dicen los clientes, alertas
+    y las 3 cosas que hacer; propone una rutina si se quiere cada semana.
+  - `video-recrear-referencia`: con un vídeo de referencia, primero el desglose plano a plano (gancho, orden, ritmo,
+    textos, estilo) y el plan con el contenido del usuario; después lo produce «/video». Copia la forma, no el
+    contenido (ni textos, ni logos, ni caras, ni música con derechos).
+  - `bolsa-analizar-valor`: una acción, un fondo o una cartera con datos fechados y su fuente (SEC/EDGAR, informes
+    de la empresa), valoración en tres escenarios, riesgos y lo que cambiaría la tesis; nunca dice qué comprar ni
+    inventa cifras, y un backtest va con costes y sin mirar el futuro.
+  - `web-auditoria-seo-geo`: por qué una web no sale en Google ni la citan ChatGPT, Perplexity o Gemini (rastreo,
+    robots.txt, datos estructurados, rapidez, respuestas citables, autoría) y la lista de arreglos por impacto.
+  El usuario no tiene que nombrarlos ni conocerlos: Hermes elige el que encaja por lo que pide y por la conversación
+  (tienda, ventas, producto, reseñas, negocio, vídeo de referencia, bolsa, cartera, SEO, visibilidad en Google o en
+  las IA; `coordinatorGuide.ts`) y escribe el nombre en la tarea; además, cada agente recibe sola la habilidad que
+  encaja con su tarea. Un encargo grande se reparte en una tarea por especialista.
+
 **Paquete «kywai default skills»** (desde el 20 de noviembre de 2026, `src/main/skillPack.ts`). Todas las habilidades
 que hemos ido eligiendo para kywai vienen puestas: nadie tiene que buscarlas, descargarlas ni instalarlas. La primera
 vez que arranca kywai (a los 30 s, en segundo plano, una fuente detrás de otra) descarga cada fuente como un `.tar.gz`
@@ -3349,7 +3398,7 @@ nube (`MoveReceiver.begin/ready/placePending` en `mudanzaNube.ts`).
 La pestaña **Extensiones** tiene dos partes: **Servidores MCP** y **Habilidades**.
 
 **Catálogo de servidores.** «Explorar catálogo» enseña primero unos destacados con su orden comprobada (Playwright,
-Chrome DevTools, GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Obscura, Firecrawl, Perplexity, PostHog, PixelLab,
+Chrome DevTools, GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Obscura, browse, Firecrawl, Perplexity, PostHog, PixelLab,
 Scrapling, OpenSEO, changedetection.io, PaddleOCR, remocn, Postiz y Stitch; Firecrawl, Perplexity, PostHog, PixelLab, OpenSEO, Postiz y Stitch piden
 una clave de su web y Perplexity es de pago; PixelLab da unas generaciones de prueba y la usa «/sprite»).
 Cuatro salieron de revisar repositorios de moda en reels (18 nov 2026):
@@ -3388,6 +3437,22 @@ no dice cómo se arranca cada servidor, así que esas fichas no tienen «Instala
 sin verificar», llevan el enlace a su página y se añaden con «Añadir a mano». La lista (más de 1 MB) se descarga al
 buscar y se guarda 6 horas en memoria; «Más resultados» solo pide más al registro. Si el registro no responde pero la
 lista sí, salen los de la lista (`parseAwesomeMcp`, `matchAwesome` y `searchMcpCatalog` en `catalog.ts`).
+
+**browse (tu Chrome de verdad, desde el 20 de noviembre de 2026).** Servidor MCP de OpenCode (anomalyco/browse, MIT)
+que deja a los agentes usar **tu** navegador (Chrome, Edge, Brave, Arc, Vivaldi, Opera…) con tus pestañas, extensiones
+y sesiones abiertas: abren pestañas aparte (agrupadas para no molestarte), leen, pulsan, escriben, hacen capturas y
+graban la red; cuando hace falta algo tuyo (entrar, un código de verificación, un pago) te devuelven la pestaña y
+siguen al pulsar **Continue**. Es la diferencia con el navegador de kywai (una pestaña propia dentro de la app) y con
+Obscura (sin ventana y sin tus sesiones). Se añade desde el catálogo (orden `npx -y @opencode/browse@0.1.5 mcp`; hace
+falta Node.js 22, que kywai instala si falta). **La primera vez**: añade la extensión «browse» desde la Chrome Web Store
+y en una terminal ejecuta `npx -y @opencode/browse pair`, que da un código de 10 minutos para las Opciones de la
+extensión. Si el agente lo usa sin emparejar, su herramienta `status` le dice el paso que falta y te lo pasa.
+**Navegador en otro equipo** (kywai en el Mac mini y tu Chrome en el PC): en el Mac mini, `npx -y @opencode/browse set
+hostname 0.0.0.0`; en la extensión del PC, «Connect an agent on another computer» con la dirección de Tailscale del Mac
+mini y el código de `browse pair`. Solo por Tailscale: la conexión no va cifrada por browse. Al encenderlo para
+**Hermes**, kywai lo apunta también en `~/.hermes/config.yaml` (bloque `# kywai:browse`, como Obscura), así que Hermes
+lo puede usar **también al coordinar** (`HERMES_HOME_PACKAGES` en `src/main/hermesHomeMcp.ts`; solo ese paquete de npx,
+no cualquiera). Probado el 20 nov 2026: el servidor arranca y lista sus herramientas (`execute`, `tabs`, `status`…).
 
 **Obscura (navegador sin ventana para agentes).** Es un navegador hecho en Rust para IA (github.com/h4ckf0r0day/obscura,
 Apache-2.0). Ejecuta el JavaScript de verdad (V8), lee las webs en Markdown, saca enlaces y datos, rellena formularios y
@@ -5908,6 +5973,11 @@ El mismo panel (⚙ → **«Uso y coste…»**) dice también cuánto dinero sup
   un agente con un modelo gratis (Kilo con `kilo/…/free`, OpenRouter `…:free`) sale «Gratis». Los agentes sin indicar
   cuentan a precios de API, pero no como pagado.
 - **Presupuesto al mes por API** (vacío: sin límite).
+- **Tope por petición** (desde el 20 de noviembre de 2026; vacío: sin límite). Si UNA petición gasta eso en agentes
+  que pagas por uso (las suscripciones no cuentan), kywai la **pone en pausa** en cuanto termina la llamada que lo
+  pasa: sus tareas a medias quedan para reanudar donde estaban y «Te necesita» dice cuánto lleva, con «Seguir de
+  todas formas» (ya no se vuelve a parar por el tope) o «Quitar». Idea de las misiones con presupuesto de Replit
+  (`checkRunBudget` en `orchestrator.ts`, `runApiSpendUsd` y `runBudgetUsd` en `src/shared/costs.ts`).
 - **Precios por millón de tokens (en dólares)**: entrada, entrada leída de caché y salida de cada modelo. Vienen los
   oficiales comprobados el 7 nov 2026 (Claude, GPT y Gemini); los que salen de una fuente no oficial o son de
   promoción lo dicen al lado. Se pueden cambiar (el cambiado sale en otro color, con «Original» para volver) y
@@ -6425,6 +6495,11 @@ mapas; entre paréntesis, cómo se llamaban cuando eran temas sueltos:
     24 fps), el espacio se cierra o pasa a 2D, la ventana se oculta o el sistema pide «Reducir transparencia», se
     desmonta y vuelve solo el esmerilado de arriba. Los menús emergentes siguen esmerilados (cristal sobre cristal no
     se leería).
+    **Barra plegada unida al logo** (20 nov 2026, arreglado por aviso de Yil): el sombreador toma el radio mayor de
+    las esquinas de cada panel (al unirse al logo, la barra cuadra solo las de arriba; antes salía cuadrada también
+    abajo) y, con la barra unida del todo (`data-fused` + `:root[data-logo-fused]`), sube su rectángulo `--bar-reach`
+    píxeles para envolver el logo: barra y logo son una sola pieza de cristal, sin el canto brillante que dejaba una
+    raya bajo el logo. El líquido de `LogoBridge` solo se ve mientras se une.
 - **Perla** (Marfil): claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
 - **Ónix** (Grafito): negro neutro con detalles dorados.
 - **Esmeralda** (Bosque): verde bosque profundo con oro.
