@@ -6775,6 +6775,39 @@ no baja de un tamaño que se lee. El «!» naranja (sobre un agente o sobre la c
 que decidir, o la ficha del agente con el motivo del aviso. La cotorra coordinadora no lleva borde blanco de pegatina, ni aquí ni en el chat, para que encaje
 con los agentes; solo el saludo del chat nuevo se queda como pegatina. «Reducir efectos» y ocultar el espacio lo dejan quieto.
 
+**Escenas: Flujo y Tema.** Arriba a la izquierda del espacio 2D se elige la escena (se recuerda en cada dispositivo,
+`aicowork.espacio2d.escena`; por defecto **Flujo**): Flujo, Mesa, Aldea, Tren o Tema.
+
+- **Flujo** (`space2d/flow.ts`): cada agente en su puesto, sobre una plataforma que brilla mientras trabaja. El
+  coordinador va a la izquierda, las **Entregas** a la derecha y en medio los agentes en columnas según la cadena de
+  esperas (quien espera a otro va una columna detrás de él, hasta tres). Las líneas que los unen se encienden cuando
+  hay trabajo o un envío de camino; en naranja si alguien te necesita. Cada envío real entre agentes (las
+  transferencias del equipo) viaja como un sobre por su línea durante unos segundos, y al terminar una tarea el agente
+  manda su sobre a la caja de Entregas, que cuenta las tareas terminadas en la última media hora. Con muchos agentes
+  una columna se parte en dos y todo se hace un poco más pequeño hasta que cabe.
+- **Mesa**, **Aldea** y **Tren** (`space2d/SceneDecor.tsx`): los mismos puestos, líneas, sobres y Entregas que Flujo,
+  con otro decorado dibujado con código (sin imágenes). En la **Mesa de ideas** el proyecto es un tablero de papel sobre
+  una mesa de madera: cada agente trabaja sobre su hoja, los une un hilo rojo y lo entregado son sobres lacrados. En la
+  **Aldea** cada agente tiene su casita-taller con el tejado de su color (la puerta se enciende mientras trabaja), las
+  casas se unen por caminos de piedra y las Entregas son el puesto del mercado. En el **Tren nocturno** cada agente va
+  en su compartimento, con el paisaje del atardecer pasando por la ventana, y los envíos viajan por los rieles de latón.
+- **Tema**: el tema puesto dibujado como escenario, como se explica arriba.
+
+En todas las escenas los personajes (aspecto «Personajes») se mueven de verdad y con aspecto de dibujo 2D: cada uno
+tiene una hoja de animación sacada de su modelo 3D con colores planos y contorno de tinta, en
+`assets/espacio2d/hojas/<personaje>.webp` (12 cuadros de 192 px por fila, 8 filas: reposo, trabaja con el portátil,
+piensa, duda, celebra, saluda, camina de lado y explica; `space2d/sprites.ts`).
+
+**Los agentes caminan y se visitan** (en Flujo, Mesa, Aldea y Tren). Cuando un agente le pasa algo a un compañero, se
+levanta y se lo lleva andando por su camino con el sobre en la mano, se queda un momento explicándoselo a su lado y
+vuelve a su puesto (unos 9 segundos). Y de vez en cuando (cada medio minuto más o menos, cada uno a su ritmo), un
+agente que descansa se levanta a ver a alguien con quien trabaja, o al coordinador si no trabaja con nadie. Mientras
+está fuera, su puesto se queda vacío. Los agentes con aspecto propio caminan dando saltitos con su dibujo. Con
+«Reducir efectos» o el espacio en pausa no se mueve nadie. Trabajando teclea en el
+portátil, pensando se lleva la mano a la barbilla, esperando o con un error duda, al terminar celebra, si te necesita
+saluda y al pasar el ratón por encima te saluda. Los agentes con aspecto propio de «Crea tu agente» siguen con su
+dibujo y su expresión para cada estado, animados con CSS. La cotorra usa el estilo elegido en Ajustes.
+
 **Cambiar los dibujos (sin modelos 3D).** Cada tema busca su ilustración en `assets/espacio2d/<tema>/` (`<tema>` es el
 id: `mundo-bosque`, `halloween`, `kywai`, `oficina`, `sede`…; la Ciudad digital usa `ciudad-<color>`):
 
@@ -7022,10 +7055,9 @@ pendientes), ver [CONTEXTO-DEL-PROYECTO.md](CONTEXTO-DEL-PROYECTO.md).
 
 ### Licencia
 
-Desde el 19 nov 2026 kywai se publica con la **Functional Source License 1.1 con licencia futura Apache 2.0**
-(FSL-1.1-ALv2; archivo `LICENSE` en la raíz y `"license": "FSL-1.1-ALv2"` en `package.json`), en los tres repos.
-Cualquiera puede usarlo, cambiarlo y compartirlo gratis para sí, su empresa, enseñar o investigar; lo que no se
-permite es ofrecerlo (ni una versión cambiada) como producto o servicio que compita con kywai. Cada versión pasa a
-Apache 2.0 a los dos años de publicarse. Las versiones publicadas antes con licencia MIT siguen siendo MIT para quien
-ya las tenga. La licencia no da derecho a usar la marca kywai. Cada README lo dice en su sección final, y la web en
-el pie, en «Apoyar» y en los términos.
+Desde el 20 nov 2026 kywai **no es de código abierto**: el código vive en repositorios privados y lo público es solo el
+escaparate `Yiku21/kywai` (web y Releases). Se publica con una **licencia de uso propia** (archivo `LICENSE` en la raíz
+y `"license": "SEE LICENSE IN LICENSE"` en `package.json`): cualquiera puede usar kywai gratis, en tantos equipos como
+quiera, pero no copiarlo, repartirlo, modificarlo, descompilarlo ni revenderlo. Las versiones del 19 y 20 nov 2026
+salieron con la FSL-1.1-ALv2 y las anteriores con MIT; quien ya las tenga conserva esos derechos. La licencia no da
+derecho a usar la marca kywai. Cada README lo dice en su sección final, y la web en el pie y en los términos.
