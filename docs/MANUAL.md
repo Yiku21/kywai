@@ -2424,6 +2424,42 @@ antes de darlo por hecho.» En «Hablar con kywai» la voz lleva la misma marca 
 equipo aún no ha mandado el resultado. Código: `src/main/honestReply.ts` y `unbackedReply` en
 `src/main/orchestrator.ts`.
 
+### Acciones comprobadas: lo que quien coordina pide, se mira antes de contestarte
+
+Quien coordina no solo escribe un mensaje: en la misma respuesta pide **acciones** a kywai. Las tareas ya se
+validaban («Ajustes de kywai al plan»). Las demás se comprueban también, sin llamar a ningún modelo, con lo que la app
+sabe de verdad:
+
+| Acción | Qué se comprueba |
+| --- | --- |
+| Lanzar un vídeo | Que la orden se entiende y dice de qué trata |
+| Proponer una rutina | Que dice cuándo y qué hacer |
+| Ayudarte a conectar un agente | Que ese agente está en tu equipo y se conecta con una cuenta |
+| Añadir algo a una tarea | Que esa tarea existe en el proyecto y, si ya terminó, que su agente está disponible |
+| Adjuntar un archivo | Que el archivo existe en el proyecto |
+
+Dos casos se quitan sin aviso, porque no pierdes nada: un archivo que aún no existe cuando la misma respuesta encarga
+la tarea que lo hace (llega con su entrega) y un agente local metido entre otros que sí se conectan con una cuenta
+(sale la tarjeta de los demás).
+
+Antes, una acción que no valía **se perdía en silencio** y el mensaje seguía diciendo «ya está en marcha el vídeo» o
+«se lo paso a quien lleva la tarea». Ahora:
+
+1. **Se le devuelve una vez** antes de enseñarte nada, con el motivo de cada una y tres salidas: escribirla bien,
+   pedir lo mismo con otra acción que sí valga, o quitarla y decirte claro qué no se puede hacer.
+2. Si insiste, esa acción **no se hace ni cuenta como «en marcha»**, y su mensaje sale con el aviso:
+   **«⚠ Esto de mi respuesta no se ha hecho (kywai lo comprobó):»** y una línea por cada cosa («El vídeo: no decía de
+   qué tenía que tratar», «Añadirlo a la tarea #7: esa tarea no existe en este proyecto»…). Las acciones que sí
+   valían se hacen igual.
+
+Si ves ese aviso, pide otra vez solo lo que falta, con el dato que echaba de menos. En el panel «Salud» de kywai cloud
+sale como **Acciones del coordinador**: cuántas respuestas llevaban todas sus acciones bien y qué clase de fallo
+tuvieron las demás (solo la clase: «vídeo sin tema», «tarea que no existe»; nunca lo que escribió nadie).
+
+Código: `src/main/planActions.ts` (qué se comprueba, el texto para quien coordina y el aviso) y `planActionChecks` en
+`src/main/orchestrator.ts` (lo que la app sabe de cada acción). Es la primera parte del paso del coordinador de
+«un texto de reglas» a «acciones que la app comprueba».
+
 ### Vigilante de trabajos largos: nada se queda colgado sin avisar
 
 Todo programa de fondo que lanza kywai (el montaje de un vídeo, ffmpeg en los recortes, las demos de webs y las
