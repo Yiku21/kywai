@@ -429,7 +429,11 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   al actualizar o reiniciar. Ahora hay además una copia en la carpeta de datos, `ajustes-interfaz.json`
   (`src/main/uiSettings.ts`). El preload (`src/preload/uiSettings.ts`) la lee antes de que arranque la interfaz y, si
   el `localStorage` llega vacío o viejo, lo rellena; después manda al disco cada cambio (mira el `localStorage` cada
-  segundo y al cerrar la ventana). Se copian las claves que empiezan por `aicowork.`, `ai-cowork.` o `kywai.`
+  segundo y al cerrar la ventana). **Lo que cambies justo antes de salir también se guarda:** al cerrar la ventana,
+  salir de kywai o recargar, el preload manda lo último y espera a que el motor lo deje escrito
+  (`cowork:uiSettings:saveNow`). Antes ese último aviso llegaba cuando el motor ya había guardado y estaba cerrando,
+  así que un ajuste cambiado en el último segundo se perdía y, como al abrir manda la copia del disco, volvía el valor
+  de antes (elegías el 2D o cambiabas de escena, salías al momento y al abrir seguía lo anterior). Se copian las claves que empiezan por `aicowork.`, `ai-cowork.` o `kywai.`
   (`src/shared/uiSettings.ts`), así que los ajustes nuevos entran solos. La primera vez pasa al disco todo lo que ya
   tenías. Al cerrar, el motor escribe lo pendiente y pide a Chromium que guarde también su `localStorage`.
   «Reducir efectos ambientales» antes no se guardaba en ningún sitio: ahora se recuerda (`aicowork.reducedEffects`;
@@ -2298,6 +2302,30 @@ No hay segunda oportunidad con un agente porque aquí no hay agente que se haya 
 se dice tal cual, con su motivo. Cómo salió cada trabajo queda en el [registro de salud](#registro-de-salud-ver-los-fallos-antes-que-el-usuario).
 Código: `src/main/studioCheck.ts` (`studioJob`, `proveStudioFiles`).
 
+#### Las vistas del equipo pasan las mismas comprobaciones
+
+El espacio en 3D y en 2D, los personajes y la cotorra no entregan archivos, pero también pueden fallar, y un fallo suyo
+era el peor de todos: **con el 3D elegido en un equipo que no puede abrirlo** (sin tarjeta gráfica disponible, por
+escritorio remoto, o porque el sistema la desactivó tras un fallo) **la ventana entera se quedaba en blanco**, sin chat
+y sin forma de volver, cada vez que se abría la app. Ahora las vistas tienen su red de seguridad:
+
+| Qué pasa | Qué hace kywai |
+| --- | --- |
+| El 3D está elegido pero al abrir el equipo no puede con él | Abre el **2D** y lo dice: «Este equipo no puede abrir el espacio 3D ahora mismo, así que lo ves en 2D» |
+| El 3D falla en marcha, o la tarjeta gráfica pierde el lienzo 3 veces en 2 minutos | Pasa al **2D** y lo dice: «El espacio 3D ha fallado y lo ves en 2D. Tu equipo y tus tareas siguen igual» |
+| El 2D falla al dibujar | En su sitio sale «El espacio 2D no se pudo dibujar» con **Reintentar**; el chat sigue funcionando |
+| Una imagen del 2D no carga | No queda un icono roto en el escenario: se esconde |
+| Algo falla al dibujar fuera de las vistas | En vez de la ventana en blanco sale un aviso con **Volver a abrir** |
+
+El aviso del 2D trae dos botones: **Probar el 3D otra vez** (lo intenta al momento) y **Quedarme en 2D** (deja elegido
+el 2D y no vuelve a avisar). Si no tocas nada, lo elegido no cambia: la próxima vez que abras kywai se vuelve a
+intentar el 3D, porque el fallo puede ser pasajero. Nada de esto para a los agentes: las tareas en marcha siguen.
+
+Cómo abrió cada vista queda en el [registro de salud](#registro-de-salud-ver-los-fallos-antes-que-el-usuario)
+(«Vistas del equipo»), y cada PR y cada noche una prueba de pantalla las abre una a una (ver «Pruebas automáticas»).
+Código: `src/renderer/src/lib/viewHealth.ts`, `src/renderer/src/ui/space/ViewGuard.tsx` (`ViewGuard`, `ViewNotice`,
+`AppGuard`), `startSpaceMode` en `src/renderer/src/lib/spaceMode.ts` y `src/main/viewHealth.ts` (`recordView`).
+
 ### Estados honestos: «⏳ Aún en marcha» en vez de un «listo» adelantado
 
 El mensaje de quien coordina sale **antes** de que el equipo trabaje. Si lo escribe como si ya estuviera hecho
@@ -2404,6 +2432,7 @@ o no, cuánto tardó y el motivo que dio el programa.
 | Demos de webs | Cada vídeo de `/demo` (de una web, de un repositorio o con presentador) |
 | Portadas | Cada tanda de `/miniatura` y cada portada de un reel |
 | Publicar en redes | Cada publicación en Instagram (también las respuestas a comentarios) y cada subida a TikTok. Una cuenta sin conectar no cuenta como fallo |
+| Vistas del equipo | Cada vez que se abre el espacio en 3D o en 2D: si abrió o la clase de fallo (no pudo crear el lienzo 3D, falló al dibujar, una imagen no cargó). También un fallo al dibujar la ventana. Lo cuenta la interfaz, una vez por sesión |
 | Entregas | Lo que el comprobador de entregas encontró (o no) de lo prometido, tras pedirlo otra vez |
 | Programas de fondo | Los que el vigilante tuvo que parar por tiempo o por no dar señales |
 
@@ -2415,7 +2444,8 @@ señales; más de 30 minutos cuenta como colgado.
   programa en una línea. De una entrega que falta va la clase («imagen: no existe»), no el nombre del archivo; de una
   tarea fallida va el motivo sin su título; de una publicación, nunca el texto del reel. Las rutas de archivo y las
   direcciones se quitan de cualquier motivo antes de guardarlo (queda la extensión: «….mp4»), porque el nombre de un
-  archivo suele salir del título que escribiste.
+  archivo suele salir del título que escribiste. También las de carpetas con espacios («Mi novela secreta») y las que
+  van entre comillas. De un fallo de las vistas va el tipo de error sin lo que cite entre comillas.
 - Lo que detienes tú no es ni acierto ni fallo: no se apunta.
 - Se guarda en `health-log.json` de la carpeta de datos (30 días, 3.000 apuntes como mucho) y nunca puede estropear lo
   que mide: si el registro falla, el trabajo sigue.
@@ -7425,7 +7455,7 @@ En la cabecera del espacio hay un interruptor **3D / 2D**. En 2D el tema que ten
 escenario: el mismo tema, los mismos agentes y la cotorra coordinadora en su percha arriba, con líneas de puntos hasta
 los agentes que trabajan para ella (naranjas si alguno te necesita). No usa 3D (ni Three.js ni WebGL): son imágenes y
 animaciones de CSS, así que gasta mucho menos y ni siquiera se carga el código del 3D. Se recuerda en cada dispositivo
-(`aicowork.espacio.modo`); si nunca se eligió, empieza siempre en 3D: el 2D es una opción para quien la quiera (solo arranca en 2D si el equipo no puede abrir WebGL, porque ahí el 3D no se vería). En 2D los botones de cámara se quitan (queda pantalla completa).
+(`aicowork.espacio.modo`); si nunca se eligió, empieza siempre en 3D: el 2D es una opción para quien la quiera (solo arranca en 2D si el equipo no puede abrir WebGL, porque ahí el 3D no se vería). Si el 3D está elegido y falla o el equipo deja de poder abrirlo, kywai enseña el 2D con un aviso (ver «Las vistas del equipo pasan las mismas comprobaciones»). En 2D los botones de cámara se quitan (queda pantalla completa).
 
 Cada agente enseña su pose (`space2d/pose.ts`): **trabajando** (bota y se le enciende la pantalla), **pensando**
 (bocadillo con puntos), **esperando** a otro (reloj de arena; la etiqueta dice a quién), **te necesita** o **un
@@ -7680,12 +7710,20 @@ antes en local).
 Tras compilar, las **pruebas de pantalla** (`scripts/e2e/app.e2e.mjs`, Playwright) abren la app como una persona la
 primera vez, en una carpeta de datos vacía y sin agentes reales: comprueban que arranca sin errores en la consola, que
 sale el asistente con los agentes, que «Omitir por ahora» deja la caja del chat lista y que al volver a abrirla no lo
-repite. Si fallan, las capturas quedan en los artefactos del flujo. En local:
-`npx electron-vite build && npm i --no-save playwright@1.63.0 && node --test scripts/e2e/app.e2e.mjs` (en Linux sin
-pantalla, con `xvfb-run -a` delante).
+repite. Después, las **pruebas de pantalla de las vistas** (`scripts/e2e/vistas.e2e.mjs`) abren las vistas del equipo
+una a una: que el 3D dibuja una escena de verdad (se cuentan los colores del lienzo: uno liso es un 3D en negro), que
+las cinco escenas del 2D cargan todas sus imágenes, que cada agente tiene su personaje animado y la cotorra su cara,
+que con el equipo trabajando (modo demo) cada personaje hace lo que dice su estado, alguien se levanta a llevar un
+encargo y la cotorra deja el reposo, que se puede volver al 3D, que la vista y la escena elegidas se recuerdan aunque
+se salga de kywai justo después de elegirlas (la prueba sale como una persona, con `salir()`, no cortando el proceso)
+y que en un equipo que no puede abrir el 3D sale el 2D con su aviso en vez de la ventana en blanco. Si fallan, las
+capturas quedan en los artefactos del flujo. En local:
+`npx electron-vite build && npm i --no-save playwright@1.63.0 && node --test scripts/e2e/app.e2e.mjs` (y lo mismo con
+`scripts/e2e/vistas.e2e.mjs`; en Linux sin pantalla, con `xvfb-run -a` delante). Lo común de las dos está en
+`scripts/e2e/comun.mjs`.
 
 **Prueba de cada noche en el Mac mini («Noche en el Mac mini»).** Cada noche (9:30 UTC) el Mac mini compila master,
-abre la app con las mismas pruebas de pantalla, ahora en macOS de verdad, y comprueba el **agente local**: que LM
+abre la app con las mismas pruebas de pantalla (también las de las vistas del equipo), ahora en macOS de verdad y con su tarjeta gráfica, y comprueba el **agente local**: que LM
 Studio (puerto 1234) y Ollama (11434) responden, tienen un modelo y contestan a un mensaje corto
 (`scripts/e2e/local.e2e.mjs`). Si uno no está abierto, su prueba se salta; para exigirlo, en GitHub → Settings →
 Secrets and variables → Actions → Variables, `KYWAI_EXIGIR_LOCAL=lmstudio,ollama`. Si algo falla, GitHub manda un
