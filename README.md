@@ -5,7 +5,7 @@
 **Un equipo de agentes de IA que trabaja por ti.** kywai junta los agentes que ya usas (Claude Code, Codex, Gemini, modelos locales…) en un solo equipo coordinado: le dejas una tarea y vuelves a un resultado.
 
 - 🌐 Web y guías: **[kywai.app](https://kywai.app)**
-- ⬇️ Descargas (Windows, macOS, Linux y Órbita para Android): **[última versión](https://github.com/Yiku21/kywai/releases/latest)**
+- ⬇️ Descargas (Windows, macOS, Linux y Órbita para Android): **[última versión estable](https://github.com/Yiku21/kywai/releases/latest)**. Las marcadas como «Pre-release» son la Beta: cada mejora en cuanto sale, antes de la prueba de la semana.
 - 📖 Manual: [docs/MANUAL.md](docs/MANUAL.md)
 - ☁️ kywai cloud, tu equipo encendido 24/7: [kywai.app/cloud](https://kywai.app/cloud/)
 

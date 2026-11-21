@@ -1,0 +1,90 @@
+# Marca como ESTABLE la versión de escritorio que pasó las pruebas reales de la noche.
+#
+# «Publicar escritorio» saca cada versión como Beta («pre-release»). Este flujo mira cada día, después de las pruebas
+# de la noche de kywai cloud, si toca Estable nueva:
+#   - como mucho una por semana (publicado/estable.json guarda cuándo salió la última);
+#   - solo si las pruebas reales de anoche están en verde (https://cuenta.kywai.app/pruebas.json: dos cuentas robot
+#     entran y piden un chat, un archivo, una imagen y una voz);
+#   - y solo hasta la versión que esas pruebas probaron: lo que salió después sigue en Beta.
+# La elegida pasa a ser la «latest» de GitHub: la reciben las apps en canal Estable, la web y los instaladores.
+# La decisión está en .github/scripts/elegir-estable.mjs (con sus pruebas al lado).
+#
+# A mano (Actions → Promover a Estable → Run workflow): se puede pedir una versión concreta, y «forzar» la promueve
+# sin mirar las pruebas (una urgencia, o volver la Estable a una versión anterior).
+name: Promover a Estable
+
+on:
+  schedule:
+    # Las pruebas de la noche empiezan a las 09:30 UTC y tienen una hora de tope.
+    - cron: '10 11 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión que pasa a Estable (por ejemplo 0.1.1160). Vacío: la más nueva que pasó las pruebas'
+        type: string
+        default: ''
+      forzar:
+        description: 'Promoverla sin mirar las pruebas de la noche (urgencia, o volver a una versión anterior)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: promover-estable
+  cancel-in-progress: false
+
+jobs:
+  promover:
+    if: github.repository == 'Yiku21/kywai'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Pruebas de la decisión
+        run: node --test .github/scripts/elegir-estable.test.mjs
+      - id: elegir
+        name: ¿Qué versión pasa a Estable?
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PEDIDA: ${{ inputs.version }}
+          FORZAR: ${{ inputs.forzar }}
+          PROGRAMADO: ${{ github.event_name == 'schedule' }}
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | {tag_name, prerelease, draft}' > "$RUNNER_TEMP/releases.jsonl"
+          ESTABLE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name 2>/dev/null || true)
+          curl -fsS --max-time 20 --retry 2 https://cuenta.kywai.app/pruebas.json -o "$RUNNER_TEMP/pruebas.json" \
+            || rm -f "$RUNNER_TEMP/pruebas.json"
+          RELEASES="$RUNNER_TEMP/releases.jsonl" PRUEBAS="$RUNNER_TEMP/pruebas.json" ANTERIOR=publicado/estable.json \
+            ESTABLE="$ESTABLE" node .github/scripts/elegir-estable.mjs
+      - name: Marcar la Estable y apuntar la web a ella
+        if: steps.elegir.outputs.promover != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.elegir.outputs.promover }}
+        run: |
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease=false --latest
+          # web/descargas.json es la copia fija de los enlaces (la que se ve sin JavaScript o si la API de GitHub no
+          # responde) y publicado/estable.json apunta cuál es la Estable y desde cuándo.
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for intento in 1 2 3; do
+            git fetch --quiet origin master && git checkout --quiet -B master origin/master
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" \
+              --jq '{tag_name, published_at, html_url, assets: [.assets[] | select(.name | test("\\.(dmg|exe|AppImage|apk)$")) | {name, size, browser_download_url}]}' \
+              > web/descargas.json
+            mkdir -p publicado
+            printf '{"version": "%s", "cuando": %s}\n' "${TAG#v}" "$(date +%s)" > publicado/estable.json
+            git add web/descargas.json publicado/estable.json
+            git diff --cached --quiet && break
+            git commit --quiet -m "[skip] Versión estable ${TAG#v}: botones de descarga de la web"
+            git push --quiet origin HEAD:master && break
+            [ "$intento" = 3 ] && { echo "::error::No se pudo guardar la versión estable en el escaparate"; exit 1; }
+            sleep 5
+          done
+          gh workflow run publicar-web.yml --repo "$GITHUB_REPOSITORY" --ref master
