@@ -906,8 +906,7 @@ vídeo»), y el agente contestaba a esa frase. Ahora hay tres frenos:
 - **Al pasarla a texto**: Whisper usa su filtro de voz (`--vad_filter True`), que solo le da los trozos con habla, y
   no arrastra el texto anterior (`--condition_on_previous_text False`).
 - **Después**: las frases fantasma conocidas se quitan (src/shared/whisperPhantoms.ts). Si no queda nada, la nota sale
-  como «No se entendió nada en la nota de voz». Vale también para las notas de Órbita y para «Hablar con kywai» en
-  modo local, Groq o gratis.
+  como «No se entendió nada en la nota de voz». Vale también para las notas de Órbita.
 
 ### Dictar en cualquier aplicación (atajo global)
 
@@ -1016,8 +1015,7 @@ cuando habla, crece y mengua como si fuera su voz. Debajo, «Silenciar micro» y
   PowerPoint; herramienta `leer_del_chat`, hasta unas 12.000 letras) y te cuenta lo que dice de verdad, con el
   detalle que pidas, punto por punto. Elige lo que encaja con tus palabras (o lo último si no dices nada). Si es un
   PDF o algo que no puede abrir, o es demasiado largo, te lo dice y te ofrece pasárselo al equipo. En el chat queda
-  la línea «📄 lo que abrió». En el modo local, Groq y el gratis de la nube, escribe «LEER: …» y el texto le llega
-  en un aviso.
+  la línea «📄 lo que abrió».
 - **El trabajo se lo pasa al equipo**: si pides algo de verdad («hazme un vídeo de…», «revisa la web», «escribe el
   informe…»), te dice que se lo pasa y el encargo aparece en el chat como un mensaje tuyo. El coordinador lo planifica y lo reparte como siempre.
 - **Te cuenta las novedades**: lo que los agentes escriben en el chat mientras hablas (respuestas, el plan que
@@ -1027,8 +1025,13 @@ cuando habla, crece y mengua como si fuera su voz. Debajo, «Silenciar micro» y
   permiso a Claude», «deniégaselo»… Mira lo que hay en «Te necesita» (herramienta `ver_pendientes`) y lo resuelve
   con `resolver_pendiente`, que es lo mismo que pulsar el botón. Solo dice «hecho» cuando kywai contesta que se
   hizo; si no se puede (ya no está pendiente, no admite eso), te dice por qué. Al empezar la llamada ya sabe qué
-  espera tu visto bueno. En el modo local, Groq y el gratis de la nube, el modelo escribe «PENDIENTE: aprobar» y
-  después le llega un aviso con lo que pasó de verdad.
+  espera tu visto bueno.
+- **No da por hecho lo que sigue en marcha**: al encargar algo, solo dice que se lo pasa al equipo; el resultado lo
+  cuenta cuando llega el aviso del equipo. Si aun así dice «ya está» / «ya terminó» con encargos sin acabar, en la
+  llamada sale «⏳ Aún en marcha: el equipo no ha terminado» (`claimsDone` en `src/shared/liveVoice.ts`).
+- **Cuelga de verdad cuando se lo pides**: «cuelga», «adiós», «ya está, gracias»… La voz usa la herramienta
+  `colgar_llamada`, se despide en una frase y la llamada se cierra sola al terminar de hablar (a los 15 s como mucho),
+  igual que con el botón rojo: lo hablado queda guardado en el chat.
 - **Lo que se dice se ve en la llamada y se guarda en el chat al colgar**: debajo del logo va un chat flotante con
   tus frases a la derecha y las de kywai a la izquierda; según crece, la llamada sube. Al colgar, todo se guarda en
   el chat como una tarjeta «Conversación por voz»
@@ -1059,8 +1062,7 @@ cuando habla, crece y mengua como si fuera su voz. Debajo, «Silenciar micro» y
 **Si aún no está configurada**, al tocar el logo no sale un error: sale un **aviso con los pasos** que tocan
 (sacar la clave gratis en Google AI Studio, pulsar «Create API key» y pegarla), un botón que abre la página de la
 clave, el campo para pegarla ahí mismo («Conectar» y la llamada empieza sola) y «Más opciones en Ajustes», que abre
-Ajustes justo en «Hablar con kywai». Si está elegido Groq, los pasos son los de Groq; si es el modo local y falta
-Ollama, dice qué falta; si se acabaron los minutos (gratis de hoy o incluidos del mes), ofrece seguir con Gemini y la
+Ajustes justo en «Hablar con kywai». Si se acabaron los minutos del mes de kywai Cloud, ofrece comprar un paquete o seguir con la
 clave propia. En kywai Cloud, si la voz incluida aún no está activada en el portal, también sale este aviso.
 
 **La clave no sale del equipo.** Para cada conversación el motor pide a Google un **permiso de un solo uso** que
@@ -1075,57 +1077,22 @@ paquete** (se compran con créditos en Mi cuenta → Créditos kywai: 60 por 300
 caducan) y después con créditos sueltos, a 5 por minuto. Sin minutos, sin paquete y sin créditos, kywai lo avisa y
 ofrece comprar un paquete o seguir gratis con tu propia clave de Gemini. Con su propia clave, nada de esto cuenta.
 
-**Modo local (100 % gratis y privado).** En ⚙ → Ajustes → General → «Hablar con kywai» →
-**«Dónde se habla»** se elige «Modelo de tu equipo (100 % gratis y privado)». Entonces no se usa Google: el equipo que hace de motor escucha con
-**Whisper** (faster-whisper, modelo `small`; la primera vez baja unos 480 MB y luego se queda cargado), contesta con el
-**modelo local de Ollama** (el del agente local de la lista, por ejemplo Qwen) y habla frase a frase con la **voz de
-«Leer las respuestas»** (Kokoro, Piper, Edge…). Funciona igual: sabe cuándo terminas de hablar, se calla si le
-interrumpes y pasa el trabajo al equipo (el modelo escribe una línea «ENCARGO: …» y eso llega al chat como un
-mensaje tuyo). Es algo más lento que Gemini (un par de segundos por respuesta, según el equipo) y necesita Ollama con
-un modelo descargado; si falta algo, Ajustes dice qué. **Más rápido con LFM3:** si en Ollama está **LFM3** de Liquid AI
-(`ollama pull lfm3:1.7b`, 1,1 GB; licencia LFM Open 1.0, gratis para uso personal y empresas de menos de 10 M$ al
-año), la voz lo usa en vez del modelo del agente, que suele ser grande y lento para contestar en voz alta; el agente
-sigue con el suyo. También sale entre las sugerencias de Ollama al configurar un modelo local. Se puede cambiar el modelo con la variable `KYWAI_VOZ_MODELO` y
-el de Whisper con `KYWAI_VOZ_WHISPER` (`base` es más rápido, `medium` entiende mejor).
-
-**Con kywai Cloud, en la app de escritorio**, la misma opción sale también y **corre entera en tu PC**: Whisper, tu
-Ollama y la voz están en tu equipo, así que no gasta nada (ni minutos, ni claves, ni el servidor) y el audio no sale de
-casa; a la nube solo llega el texto de lo que encargas. La primera vez kywai instala solo lo que falte (uv para Whisper
-y ffmpeg para la voz; en Mac, ffmpeg va sin Homebrew, igual que en el estudio de vídeo) y usa el mismo programa y modelo que el agente local de la nube. Vale **Ollama, LM Studio (con su
-servidor encendido) o Colibri**: si el del agente no contesta, la voz usa el primero que esté encendido en el PC. Si no
-tienes ninguno, el aviso de la voz trae **«Prepararlo todo»** (enciende LM Studio si está instalado o instala Ollama
-preguntando antes, y te deja elegir el modelo). Al llamar, primero se mira que haya un modelo encendido: si no, la
-llamada dice qué abrir (Ollama, LM Studio o Colibri) antes de instalar nada.
-La elección se guarda en ese equipo (en el navegador o en Órbita no está: allí siguen Gemini y los modos gratis de
-abajo). Código: `src/renderer/src/lib/pcVoice.ts` y `client:pcVoice*` en `src/main/client.ts`.
-
-**Gratis en la nube, por turnos (Groq y el modo gratis de kywai Cloud).** En «Dónde se habla» hay dos opciones
-más que funcionan como el modo local (por turnos, con un par de segundos de espera y una voz menos natural que la
-de Gemini), pero con las piezas en la nube:
-
-- **Groq (gratis con tu clave)**, en la self host y en kywai Cloud. Se saca una clave gratis en
-  [console.groq.com](https://console.groq.com/keys) (sin tarjeta), se pega en el mismo apartado y queda cifrada
-  como `groq-voz`. Escucha con `whisper-large-v3-turbo` (unas 8 horas de audio al día en el plan gratis) y contesta
-  con `openai/gpt-oss-20b` (1.000 respuestas al día; se cambia con `KYWAI_VOZ_GROQ_MODELO`). Groq no tiene voces
-  en español: habla con la voz de «Leer las respuestas».
-- **Voz de la conversación.** Con el modo local, Groq o el gratis de la nube, debajo de «Dónde se habla» sale
-  «Voz de la conversación» con la lista de voces de leer y su ▶ para oír cada una (es la misma elección que «Voz
-  para leer las respuestas»). En kywai Cloud, si la voz elegida no sale, la conversación pasa a la voz gratis del
-  portal (MeloTTS) hasta colgar.
-- **Gratis de kywai Cloud (sin clave)**, solo en kywai Cloud. No hay que crear nada: el portal «Mi cuenta» usa la
-  cuenta de Cloudflare Workers AI de kywai (Whisper, Llama 3.1 8B y, de reserva, la voz MeloTTS) y cada usuario tiene un cupo de
-  minutos al día (Ajustes muestra «{usados} de {límite} minutos hoy»). Se activa poniendo en el portal
-  `KYWAI_CF_CUENTA` y `KYWAI_CF_TOKEN`; el cupo diario es `KYWAI_VOZ_GRATIS_MINUTOS` (30 por defecto).
-
-Gemini con la clave gratis del usuario sigue siendo la opción gratis de más calidad.
+**Solo Gemini Live, de dos formas (desde el 21 nov 2026).** Con **tu propia clave de Gemini** (gratis en Google AI
+Studio; no gasta nada de kywai) o, en kywai Cloud, con **el Gemini de kywai** (minutos del plan, paquetes y créditos
+kywai, como se explica arriba). En Ajustes ya no hay «Dónde se habla»: si pegas tu clave se usa la tuya; si la quitas,
+vuelve el Gemini de kywai.
+Se quitaron, por lentos y porque fallaban: «Modelo de tu equipo» (Whisper + Ollama/LM Studio/Colibri, en la self host
+y desde la app de escritorio con kywai Cloud), **Groq** y el **gratis de kywai Cloud por turnos** (Cloudflare Workers
+AI: Whisper, Llama 3.1 8B y MeloTTS). Quien tenía uno elegido pasa solo a Gemini: un motor que ya no existe en
+`voz-en-vivo.json` se lee como Gemini, y la marca `kywai.vozEnTuEquipo` del navegador ya no cuenta. La clave de Groq
+guardada (`groq-voz`) se queda sin usar. Las rutas `/api/voz/gratis/*` del portal siguen ahí pero la app ya no las
+llama.
 
 **En Órbita** está el mismo botón de la onda junto al micrófono del chat (si el ordenador tiene una versión con
 voz en directo). La primera vez pide el permiso del micrófono. Encima del cuadro de texto sale el mismo logo
-animado, con «Silenciar micro» y «Colgar» al lado. Usa lo que esté elegido en el ordenador (Gemini
-o el modo local): el ordenador da el permiso de un solo uso y el primer mensaje ya preparado, y Órbita habla
-directamente con Gemini (la clave no llega al móvil) o, en modo local, con el ordenador por la API móvil
-(`/voice/live`, `/voice/live/ticket`, `/voice/live/usage` y `/voice/live/local`, con las respuestas como eventos
-`live.local`). También escribe en el chat lo que se habla (`/voice/live/transcript`), resuelve lo que espera tu
+animado, con «Silenciar micro» y «Colgar» al lado. Usa la conexión del ordenador: el ordenador da el permiso de un solo uso y el primer mensaje ya preparado, y Órbita
+habla directamente con Gemini (la clave no llega al móvil) por la API móvil (`/voice/live`, `/voice/live/ticket` y
+`/voice/live/usage`). También escribe en el chat lo que se habla (`/voice/live/transcript`), resuelve lo que espera tu
 visto bueno con los mismos botones de «Te necesita» y, si falta configurar la voz, enseña los pasos con un botón a
 la página de la clave (la clave se pega en kywai del ordenador o la web). `/voice/live/sample` da la muestra de una
 voz. Mientras dura la llamada, las voces de los agentes no leen el chat: lo cuenta la voz. El código está
@@ -1143,16 +1110,11 @@ instrucciones de la voz y paso del audio a PCM de 16 bits), `src/main/liveVoice.
 `gemini-live`, `liveVoiceTicket` crea el token efímero con `POST /v1alpha/auth_tokens`; en la nube lo pide al portal
 con `KYWAI_VOZ_URL` y `KYWAI_VOZ_SECRETO`), `src/renderer/src/lib/liveVoice.ts` (la llamada: micrófono a 16 kHz por
 WebSocket a `BidiGenerateContentConstrained`, voz a 24 kHz que se corta al llegar `interrupted`, reconexión con
-`sessionResumption`, avisos del chat como `clientContent`) y `src/renderer/src/ui/left/LiveVoice.tsx`. El modo local:
-`src/main/liveLocal.ts` (habla el mismo protocolo que Gemini Live: detector de voz, frases, líneas ENCARGO/RESPUESTA)
-y `src/main/liveLocalEngine.ts` (Whisper cargado, Ollama a trozos, voz a PCM con ffmpeg); la interfaz le manda los
-mensajes con `liveLocalSend` y recibe los eventos `live.local` (el motor guarda la elección en `voz-en-vivo.json`).
+`sessionResumption`, avisos del chat como `clientContent`) y `src/renderer/src/ui/left/LiveVoice.tsx`.
 Lo que se habla en el chat: `saveLiveTranscript` en `src/main/orchestrator.ts` (mensaje del sistema con
 `liveTranscript`, mismo id en cada actualización) y `src/renderer/src/ui/left/LiveTranscript.tsx`. Las muestras de
 voz: `LiveVoice.sample` en `src/main/liveVoice.ts` (caché en `voz-muestras/` de los datos de la app; portal
 `/api/voz/muestra`). El aviso de configuración: `LiveSetupPanel` en `LiveVoice.tsx`.
-Groq y el modo gratis de kywai Cloud: `src/main/liveFree.ts` (Groq directo; Cloudflare por las rutas
-`/api/voz/gratis/escuchar`, `/hablar` y `/voz` del portal) y `openFreeSession` en `liveLocalEngine.ts`.
 
 ## Cómo trabaja el equipo
 
@@ -4491,8 +4453,79 @@ que una cuenta no descarga nada para hacer vídeos. Al arrancar, la app enlaza e
 nombre `….antes-compartido` y no borra nada. En la nube **no se instalan ni se usan Chatterbox (la voz con emoción) ni los
 estilos de película**: se cortaban por falta de memoria. Los **vídeos van de uno en uno** y el render usa el modo de
 poca memoria (`PRODUCER_LOW_MEMORY_MODE`). Cada despliegue hace un **vídeo de prueba de 10 s** con el mismo límite que
-una cuenta (`/opt/kywai-video/prueba-video.sh`) y no despliega si no sale. Lo pesado será el **estudio Pro**, en la app
-de escritorio del equipo de cada uno.
+una cuenta (`/opt/kywai-video/prueba-video.sh`) y no despliega si no sale. Lo pesado va en el **estudio Pro**, en la
+app de escritorio del equipo de cada uno (abajo).
+
+**El estudio Pro: kywai mira tu equipo y le instala lo que aguanta** (21 nov 2026, `src/shared/studioAdvisor.ts`).
+⚙ → Ajustes → Extensiones → Estudio de vídeo tiene la tarjeta **«Tu equipo»**: la memoria, la tarjeta gráfica y el
+disco libre del equipo (`hardware.ts`), el nivel que le toca (**ligero**, **completo** o **Pro**) y, pieza a pieza, si le
+va bien o por qué no. El botón **«Instalar el estudio Pro (N GB)»** lo instala todo de un clic (`installVideoStudioPro`
+en `videoStudio.ts`). Reglas de `adviseStudio`:
+
+| Pieza | Le va bien con |
+|---|---|
+| Motor, voz Kokoro y efectos | 4 GB de RAM |
+| Manim y estilos de película | 8 GB |
+| Plató 3D con los robots | 8 GB y 4 núcleos (o una gráfica) |
+| Voz con emoción (Chatterbox) | 16 GB (o 12 GB con una NVIDIA de 12 GB) |
+| Imágenes con tu gráfica (ComfyUI) | NVIDIA de 6 GB, o Mac con chip de Apple y 16 GB |
+| Clips con movimiento (Wan 2.2 TI2V 5B) | NVIDIA de 8 GB y 32 GB de RAM (en el Mac va demasiado lento) |
+
+Todo junto debe caber en el disco con 10 GB de margen; si no, se deja fuera lo más pesado primero (Wan, ComfyUI,
+Chatterbox…). Wan baja sus tres archivos oficiales de Comfy-Org (≈18 GB, Apache-2.0) a la carpeta de ComfyUI y sigue
+donde se quedó si se corta. Lo que no le cabe al equipo **tampoco se instala solo** al arrancar ni con el primer vídeo
+(antes, un portátil de 8 GB instalaba Chatterbox y se quedaba colgado), y no cuenta como «falta» para reintentarlo cada día.
+
+**Al pedir un vídeo o una imagen, kywai ofrece el estudio** (`src/shared/studioOffer.ts`, `src/renderer/src/ui/left/StudioOffer.tsx`).
+Cuando escribes `/video …` o una frase clara como «hazme un vídeo de…», «créame una imagen de…», «dibújame…» o «make an
+image of…», encima del cuadro de escribir sale un aviso con lo que kywai ha visto del equipo (memoria, gráfica, disco),
+el estudio que le va bien y lo que falta, con el botón **«Instalarlo solo»** (un clic; la app de escritorio con kywai
+cloud pregunta antes). Para un vídeo cuenta todo lo que le cabe; para una imagen, solo dibujar con la gráfica (ComfyUI;
+no sale si ya dibuja con ComfyUI o Draw Things, ni si el equipo no tiene gráfica que aguante). Solo sale si falta algo;
+una vez que sale se queda aunque envíes el mensaje (para no cortar la instalación) hasta cerrarlo. **«Ahora no»** lo
+esconde para ese tipo de petición (se guarda en el navegador o la app); la tarjeta entera sigue en Ajustes → Extensiones
+→ Estudio de vídeo. En kywai cloud desde el navegador no sale: el navegador no puede mirar el equipo.
+
+**Vídeos de kywai cloud hechos en tu equipo** (`src/main/videoOnDevice.ts` en la nube, `src/main/videoWorker.ts` en
+la app). Con kywai cloud, la misma tarjeta sale en la app de escritorio como **«El estudio Pro en este equipo»**: analiza
+ESTE equipo, instala aquí su estudio (la app pregunta antes) y enciende **«Hacer aquí los vídeos de kywai cloud»**
+(apagado de serie; se guarda en `videos-en-este-equipo.json` de la carpeta de la app). Así funciona:
+
+1. En la nube, el agente escribe el guion como siempre.
+2. Si el vídeo se pidió para hacerlo en tu equipo (botón **«Hacerlo en {equipo}»** del aviso del selector de `/video`
+   cuando la nube no puede, o la marca `equipo:si`), el montaje no se hace en el espacio: el encargo (guion, formato,
+   voz, aspecto y hasta 4 imágenes de referencia, 12 MB como mucho) viaja al equipo por el **mismo puente** que presta
+   los modelos locales (`deviceBridge.ts`, la conexión sale siempre del equipo, no se abre ningún puerto).
+3. El equipo lo monta con su estudio Pro y va contando el avance (sale en la tarjeta de la tarea como siempre). Usa la
+   gráfica, así que espera su turno con las peticiones a los modelos.
+4. Sube el MP4 en trozos de 8 MB (`POST /api/mobile/v1/bridge/file/<id>?offset=N`, solo con la llave de ese
+   dispositivo; si un trozo falla, pregunta dónde se quedó y sigue) y la tarea entrega el vídeo con el nombre del título.
+
+Si el equipo se apaga o se desconecta a mitad, la tarea falla diciendo qué pasó. Por el puente solo va el encargo y
+vuelve el MP4: ni archivos del equipo ni órdenes. «Hacer los vídeos» funciona aunque «Prestar los modelos de este
+equipo» esté apagado: entonces el equipo no contesta ninguna petición a sus motores. Los estilos de película aún no se
+mandan al equipo (los dirige un agente con terminal en la nube).
+
+**Antes de empezar: ¿se puede hacer aquí?** (21 nov 2026, `src/shared/videoPreflight.ts`). Un sketch con los robots se
+quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
+ese 3D, sin gráfica y con 2 GB, no terminaba nunca. Ahora el selector de `/video` mira lo elegido contra lo que tiene el
+equipo y lo dice **antes de enviar**, debajo de la barra del vídeo:
+- **No se puede aquí** (en la nube: los estilos de película, que llevan «Solo en tu equipo» en su tarjeta, y los robots
+  de kywai en el plató 3D): explica qué y ofrece **«Hacerlo en versión ligera»**, que cambia solo eso por lo más
+  parecido que sí sale (sin película: estilo de kywai; robots: dibujados en cada plano si hay con qué dibujar, o un vídeo
+  rápido sin ellos). Elegirla añade la marca `ligero:si`.
+- **Falta instalar algo** (el estudio de vídeo en el equipo): «Instalar ahora». Si no se pulsa, se instala solo con el
+  primer vídeo, como siempre.
+- **Nota**: en charla y sketch el estilo de película no se usa; se avisa para que no sea una sorpresa.
+El motor lo vuelve a mirar al recibir la orden (vale igual escrita a mano, desde la web, Órbita o una rutina): si algo
+no se puede y no lleva `ligero:si`, **no empieza** y dice qué pasa y cómo seguir. En la nube el plató 3D no se usa nunca.
+
+**Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
+cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
+para siempre); «Detener» también lo cierra todo. Si lo que se trabó era el plató 3D, se intenta **una vez** sin plató
+(«El plató 3D no salió: lo intento en versión ligera»); si tampoco sale, la tarea pasa a **Falló** con el motivo en
+palabras normales. Mientras monta, la tarjeta enseña el porcentaje («Animando y montando el vídeo (45 %)»), y el guion
+que escribe el agente sale como «Guion listo: título» en vez del JSON en bruto.
 
 **Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
 escribe solo el **guion** en JSON, pensado para enganchar a quien tiene poca paciencia: título, de 5 a 9 escenas cortas
@@ -6139,6 +6172,17 @@ El chat se lee como ChatGPT o Claude, sin «muro de letras»:
 
 - **La respuesta de un agente va sin caja:** el texto suelto, junto a su avatar. Tus mensajes siguen en su burbuja, y
   los errores en su caja roja para que no pasen desapercibidos.
+- **Tú a la derecha, los agentes a la izquierda** (21 nov 2026, pedido por Yil): tu foto, tu nombre y tu burbuja van a
+  la derecha (con la muesca arriba a la derecha) y las respuestas de los agentes a la izquierda. Las dos burbujas
+  empiezan y acaban en las mismas líneas: cada una deja libre la columna de la foto del otro lado. En el chat estrecho
+  las dos usan todo el ancho. Lo que escribe un amigo en un proyecto compartido sigue a la izquierda.
+- **Con cristal (Interfaz Vidrio líquido o Frost Glass)** la respuesta del agente sí lleva caja, y es la misma burbuja
+  que la tuya: mismas esquinas redondeadas con la muesca, mismo margen interior y mismo brillo de borde; solo cambia
+  el color (la tuya azul, la suya cristal claro). Antes salía un recuadro cuadrado con el texto pegado al borde.
+  Por dentro: `ui/left/Messages.module.css` (`.msgRight` y las reglas `:root[data-glass]` de las burbujas).
+- **La caja de escribir** (21 nov 2026, pedido por Yil): la sugerencia gris («… ⇥ Tab») se ve entera aunque ocupe
+  dos líneas (la caja ajusta su alto también cuando cambia la sugerencia, no solo al escribir), y el botón de enviar
+  (y «Detener») queda siempre centrado en vertical. Por dentro: `ui/left/Composer.tsx` y `Composer.module.css`.
 - **Letra e interlineado:** 15 px con interlineado 1,7 en el escritorio y la web (antes 14 px y 1,55). En Órbita el
   interlineado pasa a 1,55 veces la letra.
 - **Todo el ancho:** el texto de las respuestas ocupa todo el ancho del chat, igual que tus mensajes y las tarjetas
