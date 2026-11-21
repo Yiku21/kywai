@@ -52,6 +52,11 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Criterio de aceptación y archivos de cada tarea](#criterio-de-aceptación-y-archivos-de-cada-tarea)
   - [A dos manos: dos agentes, dos opciones y un juez](#a-dos-manos-dos-agentes-dos-opciones-y-un-juez)
   - [Los agentes retoman su sesión en las continuaciones](#los-agentes-retoman-su-sesión-en-las-continuaciones)
+  - [Comprobador de entregas: lo dicho contra lo que hay en el disco](#comprobador-de-entregas-lo-dicho-contra-lo-que-hay-en-el-disco)
+  - [Estados honestos: «⏳ Aún en marcha» en vez de un «listo» adelantado](#estados-honestos--aún-en-marcha-en-vez-de-un-listo-adelantado)
+  - [Vigilante de trabajos largos: nada se queda colgado sin avisar](#vigilante-de-trabajos-largos-nada-se-queda-colgado-sin-avisar)
+  - [«¿Se puede aquí?»: la tabla que se mira antes de prometer](#se-puede-aquí-la-tabla-que-se-mira-antes-de-prometer)
+  - [Registro de salud: ver los fallos antes que el usuario](#registro-de-salud-ver-los-fallos-antes-que-el-usuario)
   - [Verificación por otro agente](#verificación-por-otro-agente)
   - [Cambios de cada tarea: verlos, deshacerlos y copias aparte](#cambios-de-cada-tarea-verlos-deshacerlos-y-copias-aparte)
   - [Valorar un resultado (👍/👎)](#valorar-un-resultado-)
@@ -222,6 +227,16 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   al día, y contestaba «Tienes la última versión» aunque este equipo fuera viejo). ⚙ → Ajustes → «Actualizar este
   equipo…» también pregunta a GitHub: dice la versión, y un segundo toque la instala y reabre (AppImage y Mac; abre la
   descarga solo si el Mac no puede cambiarse solo). Los clientes de Windows siguen actualizándose desde su servidor.
+- **Canal Estable o Beta** (⚙ → Ajustes → Acerca de → «Canal de actualizaciones»). Las versiones de escritorio salen
+  primero como **Beta**: cada mejora, en cuanto se fusiona. Una vez por semana, la que pasó las pruebas reales de la
+  noche se marca como **Estable**. Si no tocas nada, tu equipo va en Estable y recibe solo esas; con Beta recibe
+  todas. El canal es de cada equipo: se guarda en `update-channel.txt`, en la carpeta de datos de la app, y un cliente
+  de escritorio tiene el suyo («Canal de actualizaciones de este equipo»), aparte del de su servidor. Al volver de
+  Beta a Estable no se instala nada más viejo: la app sigue con su versión hasta que una Estable la alcanza («Tu
+  versión va por delante de la última Estable»). La fila no sale donde no aplica: un kywai compilado desde su código
+  (el Mac mini), un espacio de kywai cloud o un servidor anterior a esta versión. Por dentro (`updateChannel.ts`,
+  `updater.ts`): en GitHub las Beta son «pre-release» y la Estable es la marcada como «latest»; en Beta la app acepta
+  también las «pre-release». La web y los instaladores de una línea ofrecen siempre la última Estable.
 - **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
   va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
   `xattr -cr "/Applications/kywai.app"`.
@@ -1146,6 +1161,37 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     `cloudAgentForget` borra la clave `cloud:`, la sesión guardada (Gemini/Codex) y cancela inicios a medias, y si hay
     otros agentes que funcionan lo deja desactivado (si era el principal, pasa a serlo otro); en self host borra la
     clave (`setAgentKey(id, '')`). El agente sigue en el equipo. La cuenta en la web del proveedor no se toca.
+  - **Más agentes entran con tu cuenta en la nube** (revisión de la 1.0, `cloudMoreAccounts.ts`): Cursor
+    (`agent login`), Grok (`grok login --device-auth`, SuperGrok o X Premium Plus), Factory Droid, Crush (con GitHub
+    Copilot), gptme (con ChatGPT Plus/Pro), Letta, Kiro (AWS Builder ID), Qwen Code (plan Plus/Pro de chat.qwen.ai),
+    Antigravity (cuenta de Google, se pega el código que da la web) y Kilo (sus modelos de pago). Cada receta salió de
+    lanzar el inicio de sesión real del programa en un Linux sin navegador. Los que tras entrar siguen abiertos en su
+    pantalla (Droid, Letta, Qwen Code, Antigravity) se dan por conectados cuando una consulta de prueba responde
+    (`done: { probe: true }`, cada 20 s). gptme espera la vuelta del navegador en `localhost:1455` del espacio: la web
+    acaba en una página que no carga; se copia su dirección entera, se pega en «Enviar la dirección» y kywai la abre
+    dentro del espacio (`pasteUrl`: solo `localhost`/`127.0.0.1` y ese puerto, también en Mi cuenta). Qwen Code con
+    cuenta se lanza con `--auth-type qwen-subscription`, que se le quita si luego usa una clave. Siguen solo con clave
+    en la nube porque su programa no tiene inicio de sesión sin navegador: Mistral Vibe, Continue y Goose.
+  - **Clave de API también en la app de Mac y PC** (`shared/agentKeys.ts`, la misma tabla que usa la nube): Cursor,
+    Copilot (token de GitHub), OpenCode, Cline, Crush, Goose, gptme, Letta, Qwen Code, Continue, Mistral Vibe, Qoder y
+    Aider ya ofrecen «Clave de API» en «Configura» aunque su ficha del catálogo no traiga una. Al guardarla
+    (`saveAgentKey`) el agente recibe su variable, el entorno que lo apunta al proveedor (Goose: `GOOSE_PROVIDER`;
+    Qwen Code: `OPENAI_BASE_URL` de OpenRouter) y el modelo gratis si no tenía otro; Cline además la deja en su
+    configuración (`cline auth`). «Quitar cuenta o clave» lo deshace. **Claude Code y Codex** aceptan también una clave
+    (de Anthropic o de OpenAI) en la app, guardada cifrada en el equipo y pasada solo a su programa
+    (`ANTHROPIC_API_KEY`; Codex `CODEX_API_KEY`, probado con `codex exec`); sin clave siguen con la cuenta. En la nube
+    Codex también acepta su clave de OpenAI.
+  - **«Otra dirección» para Aider, Qwen Code, Goose y gptme** (`shared/agentEndpoint.ts`, `main/agentEndpoint.ts`):
+    como Hermes, se conectan a cualquier servicio compatible con OpenAI: OpenRouter, OmniRoute
+    (`http://127.0.0.1:20128/v1`), el Ollama del equipo (solo en la app; LM Studio cambiando el puerto a 1234) o una
+    dirección propia. «Buscar modelos» hace `GET /models` (`agentEndpointModels`) y «Guardar y probar»
+    (`setAgentEndpoint`) pone a cada programa las variables que lee: Qwen Code `OPENAI_BASE_URL` y `OPENAI_MODEL`;
+    Aider `OPENAI_API_BASE` y el modelo `openai/<modelo>`; gptme `OPENAI_BASE_URL` y `local/<modelo>`; Goose
+    `GOOSE_PROVIDER=openai`, `OPENAI_HOST` y `OPENAI_BASE_PATH`. La clave va cifrada (en la nube como `cloud:<id>`) y
+    llega como `OPENAI_API_KEY`; sin clave se le pone una de relleno para que el programa arranque. Probado con los
+    cuatro programas reales contra un servidor compatible. Guardar otra clave, entrar con la cuenta o «Quitar cuenta o
+    clave» lo devuelve a su forma normal (`withoutEndpoint`). En la nube solo OpenRouter u otra dirección
+    pública (127.0.0.1 sería el propio espacio); la clave guardada solo se reenvía a su misma dirección.
   - **Gemini con clave en la nube**: si `~/.gemini/settings.json` quedó en «oauth-personal» (un inicio de sesión con
     Google empezado y no terminado), Gemini CLI ignoraba la clave de AI Studio y salía «Con fallos». Ahora, en la nube,
     cada ejecución con `GEMINI_API_KEY` deja los ajustes en «gemini-api-key» (`useGeminiKeyAuth`). Si Google rechaza la
@@ -1190,6 +1236,14 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
 
   Código: `src/shared/accounts.ts`, `src/main/agents/accounts.ts`, `buildAccountAgent` en `src/shared/agentCatalog.ts`
   y las cuotas por grupo en `src/main/quota.ts`.
+- **Sello «Verificado» (se gana cada noche)**: cada noche kywai cloud pide una consulta real a los agentes de sus
+  cuentas de prueba y publica cuáles contestaron (`https://cuenta.kywai.app/pruebas.json`: solo si salió bien, cuándo,
+  con qué versión y qué agentes; ni cuentas ni textos). En «Añadir un agente», los que contestaron anoche llevan
+  **«Verificado»**; el resto dice **«Beta»** (pasa el ratón por encima: o no completó la prueba de anoche, o todavía
+  no entra en ella, y puede funcionar igual de bien). El sello caduca a los dos días: si no hay una prueba reciente
+  (o el equipo no tiene red) el catálogo no enseña ninguna de las dos etiquetas. No tiene que ver con «sin
+  comprobar», que avisa de que la forma de lanzar ese programa no se ha revisado con su documentación. Código:
+  `src/main/verifiedSeal.ts` (`getVerifiedAgents`, pregunta cada 6 horas) y `scripts/comprobar-nube.py` en kywai-cloud.
 - **Agentes gratis**: los que se pueden usar sin pagar una suscripción llevan la etiqueta verde **«Gratis»** en el
   catálogo y en las tarjetas del asistente, con la condición y el límite (pasa el ratón por encima en el asistente). El
   botón **«Solo gratis»** del catálogo deja solo esos. Comprobado en sus páginas oficiales en noviembre de 2026:
@@ -2094,7 +2148,21 @@ cuadrada sale al tamaño que tengas puesto).
   a tu Draw Things por el mismo puente que LM Studio y Ollama. Por el puente solo pasan `GET /` (sus ajustes) y
   `POST /sdapi/v1/txt2img` con texto, tamaño (256–2048) y una imagen; nunca otro modelo ni img2img.
 - **Orden de motores** (`src/main/imageMaker.ts`): Draw Things → ComfyUI (si ya está encendido) → Gemini con tu clave
-  → el motor gratis de internet (una cada 45 s). Si Draw Things está cerrado, se pasa al siguiente sin fallar.
+  → **en kywai cloud, las imágenes de kywai** → el motor gratis de internet (una cada 45 s). Si Draw Things está
+  cerrado, se pasa al siguiente sin fallar.
+- **Imágenes de kywai (solo kywai cloud, `src/main/kywaiImages.ts`)**: el portal Mi cuenta las dibuja con Gemini
+  (Nano Banana, `gemini-2.5-flash-image`) y la clave de kywai, y cobra **8 créditos kywai por imagen**
+  (`portal/imagen.py` en kywai-cloud). La clave nunca llega a tu espacio. Si Gemini falla no se cobra; sin créditos
+  se sigue con el motor gratis.
+- **El motor gratis es un borrador**: su plan gratis (Pollinations) ya solo da un modelo pequeño (Sana, ~0,6 MP) con
+  marca de agua, y salen fallos como patas de más. Cuando una imagen sale de ahí, el chat lo dice («Es un borrador…»)
+  y explica cómo tener calidad: en la nube, créditos kywai; en tu equipo, Draw Things o tu clave de Gemini. Los agentes
+  reciben el mismo aviso en `generar_imagen` para no decir que es buena. Una imagen «cuadrada» ya sale cuadrada.
+- **Rehacer una imagen**: «otra versión», «está mal», «no tiene calidad», «otra vez» o «repítela» van siempre al
+  equipo (`REDO_WORDS` en `src/main/plan.ts`), que la vuelve a dibujar de verdad. Antes caían en la respuesta al
+  momento, que solo escribe texto, y el coordinador decía «aquí tienes otra versión» sin adjuntar nada. Por si acaso,
+  una respuesta al momento que dice entregar algo («aquí tienes la imagen», «te dejo el archivo») se descarta y pasa
+  al plan (`claimsDelivery`).
 - **Ajustes → Extensiones → Estudio de vídeo** dice si está conectado y con qué modelo («Imágenes en tu Mac (Draw
   Things)»). `KYWAI_DRAWTHINGS_URL` cambia la dirección; `KYWAI_NO_DRAWTHINGS=1` lo apaga.
 
@@ -2117,6 +2185,160 @@ catorce días, solo para el mismo CLI y la misma carpeta de trabajo. Si la sesi�
 la tarea se repite desde cero sin más. Solo Claude Code y Codex saben retomar sesiones; los demás agentes siempre
 empiezan de nuevo. Para que esto funcione, las sesiones de trabajo de Claude Code ya no se lanzan con
 `--no-session-persistence` (el CLI las limpia solo a los 30 días); planificar y verificar siguen sin dejar rastro.
+
+### Comprobador de entregas: lo dicho contra lo que hay en el disco
+
+Cuando un agente termina, **kywai mira el disco antes de dar nada por hecho**, sin usar ningún modelo (no gasta
+cuota ni tarda): compara lo que la respuesta dice haber entregado con lo que hay de verdad.
+
+| Qué dice el agente | Qué comprueba kywai |
+| --- | --- |
+| Nombra un archivo («he guardado el informe en `artifacts/informe.pdf`») | Que exista (por su ruta, entre lo que cambió la tarea o en el proyecto), que no esté vacío y que sea lo que dice ser |
+| «Aquí tienes la imagen / el vídeo / el audio / el PDF», sin nombre | Que la tarea haya dejado al menos uno de ese tipo que se abra |
+| No promete nada, pero deja un vídeo, imagen, audio o documento roto entre los entregables (`artifacts/`, adjuntos) | Se avisa igual |
+
+«Que sea lo que dice ser» se mira por dentro: una imagen con cabecera de imagen, un MP4/MOV **entero** (con su
+índice «moov»: un render que se cortó a medias no lo tiene), un WAV que no sea todo silencio, un PDF que empieza y
+acaba como PDF y un .docx/.xlsx/.pptx/.zip completo. No cuentan como promesa lo que niega («no pude generar la
+imagen»), propone («si quieres te dejo…»), pregunta, las imágenes por enlace o SVG escritas en la propia respuesta,
+ni un informe escrito en el chat.
+
+Qué pasa si falta algo:
+
+1. **Se le devuelve una vez** al mismo agente, en su misma sesión y con su modelo principal, con la lista de lo que
+   no está y la salida sincera: «hazlo de verdad o di claro que no pudiste y por qué».
+2. Si en esa segunda respuesta lo entrega, o dice con claridad que no pudo, **vale** (una respuesta sincera no es un
+   fallo).
+3. Si sigue diciendo que está y no está, el resultado sale con **«⚠ kywai comprobó la entrega de … y hay algo que no
+   está: …. No lo des por hecho.»**, el resumen del equipo lo marca con «⚠ … falta lo que dijo entregar» y el
+   coordinador recibe la orden de no darlo por entregado en su respuesta final.
+
+Vale para **todo**: los mensajes directos a un agente, las tareas con esfuerzo bajo, los agentes de solo texto y las
+tareas que no cambiaron ningún archivo, que son justo las que la verificación por otro agente no revisa. Va antes
+de esa verificación (no se gasta un verificador en algo que no existe). No tiene interruptor: no cuesta nada.
+Código: `src/main/deliveryCheck.ts` (qué se promete y si el archivo es válido) y `deliveryGate` en
+`src/main/orchestrator.ts`.
+
+### Estados honestos: «⏳ Aún en marcha» en vez de un «listo» adelantado
+
+El mensaje de quien coordina sale **antes** de que el equipo trabaje. Si lo escribe como si ya estuviera hecho
+(«¡Listo! Aquí tienes el vídeo») cuando la tarea acaba de empezar, kywai lo corrige a la vista, sin llamar a ningún
+modelo:
+
+| Qué pasa de verdad | Qué ves debajo de su mensaje |
+| --- | --- |
+| Acaba de repartir tareas | «⏳ Aún en marcha: el equipo acaba de empezar (N tareas). El resultado sale aquí cuando esté.» |
+| kywai está dibujando una imagen o montando un vídeo | «⏳ Aún en marcha: la imagen se está dibujando…» / «…el vídeo se está haciendo…» |
+| El plan espera tu visto bueno | «⏳ Aún sin empezar: el equipo espera tu visto bueno al plan.» |
+| Otro encargo del proyecto sigue trabajando y te dice que ya está | «⏳ Aún en marcha: «tarea» (agente). Te aviso aquí cuando termine.» |
+
+La marca **solo sale si da algo por terminado o entregado** y hay algo en marcha, así que siempre es verdad; si dice
+«Codex lo prepara y te aviso», su mensaje sale tal cual.
+
+Si dice **entregar un archivo** («aquí tienes otra versión de la imagen», «el informe está en `informe.pdf`») y su
+respuesta no adjunta ni encarga nada, y ese archivo no existe en el proyecto:
+
+1. **Se le devuelve una vez** antes de enseñártela, con tres salidas: adjuntar el archivo si ya existe, encargarlo de
+   verdad (imagen, vídeo o tarea) o decir claro que no se puede. La respuesta al momento (⚡), que solo es texto, pasa
+   por eso mismo al plan.
+2. Si insiste, su mensaje sale con **«⚠ En esta respuesta no hay nada adjunto ni ningún trabajo en marcha (kywai lo
+   comprobó). Si esperabas …, pídelo otra vez y el equipo lo hace.»**
+
+Al acabar un plan de varias tareas, el **resumen del trabajo** dice arriba cuántas no salieron bien del todo (fallaron,
+se cancelaron, quedaron sin verificar o sin lo que dijeron entregar): «⚠ 1 de 3 tareas no salió bien del todo: mírala
+antes de darlo por hecho.» En «Hablar con kywai» la voz lleva la misma marca si dice que un encargo terminó y el
+equipo aún no ha mandado el resultado. Código: `src/main/honestReply.ts` y `unbackedReply` en
+`src/main/orchestrator.ts`.
+
+### Vigilante de trabajos largos: nada se queda colgado sin avisar
+
+Todo programa de fondo que lanza kywai (el montaje de un vídeo, ffmpeg en los recortes y las demos de webs, las
+descargas y transcripciones de «/aprender», las instalaciones de herramientas) pasa por una sola pieza, con las mismas
+reglas para todos:
+
+| Regla | Qué significa |
+| --- | --- |
+| Tiempo máximo siempre | Cada programa tiene su tope (10 minutos si no se dice otro; el montaje de un vídeo, 40). Al pasarlo, se para |
+| Se para con todo lo que abrió | Se corta el programa **y sus hijos** (antes solo el principal: una instalación o un navegador oculto seguían solos por detrás y kywai esperaba para siempre) |
+| Nunca se espera para siempre | Si tras cortarlo algo se resiste a cerrarse, a los 15 segundos se da por terminado igualmente |
+| El fallo trae su motivo | «…tardaba demasiado (más de 20 min) y lo he parado» o «…se quedó trabado (10 min sin avanzar) y lo he parado», en vez de la última línea de un programa |
+| Aviso a los 10 minutos callado | Si un programa lleva **10 minutos sin dar señales**, sale en «Te necesita»: «Un trabajo de fondo lleva 10 min sin dar señales: …», con cuánto falta para que kywai lo pare. No hay que hacer nada; el aviso se retira solo cuando el programa acaba o se corta |
+
+Quien coordina ve los programas de fondo que llevan más de un minuto en marcha (cuánto llevan, su última señal y
+cuándo se cortarían), así que si le preguntas «¿cómo va el vídeo?» responde con eso y no con un «ya está». «Detener»
+corta también todo lo que la tarea tenga lanzado. Los agentes tienen su propio aviso (3 minutos sin dar señales) y su
+corte, que no cambian. Código: `src/main/longJob.ts` (`runJob`, `liveJobs`, `watchJobs`) y `watchLongJobs` en
+`src/main/inbox.ts`.
+
+### «¿Se puede aquí?»: la tabla que se mira antes de prometer
+
+Antes, lo que kywai podía hacer en cada equipo vivía en reglas sueltas de la guía de quien coordina, escritas a mano y
+sin mirar el equipo: aceptaba un vídeo con estilo de película en kywai cloud (que allí no puede montarse) o prometía
+una imagen «de calidad» cuando solo estaba el motor gratis. Ahora hay **una sola tabla**, hecha con lo que kywai
+comprueba en ese momento, y la leen igual quien coordina y tú.
+
+**Escribe `/puedo`** (o «¿qué se puede hacer aquí?») y sale al momento, sin gastar ningún modelo:
+
+| Fila | Qué comprueba |
+| --- | --- |
+| Dibujar imágenes nuevas | Qué motor responde ahora: Draw Things, ComfyUI, Gemini, el del Mac que presta sus modelos, el Gemini de kywai (8 créditos por imagen, en kywai cloud) o solo el gratis de internet |
+| Vídeos con «/video» | Si el estudio de vídeo está listo (con voz), instalándose o por instalar |
+| Vídeo Pro (estilos de película, plató 3D) | En kywai cloud no; sí en el equipo conectado, si lo hay |
+| Voz y narración | Qué voz hay: Voicebox, Gemini, Kokoro o la del sistema |
+| Manejar las apps y la pantalla | Solo en un equipo con escritorio; en kywai cloud no |
+| Instalar herramientas y usar internet | Los permisos que tienen los agentes ahora |
+| Modelos locales | Si Ollama o LM Studio responden (solo sale si tienes alguno, y solo cuando ya se ha comprobado) |
+
+Cada fila lleva uno de estos estados, y cuando no es un «sí» dice qué hacer:
+
+| Marca | Estado | Qué hace quien coordina |
+| --- | --- | --- |
+| ✅ | Sí | Lo acepta sin más |
+| 🟡 | Solo borrador | Lo hace y avisa de que es un borrador, con cómo tener calidad |
+| 🟡 | Sí, preguntándote antes | Te avisa de que el trabajo esperará tu respuesta |
+| ⬇️ | Falta instalar o encender algo | Dice qué falta y lo ofrece (o avisa de que se instala solo) |
+| 💻 | Aquí no; sí en tu equipo | Ofrece hacerlo en el equipo conectado |
+| ⛔ | Aquí no | Lo dice claro y ofrece lo más cercano que sí se puede |
+
+Quien coordina recibe la misma tabla en cada encargo (en la respuesta al momento y en el plan), con la regla de no
+aceptar ni prometer lo que la tabla niega, ni negar lo que afirma; manda sobre cualquier regla general de su guía.
+La comprobación se guarda un minuto y nunca frena un encargo: si tarda más de 2,5 segundos va lo último que se supo, y
+si aún no se sabe nada **la tabla no se enseña** (mejor callar que inventar). Con `/puedo` se espera hasta 15 segundos.
+La tabla no incluye el navegador ni las apps conectadas: eso se sigue viendo en Ajustes → Extensiones.
+
+Código: `src/shared/capabilities.ts` (`capabilityTable`, `capabilityPrompt`, `capabilityMarkdown`),
+`src/main/capabilityFacts.ts` (`gatherCapFacts`) y `capabilityRows` en `src/main/orchestrator.ts`.
+
+### Registro de salud: ver los fallos antes que el usuario
+
+Las cuatro redes de arriba evitan que un fallo llegue callado al chat, pero hacía falta saber **cuánto** falla cada cosa
+sin esperar a que alguien se queje. kywai lleva ahora un registro de salud: cada vez que termina algo, apunta si salió
+o no, cuánto tardó y el motivo que dio el programa.
+
+| Función | Qué se apunta |
+| --- | --- |
+| Tareas de los agentes | Cada intento que acaba: hecho o fallido, con qué agente y el motivo del fallo |
+| Imágenes | Cada imagen pedida: con qué motor salió (se ve si casi todo acaba en el borrador gratis) o por qué ninguno la dio |
+| Vídeos | Cada montaje (en el equipo o en la nube): hecho o fallido, cuánto tardó y el motivo |
+| Voz | Cada frase: la voz elegida que falla cuenta aunque la de reserva lo salve |
+| Entregas | Lo que el comprobador de entregas encontró (o no) de lo prometido, tras pedirlo otra vez |
+| Programas de fondo | Los que el vigilante tuvo que parar por tiempo o por no dar señales |
+
+Con eso hay un **parte de salud** (`getHealth`): cuántos aciertos y fallos lleva cada función en los últimos 7 días y
+en las últimas 24 horas, las 10 últimas causas y lo que está en marcha ahora (agentes trabajando y programas de fondo) con cuánto lleva sin dar
+señales; más de 30 minutos cuenta como colgado.
+
+- **Solo datos, nunca lo que escribiste.** Va la función, sí o no, la duración, con qué se hizo y el motivo del
+  programa en una línea. De una entrega que falta va la clase («imagen: no existe»), no el nombre del archivo; de una
+  tarea fallida va el motivo sin su título.
+- Lo que detienes tú no es ni acierto ni fallo: no se apunta.
+- Se guarda en `health-log.json` de la carpeta de datos (30 días, 3.000 apuntes como mucho) y nunca puede estropear lo
+  que mide: si el registro falla, el trabajo sigue.
+- En **kywai cloud** lo lee la página «Salud» de Administrar cuentas, que junta el parte de todas las cuentas y avisa
+  si algo pasa del umbral (lo ve solo el administrador). En tu equipo no cambia nada de lo que ves.
+
+Código: `src/main/healthLog.ts` (`recordHealth`, `withHealth`, `healthReport`) y `teamHealth` en
+`src/main/orchestrator.ts`.
 
 ### Verificación por otro agente
 
@@ -4485,6 +4707,11 @@ no sale si ya dibuja con ComfyUI o Draw Things, ni si el equipo no tiene gráfic
 una vez que sale se queda aunque envíes el mensaje (para no cortar la instalación) hasta cerrarlo. **«Ahora no»** lo
 esconde para ese tipo de petición (se guarda en el navegador o la app); la tarjeta entera sigue en Ajustes → Extensiones
 → Estudio de vídeo. En kywai cloud desde el navegador no sale: el navegador no puede mirar el equipo.
+Mientras instala, el aviso y la tarjeta de Ajustes enseñan una **barra con el %** (`src/shared/studioProgress.ts`):
+cada paso de la instalación tiene su peso (lo que suele tardar), los de piezas que no caben no cuentan, el «45%» de
+una descarga mueve la barra dentro del paso, y debajo salen el paso en curso, cuánto lleva y la última línea, para ver
+que no se ha quedado parado. Se pregunta cada segundo (`videoStudioInstallProgress`, o `client:videoStudioProgress`
+en la app con kywai cloud). Nunca va hacia atrás y solo llega al 100 % al terminar.
 
 **Vídeos de kywai cloud hechos en tu equipo** (`src/main/videoOnDevice.ts` en la nube, `src/main/videoWorker.ts` en
 la app). Con kywai cloud, la misma tarjeta sale en la app de escritorio como **«El estudio Pro en este equipo»**: analiza
@@ -4560,7 +4787,8 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
    imágenes. **Sin ComfyUI ni Gemini que dibuje, va el motor gratis de internet** (Pollinations,
    `src/main/freeImages.ts`): sin clave ni cuenta, pero **una imagen cada 45 s** (el límite del plan gratis por
    conexión; kywai las pide de una en una para toda la app y, si el servidor pide esperar, espera lo que dice) y
-   puede llevar una marca pequeña en una esquina. El texto de la imagen sale del equipo. Para apagarlo:
+   lleva una marca pequeña en una esquina. Desde nov 2026 su plan gratis da un modelo pequeño (Sana, ~0,6 MP),
+   así que es un borrador. El texto de la imagen sale del equipo. Para apagarlo:
    `KYWAI_NO_FREE_IMAGES=1` (entonces, sin ComfyUI ni Gemini, cada escena lleva un fondo de diseño animado). Los
    robots dibujados de «Charla y tutorial» no usan el motor gratis (no sabe mantenerlos iguales): sin ComfyUI ni
    Gemini siguen en el plató 3D.
@@ -5213,11 +5441,12 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |
 | `/model` | Cambia el modelo de Hermes |
 | `/uso` | Mira cuánta cuota le queda a cada agente (también `/usage`, `/cuotas`) |
+| `/puedo` | Te dice qué puede hacer kywai en este equipo ahora mismo: imágenes, vídeo, voz, manejar apps y lo que falta instalar (también `/puedes`, `/capacidades`; ver «¿Se puede aquí?») |
 | `/nuevo` | Empieza un chat nuevo en este proyecto (también `/new`, `/limpiar`) |
 | `/orden-de-plantilla` | Tus plantillas de tareas, con su nombre a la derecha |
 | `/orden-de-mod` | Las órdenes de los mods encendidos, con su descripción |
 
-Las que no llevan nada detrás (`/model`, `/uso`, `/nuevo`) se hacen nada más elegirlas; las demás dejan «/orden » en
+Las que no llevan nada detrás (`/model`, `/uso`, `/puedo`, `/nuevo`) se hacen nada más elegirlas; las demás dejan «/orden » en
 el cuadro para que escribas lo de detrás. Al escribir **«@»** sale la lista de agentes, cada uno con su modelo a la
 derecha, para hablarle directamente.
 
@@ -6611,15 +6840,27 @@ los temas oscuros y claro en Perla, Refugio y la Oficina de día (borde de luz m
     3D/2D llevan una gota que se desliza con un muelle y se estira al moverse. Valores fijados por Yil en la maqueta
     (https://claude.ai/artifact/K3c1E7HaMVs6Em7P6BzgKj): refracción, grosor, arcoíris y luz al máximo y esmerilado 15.
     Mientras está encendido, `:root` lleva `data-lg` y los paneles con `data-refract="before"` quitan su esmerilado
-    (`theme-liquido.css`). **Modo ligero**: si la calidad baja a «baja» (a mano o sola, cuando el equipo no llega a
-    24 fps), el espacio se cierra o pasa a 2D, la ventana se oculta o el sistema pide «Reducir transparencia», se
-    desmonta y vuelve solo el esmerilado de arriba. Los menús emergentes siguen esmerilados (cristal sobre cristal no
+    (`theme-liquido.css`). **Modo ligero**: si eliges la calidad «Baja» a mano, el espacio se cierra o pasa a 2D, la
+    ventana se oculta o el sistema pide «Reducir transparencia», se desmonta y vuelve solo el esmerilado de arriba.
+    Desde el 21 nov 2026 (aviso de Yil: «de repente se pone frost y el fondo se queda en negro») el ajuste automático
+    ya no lo quita: si el equipo no llega a 24 fps baja la resolución y las partículas, pero el cristal se queda. Los menús emergentes siguen esmerilados (cristal sobre cristal no
     se leería).
     **Barra plegada unida al logo** (20 nov 2026, arreglado por aviso de Yil): el sombreador toma el radio mayor de
     las esquinas de cada panel (al unirse al logo, la barra cuadra solo las de arriba; antes salía cuadrada también
     abajo) y, con la barra unida del todo (`data-fused` + `:root[data-logo-fused]`), sube su rectángulo `--bar-reach`
     píxeles para envolver el logo: barra y logo son una sola pieza de cristal, sin el canto brillante que dejaba una
     raya bajo el logo. El líquido de `LogoBridge` solo se ve mientras se une.
+    **Sin parpadeos con una ventana encima** (21 nov 2026, aviso de Yil: «cuando una ventana o chat está por encima
+    y subes o bajas una lista da flashazos y microcortes donde el modelo 3D se pone en primer plano»). Tres causas:
+    (1) el evento de desplazar (`scroll`) no trae ratón y la luz del cristal recibía `NaN`, así que el canto del
+    cristal salía negro o blanco un fotograma (ahora `lightDirection` ignora posiciones que no son números y solo
+    los eventos de ratón mueven la luz); (2) cada evento de la rueda y cada cambio del chat (las gotas) pedía un
+    fotograma entero del 3D saltándose el tope de 30 por segundo (ahora van por `ask`, como mucho a `MAX_FPS`, con
+    un último dibujo al final); (3) con una ventana modal abierta (`[aria-modal="true"]`, `scene/sceneCover.ts`) el
+    3D seguía dibujándose detrás y el desenfoque de la ventana (`backdrop-filter`) se recalculaba en cada fotograma:
+    ahora el lienzo se queda en su último fotograma (`frameloop` «never») y no se mide el rendimiento mientras está
+    tapado; al cerrar la ventana vuelve solo. Además, si la tarjeta gráfica pierde el lienzo (`webglcontextlost`),
+    se vuelve a crear en vez de quedarse en negro.
     **Brillo al pasar el ratón en las pestañas** (20 nov 2026, arreglado por aviso de Yil): en los grupos con gota
     (`data-gotas`), los hijos se ponen `position: relative` para quedar sobre la gota; la pieza del brillo que se
     desliza (`data-glide-pill`, `lib/touchFeedback.ts`) queda excluida, porque si deja de ser `absolute` se coloca
