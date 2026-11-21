@@ -2435,13 +2435,20 @@ sabe de verdad:
 | Lanzar un vídeo | Que la orden se entiende y dice de qué trata |
 | Proponer una rutina | Que dice cuándo y qué hacer |
 | Ayudarte a conectar un agente | Que ese agente está en tu equipo y se conecta con una cuenta |
-| Añadir algo a una tarea | Que esa tarea existe en el proyecto y, si ya terminó, que su agente está disponible |
+| Añadir algo a una tarea | Que dice a qué tarea y qué añadir, que esa tarea existe en el proyecto y, si ya terminó, que su agente está disponible |
 | Adjuntar un archivo | Que el archivo existe en el proyecto |
 | Lanzar una orden de kywai | Que la orden existe, que es de las que puede lanzar él y que está completa |
+| Hacerte una pregunta con opciones | Que lleva al menos dos opciones entre las que elegir |
+| Dibujar imágenes | Que no pide más de las 4 que salen por respuesta |
 
 Dos casos se quitan sin aviso, porque no pierdes nada: un archivo que aún no existe cuando la misma respuesta encarga
 la tarea que lo hace (llega con su entrega) y un agente local metido entre otros que sí se conectan con una cuenta
 (sale la tarjeta de los demás).
+
+Las tres últimas filas de la tabla son cosas que antes se caían al limpiar su respuesta sin que nadie se enterase: una
+pregunta sin opciones no sacaba su tarjeta (y el mensaje decía «elige abajo»), de seis imágenes pedidas salían cuatro
+(y el mensaje decía «te hago las seis») y algo que añadir a una tarea sin decir qué no llegaba a nadie. Los huecos
+vacíos de plantilla no cuentan, y en una rutina, donde no hay nadie delante para contestar, las preguntas no se miran.
 
 Antes, una acción que no valía **se perdía en silencio** y el mensaje seguía diciendo «ya está en marcha el vídeo» o
 «se lo paso a quien lleva la tarea». Ahora:
@@ -2457,8 +2464,9 @@ Si ves ese aviso, pide otra vez solo lo que falta, con el dato que echaba de men
 sale como **Acciones del coordinador**: cuántas respuestas llevaban todas sus acciones bien y qué clase de fallo
 tuvieron las demás (solo la clase: «vídeo sin tema», «tarea que no existe»; nunca lo que escribió nadie).
 
-Código: `src/main/planActions.ts` (qué se comprueba, el texto para quien coordina y el aviso) y `planActionChecks` en
-`src/main/orchestrator.ts` (lo que la app sabe de cada acción). Es la primera parte del paso del coordinador de
+Código: `src/main/planActions.ts` (qué se comprueba, el texto para quien coordina y el aviso), `planActionChecks` en
+`src/main/orchestrator.ts` (lo que la app sabe de cada acción) y `planLosses` en `src/main/plan.ts` (lo que se cae al
+limpiar su respuesta). Es la primera parte del paso del coordinador de
 «un texto de reglas» a «acciones que la app comprueba».
 
 ### Órdenes que lanza quien coordina: lo pides con tus palabras y sale
