@@ -1164,6 +1164,43 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     `cloudAgentForget` borra la clave `cloud:`, la sesión guardada (Gemini/Codex) y cancela inicios a medias, y si hay
     otros agentes que funcionan lo deja desactivado (si era el principal, pasa a serlo otro); en self host borra la
     clave (`setAgentKey(id, '')`). El agente sigue en el equipo. La cuenta en la web del proveedor no se toca.
+  - **Hermes: elegir proveedor** (desde el 21 nov 2026, `src/main/hermesEndpoint.ts`). En **1 · Conéctalo**, la
+    pestaña «Clave de API» de Hermes tiene tres opciones: **OpenRouter** (su clave; modelo `openrouter/free`),
+    **OmniRoute** ([OmniRoute](https://github.com/diegosouzapw/OmniRoute), MIT: una pasarela que corre en tu equipo y
+    junta muchos proveedores en `http://127.0.0.1:20128/v1`; su clave se crea en su panel → Endpoints) y **Otra
+    dirección** compatible con la API de OpenAI (LiteLLM, vLLM, un servidor propio…; la clave es opcional). kywai pide
+    `GET <dirección>/models` para comprobar dirección y clave (avisa si no responde, si no acepta la clave o si no
+    parece compatible), escribe en `config.yaml` de Hermes el proveedor `omniroute` o `kywai-propio` con
+    `api_key: ${KYWAI_HERMES_KEY}` (la clave no se escribe en el archivo: va cifrada en kywai y se le pasa al lanzarlo,
+    `hermesSecrets` en `agents/index.ts`), elige el modelo automático (`auto/smart` si lo hay) y lo prueba. El paso
+    **2 · Modelo** enseña los modelos que dio la dirección. Los proveedores que ya tuvieras en `config.yaml` (p. ej. un
+    `omnirouter` propio) no se tocan. En el equipo servidor solo se cambia desde su app de escritorio; en kywai cloud,
+    desde la app conectada al espacio. Pasar suscripciones de Claude Code o Copilot por OmniRoute puede ir contra las
+    condiciones de esos servicios: kywai no lo sugiere.
+  - **OmniRoute con un clic** (`src/main/omniroute.ts`). En la pestaña OmniRoute, **«Instalar y preparar OmniRoute»**
+    comprueba Node.js (OmniRoute pide 22.22 o 24), instala `omniroute@3.8.54` con npm, le pone al panel una contraseña
+    aleatoria (`omniroute setup --non-interactive` con `INITIAL_PASSWORD`, nunca la de fábrica `CHANGEME`; si ya tenía
+    una tuya, no se toca) que se guarda cifrada en kywai y lo enciende sin ventana (`omniroute serve --no-open
+    --no-tray`, lo que dice va a `omniroute.log` en la carpeta de datos). Luego dos pasos: **Abrir el panel** (con un
+    botón para copiar la contraseña) y conectar un proveedor (suscripción o clave: eso no tiene orden ni API), y
+    **volver a kywai**, que lo comprueba solo al recuperar la ventana y deja Hermes con su modelo automático. Si aún
+    no hay proveedor, lo dice. **Se enciende solo**: al abrir kywai, si un Hermes encendido trabaja con el OmniRoute de
+    este equipo (127.0.0.1:20128) y no contesta, kywai lo enciende en segundo plano; si no puede, avisa en «Te
+    necesita». Antes de cada encargo de Hermes con OmniRoute se mira otra vez y se enciende si hace falta. **Al cerrar
+    kywai se apaga, solo si lo encendió kywai** (el que abriste tú sigue funcionando).
+  - **OmniRoute de tu equipo en kywai cloud** (fase 2, `src/main/omnirouteRelay.ts`). La app de escritorio conectada a
+    kywai cloud lo prepara con el mismo botón (pregunta antes) y lo presta por el puente, como Ollama o LM Studio
+    (`BRIDGE_ROUTES.omniroute`: solo `GET /v1/models` y `POST /v1/chat/completions`, ni el panel ni sus claves).
+    Dentro del espacio, un relevo escucha en `127.0.0.1:20128` (la misma dirección que en tu equipo) y pasa cada
+    petición de Hermes a tu equipo, con la respuesta a trozos. Tus suscripciones y claves no salen de tu equipo. Si tu
+    equipo no está conectado, Hermes avisa de que no llega y qué encender («Prestar los modelos de este equipo»).
+    También se puede poner a mano una dirección pública de OmniRoute (protegida con contraseña).
+  - **Hermes con tu cuenta de Nous Portal en la nube**: pestaña «Tu cuenta de Nous Portal». El espacio lanza
+    `hermes auth add nous --type oauth --no-browser` y enseña su enlace (`portal.nousresearch.com/…?user_code=…`) y su
+    código; al aprobarlo, kywai pregunta a Hermes qué modelos deja tu plan (el gratis solo los gratuitos, como en
+    `hermes model`) y se queda con el primero que responda (Claude Sonnet, GPT-5.5, Gemini Flash…). «Quitar cuenta o
+    clave» cierra también la sesión de Nous (`hermes auth logout nous`). En el equipo servidor, «Tu cuenta de Nous
+    Portal» abre `hermes setup` como siempre.
   - **Más agentes entran con tu cuenta en la nube** (revisión de la 1.0, `cloudMoreAccounts.ts`): Cursor
     (`agent login`), Grok (`grok login --device-auth`, SuperGrok o X Premium Plus), Factory Droid, Crush (con GitHub
     Copilot), gptme (con ChatGPT Plus/Pro), Letta, Kiro (AWS Builder ID), Qwen Code (plan Plus/Pro de chat.qwen.ai),
