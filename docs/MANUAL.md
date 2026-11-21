@@ -2437,6 +2437,7 @@ sabe de verdad:
 | Ayudarte a conectar un agente | Que ese agente está en tu equipo y se conecta con una cuenta |
 | Añadir algo a una tarea | Que esa tarea existe en el proyecto y, si ya terminó, que su agente está disponible |
 | Adjuntar un archivo | Que el archivo existe en el proyecto |
+| Lanzar una orden de kywai | Que la orden existe, que es de las que puede lanzar él y que está completa |
 
 Dos casos se quitan sin aviso, porque no pierdes nada: un archivo que aún no existe cuando la misma respuesta encarga
 la tarea que lo hace (llega con su entrega) y un agente local metido entre otros que sí se conectan con una cuenta
@@ -2459,6 +2460,42 @@ tuvieron las demás (solo la clase: «vídeo sin tema», «tarea que no existe»
 Código: `src/main/planActions.ts` (qué se comprueba, el texto para quien coordina y el aviso) y `planActionChecks` en
 `src/main/orchestrator.ts` (lo que la app sabe de cada acción). Es la primera parte del paso del coordinador de
 «un texto de reglas» a «acciones que la app comprueba».
+
+### Órdenes que lanza quien coordina: lo pides con tus palabras y sale
+
+Hay cosas que kywai ya sabe hacer con una orden fija. Antes, si las pedías con tus palabras, quien coordina te
+contestaba «escribe `/miniatura`» y te tocaba lanzarla a ti. Ahora la pone en su respuesta como una acción más y
+**kywai la lanza sola**, justo después de su mensaje:
+
+| Si pides… | Lanza |
+| --- | --- |
+| Una portada para tu último vídeo | `/miniatura` |
+| Una demo o un anuncio de una web | `/demo <dirección>` |
+| Una presentación o unas diapositivas | `/presentacion <tema>` |
+| De qué hacer el próximo vídeo, qué temas suben | `/radar <tema>` |
+
+En el chat la orden sale como un mensaje más, con la etiqueta **«Orden lanzada por Hermes»** (o el nombre de quien
+coordine) en vez de «Tú», y no se puede editar: así ves siempre qué se lanzó y quién lo decidió. El resultado llega
+debajo, igual que si la hubieras escrito tú, y el mensaje de quien coordina lleva la marca «⏳ Aún en marcha: acabo de
+lanzarlo y el resultado sale aquí cuando esté».
+
+Antes de lanzar nada, kywai comprueba la orden con las mismas reglas del apartado anterior:
+
+- **Que existe.** Una orden inventada no se lanza.
+- **Que es de las cuatro de la tabla.** Son las que solo crean contenido dentro de tu proyecto. Publicar en Instagram
+  o TikTok, proponer rutinas, guardar claves, cambiar ajustes y todo lo que pide tu visto bueno **sigue siendo cosa
+  tuya**: quien coordina te dice qué orden usar y la lanzas tú con un clic.
+- **Que está completa.** `/demo` sin dirección, `/presentacion` sin tema ni archivo o `/miniatura` sin ningún vídeo en
+  el proyecto no se lanzan.
+
+Si la orden no pasa, se le devuelve una vez y, si insiste, no se lanza y su mensaje lleva el aviso de siempre
+(«La orden «/demo mi tienda»: le faltaba algo para poder lanzarla»). Como mucho lanza tres órdenes por respuesta. En
+una rutina funciona igual. En Órbita la orden lanzada se ve como un mensaje tuyo normal, sin la etiqueta.
+
+Código: la lista está en `PLANNED_COMMANDS` (`src/main/planActions.ts`); `launchPlannedCommand` y
+`plannedCommandReady` en `src/main/orchestrator.ts` la comprueban y la lanzan por el mismo camino que si la escribes
+tú. Para añadir otra orden a la lista: tiene que crear solo contenido en el proyecto, tener su comprobación de
+«está completa» y su prueba en `planActionsFlow.test.ts`.
 
 ### Vigilante de trabajos largos: nada se queda colgado sin avisar
 
