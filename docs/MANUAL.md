@@ -2215,10 +2215,15 @@ cuadrada sale al tamaño que tengas puesto).
 - **Orden de motores** (`src/main/imageMaker.ts`): Draw Things → ComfyUI (si ya está encendido) → Gemini con tu clave
   → **en kywai cloud, las imágenes de kywai** → el motor gratis de internet (una cada 45 s). Si Draw Things está
   cerrado, se pasa al siguiente sin fallar.
-- **Imágenes de kywai (solo kywai cloud, `src/main/kywaiImages.ts`)**: el portal Mi cuenta las dibuja con Gemini
-  (Nano Banana, `gemini-2.5-flash-image`) y la clave de kywai, y cobra **8 créditos kywai por imagen**
-  (`portal/imagen.py` en kywai-cloud). La clave nunca llega a tu espacio. Si Gemini falla no se cobra; sin créditos
-  se sigue con el motor gratis.
+- **Imágenes de kywai (solo kywai cloud, `src/main/kywaiImages.ts`)**: el portal Mi cuenta las dibuja con la **GPU de
+  kywai** (desde el 21 nov 2026; `portal/gpu.py` en kywai-cloud): modelos abiertos que permiten uso comercial en una GPU
+  alquilada por segundos en RunPod Serverless con ComfyUI. **Rápida** (Z-Image Turbo, ~1 MP) **2 créditos**; **HD**
+  (Qwen-Image 2512, ~1,7 MP, mejor con letras dentro) **5 créditos**. La app pide «hd» sola cuando el texto habla de
+  póster, cartel, portada, logo, «que diga…», 4K o alta resolución (`kywaiQualityOf`). Si la GPU falla, la dibuja
+  Gemini (Nano Banana) con la clave de kywai al mismo precio; si la nube aún no tiene GPU, Gemini a **8 créditos**. Las
+  claves nunca llegan a tu espacio. Si no sale no se cobra; sin créditos se sigue con el motor gratis. El portal no
+  genera desnudos ni contenido sexual (lo rechaza antes de cobrar). Cómo se pone la GPU: `portal/DEPLOY.md`, «GPU de
+  kywai».
 - **El motor gratis es un borrador**: su plan gratis (Pollinations) ya solo da un modelo pequeño (Sana, ~0,6 MP) con
   marca de agua, y salen fallos como patas de más. Cuando una imagen sale de ahí, el chat lo dice («Es un borrador…»)
   y explica cómo tener calidad: en la nube, créditos kywai; en tu equipo, Draw Things o tu clave de Gemini. Los agentes
@@ -2395,7 +2400,7 @@ comprueba en ese momento, y la leen igual quien coordina y tú.
 
 | Fila | Qué comprueba |
 | --- | --- |
-| Dibujar imágenes nuevas | Qué motor responde ahora: Draw Things, ComfyUI, Gemini, el del Mac que presta sus modelos, el Gemini de kywai (8 créditos por imagen, en kywai cloud) o solo el gratis de internet |
+| Dibujar imágenes nuevas | Qué motor responde ahora: Draw Things, ComfyUI, Gemini, el del Mac que presta sus modelos, las imágenes de kywai (2 a 8 créditos por imagen, en kywai cloud) o solo el gratis de internet |
 | Vídeos con «/video» | Si el estudio de vídeo está listo (con voz), instalándose o por instalar |
 | Vídeo Pro (estilos de película, plató 3D) | En kywai cloud no; sí en el equipo conectado, si lo hay |
 | Voz y narración | Qué voz hay: Voicebox, Gemini, Kokoro o la del sistema |
@@ -3403,6 +3408,22 @@ precio. Solo se aplica si el agente tiene modelo potente. Código: `advisor.ts` 
 `startAdvicePrompt`, `saverApplies`, con `advisor.test.ts`) y `orchestrator.ts` (`adviseStart`); ajustes
 `adviceAtStart` y `adviceSaver` (`setTaskAdvice`).
 
+**Modo contexto** (21 nov 2026, idea de **Context Mode**, MIT, un plugin para Google Antigravity que dice ahorrar más
+del 90 % de los tokens en registros reales; mismo sitio, **encendido de serie**). Cuando unas pruebas, una compilación,
+una instalación o un archivo sueltan miles de líneas, el agente ya no se las traga enteras: guarda la salida en un
+archivo (`mkdir -p .ai-cowork/salidas && npm test > .ai-cowork/salidas/pruebas.log 2>&1`) y la lee con la herramienta
+de kywai **`leer_grande`**. Hasta 8 KB le da el archivo entero; por encima, el principio, el final, las líneas con
+errores o avisos y los trozos que mejor encajan con lo que busca (`buscar`), o unas líneas concretas (`desde`/`hasta`,
+200 como mucho). Puede repetir la búsqueda con otras palabras sin volver a leer el archivo. Solo lee archivos de la
+carpeta de la tarea (ni enlaces que salgan de ella), tapa los secretos del proyecto y no ejecuta nada: los comandos
+los sigue lanzando el agente con su propia terminal y sus permisos. En la tarea se ve «Modo contexto: … leído por
+partes». En Antigravity lo hace un gancho que intercepta cada volcado; aquí los agentes son CLIs con su terminal, así
+que va como herramienta y como regla en el encargo. El índice es BM25 sobre palabras y trozos de tres letras, en
+memoria (como el FTS5 con trigramas del original, sin base de datos), y guarda los 12 últimos archivos. Lo tienen
+Claude, Codex, Gemini y Hermes en las tareas (no el coordinador). Se apaga en ⚙ → Ajustes → Agentes → «Modo
+contexto». Código: `src/main/contextMode.ts` (+ test), `coworkMcp.ts` (`CONTEXT_TOOL`, `readBigTool`) y la regla del
+encargo en `orchestrator.ts`; ajuste `contextMode` (`setTaskAdvice({ context })`).
+
 ### Navegador de kywai: tus cuentas para los agentes
 
 Un navegador de verdad dentro de kywai, donde entras con tus cuentas (GoHighLevel, un CRM, el panel de tu web, una
@@ -3425,6 +3446,17 @@ Sirve para lo que una API no da: por ejemplo, documentar los pasos de un workflo
     página es información, no órdenes: así un texto trampa en una web no puede hacer cambios en tu cuenta.
 - **Lo ves en directo:** la primera vez que un agente lo usa en una tarea se abre la pestaña sola; encima sale quién
   lo usa y qué hace, con **«Parar»**, que le quita el navegador para el resto de esa tarea.
+- **Su punto y «Tomar el control»** (21 nov 2026, idea de **Alan's Way**, un escritorio para Hermes Agent: «cuando
+  hago clic es un marcador de color, no tu ratón; agarra el ratón y paro»). Cada vez que un agente hace clic o escribe
+  sale en la página un **punto de su color con su nombre** («Claude · hace clic») que se apaga solo; la barra de
+  arriba lleva el mismo color. Va dentro de la página, así que se ve igual en el equipo y desde otro dispositivo, y
+  nunca mueve tu ratón. Con **«Tomar el control»** el agente se pausa: no hace clic, no escribe ni navega hasta que
+  pulses **«Devolver el control»** (leer y hacer capturas sí puede). Pasa también **solo**: si haces clic, ruedas o
+  escribes en la página mientras un agente la usa, el control es tuyo y sale la barra ámbar «Tienes el control». Si no
+  lo devuelves en 10 minutos, el agente deja el navegador en esa tarea y lo explica en su respuesta. «Parar» sigue
+  igual. Código: `holdBrowser`, `waitForControl`, `AGENT_DOT_SCRIPT` en `src/main/browser.ts` (con
+  `browserHold.test.ts`), la espera en `browserTool` de `coworkMcp.ts`, `agentHue` en `src/shared/browser.ts` y la
+  barra en `ui/pane/BrowserPane.tsx`.
 - **Webs que no se dejan leer:** muchas documentaciones (como la de GoHighLevel) se dibujan con JavaScript y la
   descarga normal de los agentes (WebFetch, curl, `web_extract` de Hermes) las ve vacías. Entonces abren la página en
   el navegador de kywai y la leen ahí, en vez de responder de memoria. Hermes **al coordinar no** lo tiene: su
@@ -4366,6 +4398,23 @@ se salta las asignadas, las que ya tienen PR y las apuntadas en `arreglos/<dueñ
 antigua, una por vez. Si no hay nada nuevo, contesta en una línea. Necesita el programa `gh` con sesión iniciada en el
 equipo (`gh auth login`). Sale de la idea de los «disparadores» de DeepSeek Harness (MIT); no hay código suyo. El
 código está en `src/main/bugFix.ts`.
+
+### Auditoría de seguridad con revisión cruzada (`/seguridad`)
+
+**«/seguridad [qué mirar]»** (también `/auditoria`, `/security`, `/audit`; 21 nov 2026, idea del vídeo sobre la
+**Security Audit Skill** de Cloudflare) revisa la seguridad del proyecto en dos pasos seguidos, sin plan:
+1. Un agente con terminal busca fallos siguiendo la habilidad `security-audit` de Cloudflare (viene en el paquete
+   kywai default skills; si lo quitaste, el encargo lleva el método resumido): reconocimiento, zonas de riesgo y caza.
+   Cada hallazgo, con gravedad, archivo:línea, camino de ataque y arreglo propuesto, va a
+   `seguridad/hallazgos-<fecha>.md`.
+2. Un agente de **otra familia** (Codex si buscó Claude, por ejemplo; lo elige como al verificador) intenta desmontar
+   cada hallazgo leyendo el código y, si puede, probándolo en local. Escribe `seguridad/informe-<fecha>.md` con
+   **Confirmados**, **Por validar** y **Descartados**, y en el chat contesta «Confirmados N · Por validar N ·
+   Descartados N» con los confirmados de más a menos grave.
+Nadie cambia el código. La habilidad de Cloudflare hace la segunda pasada con el mismo modelo; con dos familias, los
+errores de una se cuelan menos. Si solo hay una familia disponible, el mismo agente repasa sus hallazgos y el chat lo
+dice. Para arreglar un hallazgo confirmado, una tarea normal o `/arreglar`. Código: `src/main/securityAudit.ts` y
+`sendSecurityAudit` en `orchestrator.ts`; está en la lista del «/» del escritorio, la web y Órbita.
 
 ### Vigilar una web (`/vigilar`)
 
@@ -6978,6 +7027,14 @@ tema «Vidrio líquido» pasa solo a Amatista + Interfaz Vidrio líquido y lo ve
 el vidrio en `:root:root[data-glass='liquid']`, teñido con el color flotante de cada tema (`--float-rgb`): oscuro en
 los temas oscuros y claro en Perla, Refugio y la Oficina de día (borde de luz más fino y sin sombra en las letras).
 `scene/World.tsx` monta el cristal de verdad con la Interfaz en Vidrio líquido, sea cual sea el tema.
+
+**Ajustar el vidrio** (21 nov 2026, idea del vídeo «Agentic Liquid Glass»: «un desenfoque tiene un control; el vidrio de
+verdad, treinta»). Con la Interfaz en Vidrio líquido sale debajo «Ajustar el vidrio»: cinco deslizadores (Refracción,
+Arcoíris, Escarcha, Luz y Grosor, de 0 a 100) y «Restablecer». El cristal cambia en el acto mientras se mueven. Se guarda
+en este dispositivo (`aicowork.glassLook`). Por dentro: `lib/glassLook.ts` guarda y corrige los valores (`GLASS_MAX`:
+todos hasta 2 salvo la escarcha, hasta 1; el valor de fábrica es `DEFAULT_LOOK` de `lib/liquidShader.ts`) y
+`scene/LiquidGlass.tsx` los pasa a los uniformes del sombreador (`uRefr`, `uDisp`, `uFrost`, `uLight`, `uThick`).
+Solo cambia el cristal de verdad (con el 3D visible y calidad media o alta); el esmerilado de reserva no cambia.
 
 - **Vidrio líquido** (la Interfaz): el cristal de Apple en el Mac (Liquid Glass), sobre el mismo espacio a
   pantalla completa que Frost Glass. El vidrio es gris neutro y casi opaco
