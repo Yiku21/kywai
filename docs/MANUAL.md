@@ -2349,8 +2349,12 @@ es pesado, puede instalar programas y depende de servicios de fuera.
 Windows con la pantalla al 150 %) la foto de una ventana oculta salía con más píxeles de los pedidos, así que las
 portadas de `/miniatura` medían el doble (2560×1440) y, en `/demo`, los planos se recortaban de otra parte de la web.
 Ahora la foto se reduce siempre a las medidas pedidas (`shoot` y `captureTarget` en `src/main/htmlShot.ts`) y la
-autoprueba mira también las medidas de la foto de la web. La edición sin subtítulos, en cambio, es del equipo: su
-ffmpeg tiene que traer libass (el motivo que dio ffmpeg sale entre paréntesis).
+autoprueba mira también las medidas de la foto de la web.
+
+La edición sin subtítulos fue el segundo hallazgo: el ffmpeg del Mac mini era el de Homebrew, que **dejó de traer
+libass** y ya no puede quemar subtítulos ni rótulos, y kywai entregaba el vídeo sin ellos. Ahora, en un Mac, kywai
+pone el suyo (ver «Subtítulos en un Mac con el ffmpeg de Homebrew», más abajo). La autoprueba no instala nada: si el
+ffmpeg no puede, lo dice con el motivo que dio ffmpeg entre paréntesis y, en un Mac, con cómo se arregla.
 
 Quién la lanza:
 
@@ -4227,7 +4231,8 @@ Cómo funciona (una sola tarea, sin plan del coordinador):
    o los clips (`"clips": [{"title", "from", "to", "why"}]`). Si no vale (o quitaría más del 70 % del vídeo), se
    reintenta con otro agente.
 3. kywai corta cada tramo con su fundido, los une limpiando la voz, encuadra, retoca el color y quema los subtítulos
-   (ffmpeg con libass; si no lo trae, entrega sin subtítulos y lo dice). Después lo repasa (pantallas negras,
+   (ffmpeg con libass; si el del equipo no lo trae, en un Mac kywai instala antes el suyo, y donde no puede entrega
+   sin subtítulos y lo dice). Después lo repasa (pantallas negras,
    silencios) y lo cuenta en la respuesta. Se entrega en `videos/<título>-editado.mp4` o
    `videos/recortes-<grabación>/<n>-<título>.mp4`.
 
@@ -4276,8 +4281,8 @@ amarillo). Ejemplos: «/demo kywai.app vertical presentador», «/demo kywai.app
   llamada a la acción). kywai graba cada frase con la voz elegida (`voz:<id>`, las mismas del selector de «/video») o,
   sin elegir, con la del idioma (Álvaro en español, Bella en inglés); si esa voz no sale, con la del sistema.
 - Cada plano dura lo que su frase (como mínimo lo de su ficha) y la música va baja por debajo de la voz.
-- Si no sale ninguna voz, el vídeo se hace igual pero sin presentador. Si ffmpeg no tiene libass, sale sin subtítulos ni
-  rótulo.
+- Si no sale ninguna voz, el vídeo se hace igual pero sin presentador. Si ffmpeg no tiene libass, en un Mac kywai
+  instala antes el suyo; donde no puede, sale sin subtítulos ni rótulo.
 
 **Repositorios de GitHub.** Con un enlace a un repositorio («/demo github.com/dueño/repo vertical») kywai fotografía su
 portada (los datos y el README) y pide a la **API pública de GitHub** sus datos reales: estrellas, forks, licencia,
@@ -5682,10 +5687,28 @@ entorno que ya estaba hecho con un Python viejo se rehace solo. Si Manim no se i
 **Instalar a mano.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
 imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
 la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de trabajo (versiones fijas, para que un guion
-se monte igual dentro de meses), ffmpeg (Homebrew en macOS o, sin él, ffmpeg y ffprobe ya compilados para el procesador del Mac en `~/.local/bin`;
+se monte igual dentro de meses), ffmpeg (en macOS, ffmpeg y ffprobe ya compilados para el procesador del Mac en `~/.local/bin`;
 winget en Windows; en Linux, con tu gestor de paquetes),
 la voz Kokoro en un entorno de Python propio (`estudio-video/.venv`) y el navegador del render. La primera voz
 descarga el modelo de Kokoro (unos cientos de MB). Si falta el motor o ffmpeg, pedir un vídeo dice qué instalar.
+
+**Subtítulos en un Mac con el ffmpeg de Homebrew.** Los subtítulos de `/editar`, los títulos de `/recortes` y el
+rótulo y los subtítulos del presentador de `/demo` se queman con el filtro `ass` de ffmpeg, que solo existe si ffmpeg
+se compiló con libass. El `ffmpeg` de Homebrew dejó de traerlo, así que en esos Mac los vídeos salían sin texto. kywai
+lo mira en la lista de filtros de ffmpeg (`burnsSubtitles` en `src/main/videoStudio.ts`) y, en macOS, deja el suyo
+(el ya compilado, que sí trae libass) en `~/.local/bin`, que va delante en el PATH de kywai. **No toca el de
+Homebrew.** Lo hace en tres sitios:
+
+- **Al ir a montar** un vídeo que lleva subtítulos, título o rótulo (`ensureSubtitleFfmpeg`): la tarea dice
+  «Instalando un ffmpeg que queme los subtítulos (solo esta vez)», tarda alrededor de un minuto y el vídeo sale ya con
+  ellos. Si no hay red, sale sin subtítulos y lo dice, como antes.
+- **Al arrancar el servidor**, con la instalación automática del estudio: un ffmpeg que no los quema cuenta como que
+  falta algo.
+- Con **«Instalar lo que falta»**. La fila «ffmpeg» de Ajustes → Extensiones → Estudio de vídeo dice «Instalado, pero
+  no puede quemar subtítulos» mientras no se arregle.
+
+En Windows (winget) y en Linux (el ffmpeg de la distribución) ffmpeg trae libass; si alguno no lo trajera, kywai no lo
+cambia: la fila lo dice y el vídeo sale sin subtítulos, con el aviso.
 
 **Cómo se ve la pestaña.** Cada bloque va en su propia tarjeta, separada de las demás: lo que tiene el equipo con
 «Instalar lo que falta», «El Instagram de kywai», «El TikTok de kywai» y «Extensiones de vídeo». Dentro de cada
