@@ -6873,8 +6873,16 @@ robot, y la pegatina cambia según en qué va el trabajo (`mascotMoodFor` en `li
 | Entrega | El plan terminó con todas sus tareas hechas |
 | Celebra | El resumen final, la última respuesta del coordinador tras un plan terminado |
 | Te necesita | Pregunta o permiso sin contestar, una tarea que te necesita, un error o tareas fallidas |
+| Lo siento | La respuesta es una mala noticia o una disculpa («No, todavía no…», «no pude», «falló», «lo siento») y tocaba saluda, reposo, entrega o celebra: suspira en vez de celebrar |
 | Reposo | Las demás respuestas |
 | Asoma | El chat vacío: la cotorra asoma por detrás del logo de kywai (también para Órbita) |
+
+**La cara va con lo que dice.** Antes de elegir la pegatina se mira el tono del texto (`replyTone` en
+`lib/replyTone.ts`, sin modelo ni red): busca al principio de la respuesta (500 caracteres) frases de mala noticia o
+disculpa y de buena noticia en español, inglés, portugués, francés, hindi y chino. Un «No, …» al empezar pesa doble y lo
+negado («no terminé») no cuenta como bueno. Si pesan más las malas, la respuesta es negativa y la cotorra pone «Lo
+siento» en vez de una cara alegre; lo que pide algo («Te necesita») o sigue trabajando no cambia. La cara «Lo siento» es
+el suspiro de las láminas de estilos (en la Pegatina, el de Facetas).
 
 Al cambiar de pegatina da un saltito (sin él con efectos reducidos o «reducir movimiento»). La pegatina de los
 auriculares («Escucha») está en `assets/mascota/` para la voz y Órbita, aún sin usar. Las imágenes son las pegatinas que
@@ -6884,10 +6892,10 @@ paquete de marca están en la carpeta del proyecto «mascota-kywai».
 **Estilo de la cotorra.** En ⚙ → Ajustes → General → Apariencia → «Estilo de la cotorra» cada persona elige cómo se ve la
 cotorra en el chat y en el espacio 2D (se recuerda en ese dispositivo). Hay 14: Pegatina (la de siempre, predeterminada),
 Facetas, Juguete, 3D suave, Plastilina, Fieltro, Papel, Acuarela, Anime, Cómic, Píxel, Vidriera, Grabado y Gominola. Cada
-estilo trae las 12 emociones en `assets/mascota/estilos/<estilo>/<emoción>.webp` (288 px, fondo transparente, pies abajo).
+estilo trae las 13 emociones en `assets/mascota/estilos/<estilo>/<emoción>.webp` (288 px, fondo transparente, pies abajo).
 Salen de las láminas que pasó Yil el 20 nov, recortadas y sin fondo; como las láminas no traen «revisa», «entrega» ni
 «asoma», revisa usa la del portátil, entrega la del guiño (en Facetas, la de contento) y asoma la del saludo. Para añadir
-un estilo: su carpeta con las 12 emociones y su id y nombre en `lib/mascotStyle.ts` (la prueba comprueba que no falte
+un estilo: su carpeta con las 13 emociones y su id y nombre en `lib/mascotStyle.ts` (la prueba comprueba que no falte
 ninguna). Si a un estilo le falta una emoción, sale la de la pegatina.
 
 ### La cotorra que te mira
