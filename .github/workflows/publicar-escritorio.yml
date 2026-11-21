@@ -8,7 +8,13 @@
 #      del código: así la ventana «Novedades» de las apps ya instaladas, que compara dos versiones de este
 #      repositorio, sigue enseñando las mejoras.
 #   3. Compila Windows, macOS y Linux desde el código privado y crea la Release v0.1.<commits del código>, con los
-#      mismos nombres de archivo y los latest*.yml de siempre: las apps instaladas se actualizan solas igual que antes.
+#      mismos nombres de archivo y los latest*.yml de siempre.
+#
+# CANALES. Cada Release sale como BETA («pre-release» en GitHub): la reciben solo las apps que eligieron Beta en
+# Ajustes → Acerca de → «Canal de actualizaciones». La ESTABLE es la marcada como «latest»: la reciben las demás
+# apps, la web y los instaladores de una línea. Quién pasa de Beta a Estable lo decide el flujo «Promover a Estable»
+# (promover-estable.yml), una vez por semana y solo con las pruebas reales de la noche en verde. Por eso este flujo
+# ya no toca los botones de descarga de la web: los cambia aquel al promover.
 #
 # Al ser un repositorio público, los minutos de GitHub Actions no cuestan nada. El código se baja con una llave de
 # despliegue de SOLO LECTURA (secreto KYWAI_CODIGO_LLAVE). No hay disparador pull_request: nadie de fuera puede
@@ -226,6 +232,8 @@ jobs:
         run: |
           ls -la dist
           cat > notas.md <<EOF
+          Every version comes out first as **Beta** (shown here as "Pre-release"). Once a week, the newest one that passed the nightly real tests becomes the **Stable** version (shown as "Latest"). kywai stays on Stable unless you choose Beta in Settings → About → Update channel.
+
           Once installed, kywai checks for a newer version every time it opens.
 
           | System | Download |
@@ -245,27 +253,6 @@ jobs:
 
           You still need at least one AI agent (Claude Code, Codex CLI, Gemini CLI, a local model…). The setup assistant installs and signs in to them on first launch.
           EOF
+          # Beta: no se marca como «latest». La Estable la marca promover-estable.yml.
           gh release create "v${V}" dist/* --repo "${GITHUB_REPOSITORY}" --target "${TARGET}" \
-            --title "kywai ${V}" --notes-file notas.md --latest
-      - name: Apuntar los botones de descarga de la web a la nueva versión
-        # web/descargas.json es la copia fija de los enlaces (la que se ve sin JavaScript o si la API de GitHub
-        # no responde). Se rehace con la Release recién creada y se vuelve a publicar la web.
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          V: ${{ needs.revisar.outputs.version }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for intento in 1 2 3; do
-            git fetch --quiet origin master && git checkout --quiet -B master origin/master
-            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${V}" \
-              --jq '{tag_name, published_at, html_url, assets: [.assets[] | select(.name | test("\\.(dmg|exe|AppImage|apk)$")) | {name, size, browser_download_url}]}' \
-              > web/descargas.json
-            git add web/descargas.json
-            git diff --cached --quiet && break
-            git commit --quiet -m "[skip] Botones de descarga de la web a la versión ${V}"
-            git push --quiet origin HEAD:master && break
-            [ "$intento" = 3 ] && { echo "::error::No se pudo guardar web/descargas.json"; exit 1; }
-            sleep 5
-          done
-          gh workflow run publicar-web.yml --repo "$GITHUB_REPOSITORY" --ref master
+            --title "kywai ${V}" --notes-file notas.md --prerelease
