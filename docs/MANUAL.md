@@ -1337,6 +1337,13 @@ nada, y así lo sabe el coordinador. Puede ser coordinador con «Hacer coordinad
 internos van por la salida de errores, así que la respuesta llega limpia. Medido en Linux: unos 500 MB de memoria por
 encargo, cabe en un espacio de kywai cloud.
 
+**OpenClaw es un agente del equipo; Hermes sigue de coordinador** (21 nov 2026, decidido por Yil). Hermes le pasa lo de
+asistente personal: recados y recordatorios, leer, resumir u ordenar correo y agenda, y automatizar tareas repetitivas
+(`OPENCLAW_STRENGTHS` en `src/shared/agentCatalogData.ts`, lo que usa el reparto de `bestAgentFor`). El código sigue
+yendo a Claude o Codex, y lo que necesita el navegador de kywai no le llega (no lo tiene). Quien ya lo había añadido con
+las fortalezas de antes recibe las nuevas al cargar (`freshStrengths` en `src/main/config.ts`); si las cambió a mano, se
+quedan las suyas. Si el usuario pregunta si OpenClaw coordina mejor que Hermes, el coordinador lo explica así.
+
 **Los agentes de catálogo se ponen al día solos.** Cada agente añadido guarda cómo se lanza el día que se añadió; al
 cargar la configuración, esa copia toma lo del catálogo actual (argumentos, esfuerzo, inicio de sesión e instalación,
 `freshCliSpec` en `src/main/config.ts`). Así un arreglo del catálogo llega también a quien ya tenía el agente. Los
