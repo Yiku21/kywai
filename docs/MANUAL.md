@@ -227,7 +227,10 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   al día, y contestaba «Tienes la última versión» aunque este equipo fuera viejo). ⚙ → Ajustes → «Actualizar este
   equipo…» también pregunta a GitHub: dice la versión, y un segundo toque la instala y reabre (AppImage y Mac; abre la
   descarga solo si el Mac no puede cambiarse solo). Los clientes de Windows siguen actualizándose desde su servidor.
-- **Canal Estable o Beta** (⚙ → Ajustes → Acerca de → «Canal de actualizaciones»). Las versiones de escritorio salen
+- **Canal Estable o Beta** (⚙ → Ajustes → Acerca de → «Canal de actualizaciones»). **El reparto por canales todavía
+  no está activado** (21 nov 2026): el selector ya está en la app, pero hasta que el comprobador de cada noche de kywai
+  cloud esté en marcha los dos canales reciben las mismas versiones, y la fila lo dice («Muy pronto…», mientras
+  `CHANNELS_LIVE` de `src/shared/updateChannels.ts` sea `false`). Cuando se active: las versiones de escritorio salen
   primero como **Beta**: cada mejora, en cuanto se fusiona. Una vez por semana, la que pasó las pruebas reales de la
   noche se marca como **Estable**. Si no tocas nada, tu equipo va en Estable y recibe solo esas; con Beta recibe
   todas. El canal es de cada equipo: se guarda en `update-channel.txt`, en la carpeta de datos de la app, y un cliente
