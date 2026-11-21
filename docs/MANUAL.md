@@ -1622,6 +1622,13 @@ lleva `permission` con su estado.
     («llama.cpp») y, si Colibri no está instalado pero hay servidores, dice «N encontrado(s)». El puerto del propio
     Colibri instalado no cuenta como otro servidor. Ollama y LM Studio tienen su propia pestaña. Código:
     `src/main/localServers.ts` (+ prueba) y `colibriEngineStatus` en `src/main/local.ts`.
+  - **Strata** (github.com/Niko1221/Strata, MIT): motor que corre modelos MoE grandes (Qwen3.8-Flash-Next,
+    Qwen3.6-35B-A3B) repartiendo el trabajo entre la GPU, la RAM y el SSD, con API compatible con OpenAI y Anthropic en
+    127.0.0.1:8080. Si está encendido (`strata launch`, o `strata launch --no-tui` en segundo plano) sale en
+    «Encontrados en este equipo» como **Strata** y se usa con **Usar**, como los demás. Pide mucho equipo: unos 48–64 GB
+    de RAM (más algo de VRAM, que acelera), 66–76 GB de descarga por modelo y un SSD; funciona en Windows y Linux con
+    GPU NVIDIA o AMD y en Mac con Apple Silicon y macOS 15 o más nuevo. kywai no lo instala ni lo enciende. Con
+    tarjetas de 12 GB y 64 GB de RAM, sus autores hablan de 50–90 tokens/s con Qwen3.8 (no lo hemos medido).
   - **Velocidad**: con un modelo mediano que cabe en RAM (Qwen3.6-35B-A3B, unos 6 tokens/s solo con CPU) va bien
     para tareas sin prisa. Con los gigantes (GLM-5.2, DeepSeek V4) baja de 1 token/s y no sirve para tareas de
     agente. Hermes sabe que es lento y le da solo tareas acotadas.
@@ -2314,6 +2321,50 @@ No hay segunda oportunidad con un agente porque aquí no hay agente que se haya 
 se dice tal cual, con su motivo. Cómo salió cada trabajo queda en el [registro de salud](#registro-de-salud-ver-los-fallos-antes-que-el-usuario).
 Código: `src/main/studioCheck.ts` (`studioJob`, `proveStudioFiles`).
 
+#### Probar el estudio: lo hace de verdad, sin agentes
+
+Comprobar el archivo al entregar dice si **ese** trabajo salió. Faltaba saber si el estudio funciona en un equipo
+**antes** de que alguien lo necesite: un ffmpeg que falta o que no puede quemar subtítulos, o una ventana que no deja
+hacer la foto de una web, solo se veían al usarlo. Para eso está la **autoprueba del estudio**: kywai hace de verdad,
+en el equipo donde corre, con entradas fijas y **sin ningún agente**:
+
+| Pieza | Qué hace | Qué se mira |
+| --- | --- | --- |
+| Grabar un vídeo de muestra | 6 segundos de imagen de prueba con un tono, con el ffmpeg del equipo | Que salga, con sonido |
+| Editarlo (`/editar`) | Corta una muletilla y una pausa larga, limpia la voz, lo pone en vertical, le da color y le quema subtítulos | Que mida 1080×1920, dure lo que suman los tramos y **lleve los subtítulos** |
+| Sacar un recorte (`/recortes`) | Un trozo en cuadrado con su título arriba | Que mida 1080×1080 y dure lo que debe |
+| Hacer las portadas (`/miniatura`) | Tres fotogramas de la grabación y una portada de cada composición (grande, lateral, caja) | Que salgan las tres, de 1280×720 |
+| Montar la demo de una web (`/demo`) | Fotografía una web de muestra servida desde el propio equipo y monta portada, recorrido y cierre con música | Que la foto traiga sus secciones y el vídeo mida 1920×1080 y dure lo que dice el plan |
+
+No pide nada a ningún agente, no gasta nada, no sale a internet y no deja archivos (trabaja en una carpeta temporal que
+borra al acabar). Tarda alrededor de un minuto. Una pieza que falla no para las demás (salvo las que necesitan la
+grabación de muestra, si esa no salió), cada una tiene un tope de 4 minutos y el motivo de un fallo sale en una línea,
+sin rutas del equipo. Cada pieza pasa por la misma comprobación de entrega que un trabajo de verdad y queda en el
+[registro de salud](#registro-de-salud-ver-los-fallos-antes-que-el-usuario) con su función (edición, portadas, demos)
+y la marca «autoprueba». Va de una en una: con otro trabajo del estudio en marcha no empieza y lo dice, y en kywai
+cloud guarda el turno de los vídeos mientras dura. El `/video` completo (HyperFrames, voces, imágenes) queda fuera:
+es pesado, puede instalar programas y depende de servicios de fuera.
+
+**Lo que encontró la primera vez (21 nov 2026, en el Mac mini):** en una pantalla de alta densidad (un Mac Retina,
+Windows con la pantalla al 150 %) la foto de una ventana oculta salía con más píxeles de los pedidos, así que las
+portadas de `/miniatura` medían el doble (2560×1440) y, en `/demo`, los planos se recortaban de otra parte de la web.
+Ahora la foto se reduce siempre a las medidas pedidas (`shoot` y `captureTarget` en `src/main/htmlShot.ts`) y la
+autoprueba mira también las medidas de la foto de la web. La edición sin subtítulos, en cambio, es del equipo: su
+ffmpeg tiene que traer libass (el motivo que dio ffmpeg sale entre paréntesis).
+
+Quién la lanza:
+
+- **Tú**, en ⚙ → Ajustes → **Avanzado → Pruebas → «Probar el estudio»**: «Probar ahora» y, al acabar, cómo salió cada
+  pieza con lo que tardó (y el motivo de la que falle). Se prueba el equipo donde corre kywai: desde el móvil o el
+  cliente, el servidor o tu espacio de la nube. Al volver a abrir Ajustes sigue ahí la última prueba.
+- **Cada PR y cada noche**, la prueba de pantalla `scripts/e2e/estudio.e2e.mjs` en el Mac mini (ver «Pruebas
+  automáticas»).
+- **Cada noche en kywai cloud**, el comprobador (`scripts/comprobar-nube.py` de kywai-cloud) se la pide al espacio de
+  la cuenta robot, junto al chat, el archivo, la imagen y la voz.
+
+Código: `src/main/studioSelfTest.ts` (`studioSelfTest`, `runStudioSelfTest`), la API `studioSelfTest` /
+`lastStudioSelfTest` y `src/renderer/src/ui/settings/StudioCheck.tsx`.
+
 #### Las vistas del equipo pasan las mismas comprobaciones
 
 El espacio en 3D y en 2D, los personajes y la cotorra no entregan archivos, pero también pueden fallar, y un fallo suyo
@@ -2463,6 +2514,9 @@ señales; más de 30 minutos cuenta como colgado.
   que mide: si el registro falla, el trabajo sigue.
 - En **kywai cloud** lo lee la página «Salud» de Administrar cuentas, que junta el parte de todas las cuentas y avisa
   si algo pasa del umbral (lo ve solo el administrador). En tu equipo no cambia nada de lo que ves.
+
+- La [autoprueba del estudio](#probar-el-estudio-lo-hace-de-verdad-sin-agentes) apunta sus piezas aquí como edición,
+  portadas y demos, con la marca «autoprueba»: así el parte tiene datos del estudio cada noche aunque nadie lo use.
 
 Código: `src/main/healthLog.ts` (`recordHealth`, `withHealth`, `healthReport`), `src/main/studioCheck.ts` (los
 trabajos del estudio) y `teamHealth` en `src/main/orchestrator.ts`.
@@ -4296,6 +4350,37 @@ En los caminos locales, pixel art de verdad: reducir con promedio y ampliar con 
 en `sprites/<personaje>-<id>/`: `frames/<animación>_<dirección>_<n>.png`, `hoja.png` + `hoja.json` (una fila por
 animación y dirección), un GIF por animación ampliado 4× y un ZIP con todo. Órbita tiene la orden en su lista del «/».
 
+### Piezas para imprimir en 3D (`/imprimir3d`)
+
+**«/imprimir3d [medida] [material] qué pieza»** diseña una pieza lista para el laminador (Cura, PrusaSlicer, Bambu
+Studio, Orca) de una foto, un boceto o una descripción: «/imprimir3d soporte para el móvil 80 mm», «/imprimir3d tapa
+para este bote en PETG» con la foto adjunta. También valen `/pieza3d`, `/print3d` y `/stl`. La medida (mm o cm) es la
+más larga de la pieza; el material, PLA (por defecto), PETG, ABS, TPU, ASA o resina. La idea sale de un reel que
+convertía fotos en piezas imprimibles; kywai la hace con CAD de verdad, como text-to-cad: un sólido paramétrico con
+build123d o CadQuery (si no, OpenSCAD), no una malla adivinada, así que las medidas son exactas y se pueden cambiar.
+
+No pasa por el plan: va directa al agente que mejor modela (`bestAgentFor`) con el encargo de `src/main/print3d.ts`.
+El agente mira las fotos (usa lo que haya de referencia para las medidas y dice cuánto se fía), modela con las medidas
+como parámetros, aplica las reglas de impresión (paredes, voladizos de 45°, holguras de 0,2–0,3 mm, cara plana
+abajo), comprueba que la pieza es un sólido cerrado con sus medidas reales y mira una vista previa de 4 ángulos antes
+de entregar. Entrega en `piezas3d/<pieza>-<id>/`: `pieza.step`, `pieza.stl`, `pieza.3mf`, `modelo.py`, `vistas.png` y
+`LEEME.md` con medidas, supuestos y cómo imprimirla. No hace armas ni piezas de armas. Órbita tiene la orden en su
+lista del «/».
+
+### Efectos de sonido (`/sonido`)
+
+**«/sonido [segundos] [bucle] qué suena»** hace un efecto de sonido de una frase con ElevenLabs: «/sonido puerta vieja
+que cruje», «/sonido moneda de videojuego», «/sonido 10 s bucle lluvia en la ventana». También valen `/efecto`, `/sfx`
+y `/sound`. La duración va de 0,5 a 30 s (sin ella la elige ElevenLabs); con «bucle» (o «loop») el sonido se puede
+repetir sin que se note el corte, para ambientes, motores o música de fondo de un juego. La idea sale de un reel que
+añadía efectos de sonido a una app con una frase.
+
+Lo hace kywai directamente, sin gastar ningún agente ni pasar por el plan (`sendSound` en el orquestador y
+`elevenSound` en `src/main/elevenlabs.ts`): guarda el MP3 en `sonidos/<primeras-palabras>.mp3` del proyecto y quien
+coordina lo deja en el chat para escucharlo. Usa la misma clave de ElevenLabs que las voces del vídeo (Ajustes →
+Extensiones → Estudio de vídeo); sin ella, la orden lo dice. La clave nunca va a ningún agente. Gasta créditos de tu
+cuenta de ElevenLabs. Código del análisis de la orden: `src/main/soundEffects.ts`.
+
 ### Mascota animada (`/mascota`)
 
 **«/mascota [qué es] [bucles]»** crea la mascota de tu marca o de tu app, que sale siempre igual y se mueve en bucle:
@@ -5639,6 +5724,8 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/manual primer paso · fin` | Graba un manual paso a paso: le dices qué hacer (escrito o por voz), kywai lo hace en su navegador, captura cada paso marcando dónde pulsar y al final te da el documento (ver «Manuales paso a paso con capturas») |
 | `/vigilar web [cada 6 horas] avísame si…` | Vigila una página y te avisa en «Te necesita» cuando cambia lo que te importa: un precio, el stock, una versión nueva (ver «Vigilar una web») |
 | `/sprite [64px] [8 direcciones] personaje` | Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (ver «Sprites de pixel art para juegos») |
+| `/imprimir3d [80 mm] [PETG] pieza` | Una pieza para imprimir en 3D de una foto, un boceto o una descripción, con CAD de medidas exactas, STL y 3MF (ver «Piezas para imprimir en 3D») |
+| `/sonido [5 s] [bucle] qué suena` | Un efecto de sonido de una frase con ElevenLabs, listo para escuchar (ver «Efectos de sonido») |
 | `/doblar <idioma>` | El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos (ver «Doblar un vídeo a otro idioma») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
@@ -5729,7 +5816,14 @@ tono`. Código: `src/main/recipes.ts` (textos y decisión), `templateSteps` en `
 **Las de serie**: Revisar PR, Resumir carpeta, Buscar fallos, Escribir pruebas, Actualizar dependencias, Explicar
 código y **Revisión de seguridad** (🛡️ `/revisar-seguridad {proyecto-o-carpeta}`: la lista de comprobación de antes de
 publicar una app, de inicio de sesión y secretos a cabeceras, límites de peticiones y dependencias; arregla lo seguro,
-prueba cada arreglo y entrega un informe de más a menos grave). Mientras no las cambies, su nombre, su orden y su
+prueba cada arreglo y entrega un informe de más a menos grave), más tres **equipos listos para usar** que reparten
+la petición en papeles, cada uno con un agente distinto, y acaban en un informe con tabla (idea del repositorio
+awesome-llm-apps, en palabras propias): **Equipo legal** (⚖️ `/equipo-legal {contrato-o-documento}`: investigador
+legal, analista de contratos y estratega; tabla de riesgos por cláusula con su gravedad y qué proponer, y el aviso de
+que no es asesoramiento profesional), **Equipo de mercado** (📊 `/equipo-mercado {producto-o-idea}`: mercado y
+tendencias, 5 competidores, clientes; tabla comparativa, 3 oportunidades y riesgos, con la fuente de cada dato) y
+**Equipo de producto** (🧭 `/equipo-producto {idea}`: jefe de producto, arquitecto, diseñador y revisor; plan por fases
+y la primera tarea). Mientras no las cambies, su nombre, su orden y su
 texto siguen el idioma de la app (en inglés, `/review-pr`). Si las borras no vuelven solas; «Volver a poner las de
 serie» (en la ventana de crear o editar) pone las que falten. Una de serie nueva llega sola una vez a quien ya tenía
 plantillas, al final de la fila (`templates.json` recuerda en `seen` cuáles ha ofrecido); si la borras, no vuelve.
@@ -6143,7 +6237,8 @@ cabecera dice en pequeño cómo está ahora («Español · Órbita», «Pregunta
   (acceso desde otros dispositivos, archivos del servidor, sincronizar carpetas) y, en un cliente de escritorio,
   *Cambiar de servidor* (cambiar, olvidar este dispositivo, usar este equipo como servidor).
 - **Avanzado**: lo que casi nadie necesita tocar. *Rendimiento del 3D* (calidad, reducir efectos, medidor),
-  *Tareas a la vez* (en todo el equipo y por agente) y *Pruebas* (modo demo y recargar la interfaz).
+  *Tareas a la vez* (en todo el equipo y por agente) y *Pruebas* (modo demo, recargar la interfaz y
+  [«Probar el estudio»](#probar-el-estudio-lo-hace-de-verdad-sin-agentes)).
 - **Acerca de**: buscar actualizaciones, actualizar este equipo, reiniciar y apoyar kywai.
 
 Lo que tiene ventana propia (acceso desde otros dispositivos, actualizaciones, sincronizar) se abre en lugar de
@@ -7127,6 +7222,18 @@ Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el e
   porque casi todo brilla por sí mismo. Ahí lo que da vida son los circuitos del suelo: cada trazo sube y baja de brillo
   a su ritmo, así nunca laten todos a la vez (`circuitFrag` en `scene/shaders.ts`). Con **Reducir efectos** se quedan fijos.
 
+### Color de acento (rueda de color)
+
+Ajustes → General → Apariencia → **Color de acento**: arrastras el punto por la rueda y el color de los botones,
+enlaces, selecciones y bordes activos de toda kywai cambia al momento, con cualquier tema (también con el Vidrio
+líquido). Al soltar se guarda en ese dispositivo. Debajo: **Luz** (más claro u oscuro), 8 colores rápidos y **El del
+tema**, que lo quita y deja el color propio del tema. Con el teclado, las flechas giran la rueda de 10 en 10 grados.
+
+Cómo está hecho: los temas ponen su acento en la variable `--cyan` de `:root` (`styles/tokens.css` y
+`styles/themes.css`); `lib/accent.ts` la pone en el estilo de `<html>`, que gana a la del tema, y la guarda en
+`aicowork.acento`. Se aplica antes de pintar (`main.tsx`). La rueda es `ui/settings/AccentWheel.tsx`. Idea de un
+complemento de Hermes Desktop (Accent Picker) visto en un vídeo; hecho desde cero.
+
 ### Voces de los agentes
 
 Cuando un agente escribe en el chat, **suena su voz**: un balbuceo corto, una sílaba por letra (como los aldeanos
@@ -7303,7 +7410,7 @@ los demás agentes y los becarios siguen siendo robots.
 
 Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
 tema (foto de tres agentes y nombre): **Personajes** (por defecto), **Píxel** (los personajes como sprites de pixel
-art), **Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
+art), **Formas animadas** (cada agente con su forma y su color, ver «Formas animadas»), **Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
 (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía sus robots y los demás temas los
 clásicos. El icono del agente en el chat y en los paneles cambia con la skin (`lib/RobotAvatar.tsx`: dibujos en
 `assets/robots/` para Personajes, `assets/robots/clasico/` y `assets/robots/refugio/`). Mientras carga el modelo se ve
@@ -7455,6 +7562,35 @@ pulsando el agente en el espacio → **Crea tu agente: dale su propio aspecto** 
   así algo es demasiado grande, el portal corta la petición **antes de gastar** el cupo o los créditos, y la app dice
   «La imagen es demasiado grande para enviarla. No se ha gastado nada.». Una página de error (HTML) del portal o de
   Meshy nunca se enseña tal cual: sale un mensaje claro en el idioma de la app.
+
+### Formas animadas
+
+Otra forma de dar aspecto a cualquier agente, gratis y al instante: una **forma** (gota, bola, cápsula, cubo, osito,
+flecha, nube, gato, conejo, flor, diamante o antena) con su **color**. Las caras y los movimientos están hechos una sola
+vez y son los mismos para todos: parpadea y mira en reposo, se pone a trabajar, piensa (se vuelve tres puntitos que
+giran), espera, te llama cuando te necesita, celebra al terminar, se marea con un error y se duerme. Como no hay que
+dibujar nada por agente, vale para los que se añadan en el futuro.
+
+- **Activarlo**: Ajustes → Agentes → «Aspecto de los agentes» → **Formas animadas**. Se ven en el chat, las fichas, las
+  listas y el espacio 2D. En el 3D se usan los personajes (como con «Personajes»). Órbita sigue con sus dibujos.
+- **Elegir la de cada agente**: pulsa el agente en el espacio → **Forma animada: elige su forma y su color**. Vista
+  previa con las poses (pasan solas hasta que tocas una), 12 formas, 12 colores rápidos y «Otro color», **Sorpréndeme**
+  y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
+  color del agente. Al guardar, si el aspecto era otro, pasa a «Formas animadas» en ese dispositivo.
+- **Tu propio personaje**: diséñalo en Avatar Lab (avatars.bible-strong.app, gratis, en el navegador), descárgalo en
+  «Export» (`<nombre>.avatar.json`) y tráelo con **Traer .avatar.json**: hace los mismos movimientos. Se guarda en la
+  ficha del agente (como mucho 24 KB). El formato antiguo (versión 0) no se admite: hay que exportarlo de nuevo.
+- Un aspecto propio de «Crea tu agente» (Meshy) va por delante de la forma.
+
+Cómo está hecho: el motor es `@bible-strong/avatar-react` / `avatar-core` (licencia MIT; el estudio Avatar Lab es AGPL
+y no se usa su código ni sus personajes de ejemplo). Las formas están en `src/renderer/src/lib/figures.ts` (cuerpo y
+piezas en unidades del motor), lo que se guarda en `AgentConfig.figure` (`src/shared/agentFigure.ts`, IPC y web
+`setAgentFigure`) y el dibujo en `lib/AgentFigure.tsx` (en listas se queda quieto a los 1,5 s para no gastar). Las poses
+del espacio 2D pasan a estados del motor con `figureState` (reposo → idle, trabaja → working, piensa → thinking,
+espera → waiting, te necesita → alerting, celebra → celebrate, error → failed, duerme → sleeping). El validador del
+motor compila su esquema con `new Function`, que la política de seguridad de la ventana no deja: por eso los
+personajes propios pasan por `sanitizeCharacter`, que los rehace solo con los campos del formato y sus límites (las
+pruebas comprueban con el validador oficial que lo que sale es válido).
 
 ### Créditos kywai y planes de kywai Cloud
 
@@ -7780,14 +7916,22 @@ las cinco escenas del 2D cargan todas sus imágenes, que cada agente tiene su pe
 que con el equipo trabajando (modo demo) cada personaje hace lo que dice su estado, alguien se levanta a llevar un
 encargo y la cotorra deja el reposo, que se puede volver al 3D, que la vista y la escena elegidas se recuerdan aunque
 se salga de kywai justo después de elegirlas (la prueba sale como una persona, con `salir()`, no cortando el proceso)
-y que en un equipo que no puede abrir el 3D sale el 2D con su aviso en vez de la ventana en blanco. Si fallan, las
-capturas quedan en los artefactos del flujo. En local:
+y que en un equipo que no puede abrir el 3D sale el 2D con su aviso en vez de la ventana en blanco. Y la **prueba de
+pantalla del estudio** (`scripts/e2e/estudio.e2e.mjs`) abre la app y le pide la
+[autoprueba del estudio](#probar-el-estudio-lo-hace-de-verdad-sin-agentes): una grabación de muestra, su edición con
+subtítulos, un recorte, tres portadas y la demo de una web, hechos de verdad con el ffmpeg de la máquina (se le
+enlazan solo `ffmpeg` y `ffprobe`, buscados como los busca la app: primero `~/.local/bin`; el registro dice cuál es y
+si quema subtítulos). Si la máquina no tiene ffmpeg la prueba se salta, y si su ffmpeg no quema subtítulos no se le
+exige esa pieza; con `KYWAI_EXIGIR_ESTUDIO=1` (como cada noche) no se perdona nada. Para probar una pantalla de alta
+densidad en cualquier máquina: `KYWAI_E2E_ESCALA=2`.
+Si fallan, las capturas quedan en los artefactos del flujo. En local:
 `npx electron-vite build && npm i --no-save playwright@1.63.0 && node --test scripts/e2e/app.e2e.mjs` (y lo mismo con
-`scripts/e2e/vistas.e2e.mjs`; en Linux sin pantalla, con `xvfb-run -a` delante). Lo común de las dos está en
-`scripts/e2e/comun.mjs`.
+`scripts/e2e/vistas.e2e.mjs` y `scripts/e2e/estudio.e2e.mjs`; en Linux sin pantalla, con `xvfb-run -a` delante). Lo
+común de las tres está en `scripts/e2e/comun.mjs`.
 
 **Prueba de cada noche en el Mac mini («Noche en el Mac mini»).** Cada noche (9:30 UTC) el Mac mini compila master,
-abre la app con las mismas pruebas de pantalla (también las de las vistas del equipo), ahora en macOS de verdad y con su tarjeta gráfica, y comprueba el **agente local**: que LM
+abre la app con las mismas pruebas de pantalla (también las de las vistas del equipo y la del estudio, que aquí es
+obligatoria: sin ffmpeg falla), ahora en macOS de verdad y con su tarjeta gráfica, y comprueba el **agente local**: que LM
 Studio (puerto 1234) y Ollama (11434) responden, tienen un modelo y contestan a un mensaje corto
 (`scripts/e2e/local.e2e.mjs`). Si uno no está abierto, su prueba se salta; para exigirlo, en GitHub → Settings →
 Secrets and variables → Actions → Variables, `KYWAI_EXIGIR_LOCAL=lmstudio,ollama`. Si algo falla, GitHub manda un
