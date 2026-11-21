@@ -1523,6 +1523,20 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
+- **Turbo local** (21 nov 2026, decodificación especulativa; idea de HyperQwen y DFlash). Con LM Studio, si tienes
+  descargado un modelo **pequeño de la misma familia** que el del agente (por ejemplo `qwen3-0.6b` para un Qwen3 de
+  14B, `llama-3.2-1b-instruct` para un Llama 3.1 de 8B o `gemma-3-1b-it` para un Gemma 3 de 12B), kywai lo manda en
+  cada petición como **modelo borrador** (`draft_model`): el pequeño adivina los siguientes tokens y el grande solo los
+  confirma. La respuesta es **la misma** que sin turbo, pero sale más rápida, sobre todo al escribir código (de 1,5 a
+  3 veces en un equipo normal; el 9x del vídeo era con vLLM en una tarjeta de 24 GB). Solo se usa si el modelo del
+  agente tiene 7B o más, y el borrador como mucho 4B y la cuarta parte del grande (de los que valen, el más cercano a
+  1B). En la tarea sale «Turbo local con …». Si LM Studio rechaza el borrador, esa misma petición sigue sin él y no se
+  vuelve a intentar con ese modelo hasta reiniciar. Para activarlo basta con **descargar el modelo pequeño en LM
+  Studio**; se apaga en ⚙ → Ajustes → Agentes → «Turbo local» (solo sale si hay un agente con LM Studio). Ollama aún
+  no lo admite. Para ir más allá: en un Mac con chip de Apple, `dflash-mlx` (Apache-2.0); con una NVIDIA de 24 GB,
+  HyperQwen (vLLM con parches, Apache-2.0) sirve Qwen 27B a más de 100 tokens/s y se conecta a kywai como «Otra
+  dirección» compatible con OpenAI. Código: `src/shared/speculative.ts` (`pickDraftModel`, con su test) y
+  `src/main/agents/lmstudio.ts` (`lmsDraftFor`, prueba en `agents/turbo.test.ts`); ajuste `localTurbo`.
 - **Permisos de los agentes** (menú ⚙ → Ajustes → «Permisos de los agentes»; también en Ajustes de Órbita), tres modos:
   - **Acceso completo** (por defecto): Claude, Codex y Gemini ejecutan comandos, instalan dependencias y usan internet
     sin pedir permiso, para no quedarse parados. Se les indica que trabajen en la carpeta del proyecto y que no borren
@@ -2259,6 +2273,31 @@ de esa verificación (no se gasta un verificador en algo que no existe). No tien
 Código: `src/main/deliveryCheck.ts` (qué se promete y si el archivo es válido) y `deliveryGate` en
 `src/main/orchestrator.ts`.
 
+Una imagen vale si **es una imagen de verdad**, aunque no sea del formato de su extensión: los motores dan a veces un
+JPEG que se guarda como `.png`, y abre igual en el chat y en cualquier visor. Lo que no vale es una página de error o
+un vídeo con nombre de imagen.
+
+#### El estudio pasa las mismas comprobaciones
+
+Lo que entrega el estudio de contenido no lo hace un agente sino kywai (monta el vídeo, corta la grabación, hace las
+portadas), así que no pasaba por el comprobador: al acabar decía «Aquí tienes» sin mirar el archivo. Ahora **cada
+trabajo del estudio se comprueba en el disco antes de darlo por hecho**:
+
+| Qué | Qué se comprueba antes de decir «Aquí tienes» | Si no vale |
+| --- | --- | --- |
+| `/video`, `/serie`, `/doblar` (en tu equipo, en la nube o en el equipo conectado) | Que el MP4 esté entero | La tarea falla: «No se pudo montar el vídeo: kywai comprobó el resultado antes de entregarlo y no vale: «…» está dañado o a medias…» |
+| `/editar` y `/recortes` | El vídeo editado y cada clip | Igual |
+| `/demo` | El MP4 de la demo | Igual |
+| `/miniatura` | Cada portada (que exista, no esté vacía y abra) | «No se pudieron hacer las portadas: …» |
+| Portadas de un reel (`/instagram`, `/tiktok`) | La imagen de cada portada | Esa portada no se propone: queda el fotograma del vídeo |
+| Películas con estilo | Que el MP4 del agente esté entero, antes de revisarlo | Vuelve al agente como cualquier otro fallo de la película («el render se cortó: vuelve a renderizarla») |
+| Imágenes («hazme una imagen») | Que lo que dejó el motor abra como imagen | Se prueba con el **siguiente motor**; si ninguno deja una imagen, se dice por qué |
+| Publicar en Instagram y subir a TikTok | Que el vídeo siga en el proyecto y se pueda reproducir, **antes de subir nada** | No se sube: «kywai comprobó el vídeo antes de subirlo y no vale: …» |
+
+No hay segunda oportunidad con un agente porque aquí no hay agente que se haya equivocado: el fallo es del montaje y
+se dice tal cual, con su motivo. Cómo salió cada trabajo queda en el [registro de salud](#registro-de-salud-ver-los-fallos-antes-que-el-usuario).
+Código: `src/main/studioCheck.ts` (`studioJob`, `proveStudioFiles`).
+
 ### Estados honestos: «⏳ Aún en marcha» en vez de un «listo» adelantado
 
 El mensaje de quien coordina sale **antes** de que el equipo trabaje. Si lo escribe como si ya estuviera hecho
@@ -2292,9 +2331,9 @@ equipo aún no ha mandado el resultado. Código: `src/main/honestReply.ts` y `un
 
 ### Vigilante de trabajos largos: nada se queda colgado sin avisar
 
-Todo programa de fondo que lanza kywai (el montaje de un vídeo, ffmpeg en los recortes y las demos de webs, las
-descargas y transcripciones de «/aprender», las instalaciones de herramientas) pasa por una sola pieza, con las mismas
-reglas para todos:
+Todo programa de fondo que lanza kywai (el montaje de un vídeo, ffmpeg en los recortes, las demos de webs y las
+portadas, las voces del sistema, las descargas y transcripciones de «/aprender», las instalaciones de herramientas)
+pasa por una sola pieza, con las mismas reglas para todos:
 
 | Regla | Qué significa |
 | --- | --- |
@@ -2359,8 +2398,12 @@ o no, cuánto tardó y el motivo que dio el programa.
 | --- | --- |
 | Tareas de los agentes | Cada intento que acaba: hecho o fallido, con qué agente y el motivo del fallo |
 | Imágenes | Cada imagen pedida: con qué motor salió (se ve si casi todo acaba en el borrador gratis) o por qué ninguno la dio |
-| Vídeos | Cada montaje (en el equipo o en la nube): hecho o fallido, cuánto tardó y el motivo |
+| Vídeos | Cada montaje de `/video`, `/serie` y `/doblar` (en el equipo o en la nube) y cada película con estilo: hecho o fallido, cuánto tardó y el motivo |
 | Voz | Cada frase: la voz elegida que falla cuenta aunque la de reserva lo salve |
+| Edición de vídeo | Cada vídeo de `/editar` y cada clip de `/recortes` |
+| Demos de webs | Cada vídeo de `/demo` (de una web, de un repositorio o con presentador) |
+| Portadas | Cada tanda de `/miniatura` y cada portada de un reel |
+| Publicar en redes | Cada publicación en Instagram (también las respuestas a comentarios) y cada subida a TikTok. Una cuenta sin conectar no cuenta como fallo |
 | Entregas | Lo que el comprobador de entregas encontró (o no) de lo prometido, tras pedirlo otra vez |
 | Programas de fondo | Los que el vigilante tuvo que parar por tiempo o por no dar señales |
 
@@ -2370,15 +2413,17 @@ señales; más de 30 minutos cuenta como colgado.
 
 - **Solo datos, nunca lo que escribiste.** Va la función, sí o no, la duración, con qué se hizo y el motivo del
   programa en una línea. De una entrega que falta va la clase («imagen: no existe»), no el nombre del archivo; de una
-  tarea fallida va el motivo sin su título.
+  tarea fallida va el motivo sin su título; de una publicación, nunca el texto del reel. Las rutas de archivo y las
+  direcciones se quitan de cualquier motivo antes de guardarlo (queda la extensión: «….mp4»), porque el nombre de un
+  archivo suele salir del título que escribiste.
 - Lo que detienes tú no es ni acierto ni fallo: no se apunta.
 - Se guarda en `health-log.json` de la carpeta de datos (30 días, 3.000 apuntes como mucho) y nunca puede estropear lo
   que mide: si el registro falla, el trabajo sigue.
 - En **kywai cloud** lo lee la página «Salud» de Administrar cuentas, que junta el parte de todas las cuentas y avisa
   si algo pasa del umbral (lo ve solo el administrador). En tu equipo no cambia nada de lo que ves.
 
-Código: `src/main/healthLog.ts` (`recordHealth`, `withHealth`, `healthReport`) y `teamHealth` en
-`src/main/orchestrator.ts`.
+Código: `src/main/healthLog.ts` (`recordHealth`, `withHealth`, `healthReport`), `src/main/studioCheck.ts` (los
+trabajos del estudio) y `teamHealth` en `src/main/orchestrator.ts`.
 
 ### Verificación por otro agente
 
@@ -3172,9 +3217,17 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
     inventa cifras, y un backtest va con costes y sin mirar el futuro.
   - `web-auditoria-seo-geo`: por qué una web no sale en Google ni la citan ChatGPT, Perplexity o Gemini (rastreo,
     robots.txt, datos estructurados, rapidez, respuestas citables, autoría) y la lista de arreglos por impacto.
+  - `anuncios-campana` (21 nov 2026, idea del «meta-agent-pipeline» de Social Agents, escrita desde cero): una
+    campaña de pago en Meta/Instagram, Google, TikTok o LinkedIn Ads, paso a paso: objetivo con su número de éxito
+    (CPA o ROAS), presupuesto diario y total con tope (nunca lo sube), audiencia (con aviso de las categorías
+    especiales: vivienda, empleo, crédito, política), 2 o 3 creatividades que cambian una sola cosa (textos con
+    `tienda-textos-de-producto`, vídeo con «/video vertical»), la regla de la prueba y la medición (píxel, API de
+    conversiones o UTM). La crea **en pausa o en borrador** por la app conectada (Composio o un MCP de la red de
+    anuncios) o deja el archivo de importación si no hay conexión; nunca simula. **Activarla y gastar** solo con el
+    sí del usuario con la cifra delante: un sí a preparar no es un sí a gastar.
   El usuario no tiene que nombrarlos ni conocerlos: Hermes elige el que encaja por lo que pide y por la conversación
   (tienda, ventas, producto, reseñas, negocio, vídeo de referencia, bolsa, cartera, SEO, visibilidad en Google o en
-  las IA; `coordinatorGuide.ts`) y escribe el nombre en la tarea; además, cada agente recibe sola la habilidad que
+  las IA, anuncios y campañas; `coordinatorGuide.ts`) y escribe el nombre en la tarea; además, cada agente recibe sola la habilidad que
   encaja con su tarea. Un encargo grande se reparte en una tarea por especialista.
 
 **Paquete «kywai default skills»** (desde el 20 de noviembre de 2026, `src/main/skillPack.ts`). Todas las habilidades
@@ -3295,6 +3348,23 @@ del consejero: como mucho 2 consultas por tarea, cuenta en «Uso y coste» como 
 «Consulta a … antes de seguir». Para que la espera no corte la herramienta, kywai sube el tiempo de espera de las
 herramientas MCP a 10 minutos (Claude con `MCP_TOOL_TIMEOUT`, Codex con `tool_timeout_sec`, Hermes con `timeout`).
 Código: `src/main/advisor.ts`, `coworkMcp.ts` (la herramienta) y `orchestrator.ts` (`adviseTask`).
+
+**Consejo antes de las tareas difíciles (21 nov 2026, idea del `/advisor` de Claude Code).** Que el agente decida
+cuándo consultar tiene una pega: casi nunca lo hace (en la prueba de Anthropic, Sonnet preguntó cero de veinte
+veces). Por eso, en cada tarea **difícil** kywai pide él mismo el consejo **antes de lanzar al agente**: un agente de
+otra familia lee la tarea y el proyecto en modo plan y contesta en pocas líneas cómo la enfocaría, qué riesgos ve y
+cómo comprobar que ha quedado bien. Ese consejo va al final del encargo («decides tú»). Si tarda más de 3 minutos o
+falla, la tarea empieza sin él. No se pide en correcciones, relevos, sesiones retomadas, consultas rápidas, mensajes
+directos ni en los flujos propios (vídeo, Instagram, miniatura…). El «antes de terminar» ya lo cubre la verificación
+de la tarea. En la tarea se ve «Consulta a … antes de empezar» y «Consejo de … recibido»; cuenta en «Uso y coste»
+como una comprobación. Se apaga en ⚙ → Ajustes → Agentes → «Consejo antes de las tareas difíciles».
+
+**Modo ahorro** (mismo sitio, apagado de serie): las tareas difíciles las hace el **modelo habitual** del agente
+(por ejemplo Sonnet) y su **modelo potente** (Fable u Opus) solo da el consejo de antes de empezar. Es lo de
+«Sonnet trabaja y Fable aconseja», que en la prueba de Anthropic sacó el 92 % de la nota de Fable por el 63 % del
+precio. Solo se aplica si el agente tiene modelo potente. Código: `advisor.ts` (`wantsStartAdvice`,
+`startAdvicePrompt`, `saverApplies`, con `advisor.test.ts`) y `orchestrator.ts` (`adviseStart`); ajustes
+`adviceAtStart` y `adviceSaver` (`setTaskAdvice`).
 
 ### Navegador de kywai: tus cuentas para los agentes
 
@@ -5069,6 +5139,19 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    paga dos veces. Si cambias el tema o el personaje, las pruebas se vacían. Si no sale, el aviso dice el motivo de
    cada motor, también si ComfyUI no está instalado o no arrancó a tiempo.
    Órbita todavía no tiene este grupo.
+   **Clips de archivo** (21 nov 2026, idea de MoneyPrinterTurbo, `aspecto:clips-archivo` o «estilo clips de
+   archivo»): el último del grupo no pinta nada. En el vídeo **rápido**, kywai busca para cada escena un **clip de
+   vídeo real** en el banco gratuito de **Pexels** con lo que describe la escena, lo baja (el más cercano a 1080, de la
+   orientación del vídeo, que dure al menos lo que la escena y sin repetir clip) y lo recorta a lo que dura su voz y al
+   encuadre (`src/main/stockClips.ts`, `fitStock` en `videoStudio.ts`). La búsqueda empieza mientras se graba la voz;
+   las escenas que no encuentran clip llevan su imagen de siempre con un aspecto fotográfico, y con clips ComfyUI no se
+   enciende solo. Para que encuentre buenos clips, el guion escribe cada `image` como algo que una cámara filmaría en la
+   vida real, en inglés y corto («woman typing on laptop in cafe»). No necesita tarjeta gráfica ni gasta créditos de
+   imágenes: va igual en la nube. Pide una **clave gratis de Pexels**: ⚙ → Ajustes → Extensiones → Estudio de vídeo →
+   «Clips de archivo (Pexels, gratis)», con los pasos para sacarla (se guarda cifrada en el llavero; quien instala kywai
+   en su servidor puede ponerla para todos en `KYWAI_PEXELS_KEY`). Sin clave, el vídeo sale igual con imágenes y la
+   tarjeta lo dice. Al lado del MP4 queda `<título>-creditos.txt` con el autor y el enlace de cada clip (Pexels pide
+   decir de dónde salen). En presentador, mixto y charla este aspecto solo da imágenes de aspecto fotográfico.
 4. **Voz.** **En español solo salen tres voces**, elegidas por Yil escuchando 28 muestras: **Álvaro** (Edge,
    España, `voz:edge-es-ES-AlvaroNeural`, la de por defecto, sin marca), **Jorge** (Edge, México,
    `voz:edge-es-MX-JorgeNeural`) y **Carmen** (Siri de macOS, México, `voz:mac-carmen`). Edge va con **edge-tts** en el
