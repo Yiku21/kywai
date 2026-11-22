@@ -1285,6 +1285,33 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     petición de Hermes a tu equipo, con la respuesta a trozos. Tus suscripciones y claves no salen de tu equipo. Si tu
     equipo no está conectado, Hermes avisa de que no llega y qué encender («Prestar los modelos de este equipo»).
     También se puede poner a mano una dirección pública de OmniRoute (protegida con contraseña).
+    **En la bienvenida de Mi cuenta** («Elige y prueba tu primer agente» con Hermes), OmniRoute sale primero como
+    «Recomendado». El portal pregunta al espacio `cloudOmniRouteStatus` (qué equipo conectado presta OmniRoute y si
+    está encendido). Si lo presta, «Probar Hermes con OmniRoute» llama a `cloudTestAgent('hermes', '', null,
+    {provider: 'omniroute'})`: el espacio lista los modelos por el relevo, escribe el proveedor `omniroute` en
+    `config.yaml`, elige los modelos por dificultad (`pickHermesTiers`), borra una clave de OpenRouter guardada antes y
+    lo prueba con un mensaje real. Si no lo presta, enseña los tres pasos (instalar kywai con Hermes + OmniRoute,
+    «Usar kywai cloud», encender «Prestar los modelos de este equipo») y «Comprobar de nuevo». Debajo sigue «O con
+    OpenRouter (clave gratis)».
+  - **Reserva de OpenRouter** (`runHermes` en `agents/hermes.ts`, `hermesReserveKeyId` en `hermesEndpoint.ts`). Cuando
+    conectas Hermes con OpenRouter, su clave se guarda también como «de reserva» (`openrouter-reserva:<agente>`, con
+    `cloud:` en la nube), y se conserva al pasar a OmniRoute. Si OmniRoute no está, no deja entrar o se queda sin cupo
+    (fallos `offline`, `auth`, `quota`), Hermes repite el encargo con `openrouter/free` y esa clave, y lo dice en la
+    actividad («OmniRoute no responde: Hermes sigue con los modelos gratis de OpenRouter»). «Quitar cuenta o clave» y
+    quitar el agente la borran. Sin reserva, avisa del motivo como antes.
+  - **Hermes con tu suscripción de ChatGPT o Claude en la nube** (`hermes-codex` y `hermes-claude` en
+    `cloudAccountSpecs`). Para que Hermes funcione 24/7 sin depender de tu ordenador, Mi cuenta lanza el inicio de
+    sesión oficial de Hermes: `hermes auth add openai-codex --type oauth --no-browser` (código de dispositivo en
+    auth.openai.com/codex/device; Hermes guarda su propia sesión y no toca la de Codex) o `hermes auth add anthropic
+    --type oauth --no-browser` (enlace de claude.ai y pegar el código que da la web). Al terminar,
+    `finishHermesSubscription` prueba los modelos de tu plan en orden (`HERMES_SUBSCRIPTION_MODELS`) y Hermes se queda
+    con el primero que responda; la bienvenida vuelve a comprobarlo con `cloudHermesSubscription`. Si la suscripción
+    se queda sin cupo o no deja entrar, se usa lo que Hermes trae de fábrica: varias cuentas del mismo proveedor
+    rotan solas (credential pools: cada inicio de sesión se añade a la lista) y kywai escribe en config.yaml la
+    cadena `fallback_providers` (`writeHermesFallbacks`): tu otra suscripción, si también la conectaste, y luego
+    `openrouter/free` con la clave de reserva (que se le pasa como OPENROUTER_API_KEY). Así cambia a mitad de la tarea
+    sin perder la conversación. Si aun así falla todo el intento, kywai lo repite con la reserva (`HERMES_SUBSCRIPTIONS`
+    en `agents/hermes.ts`). Quitar a Hermes cierra también estas sesiones (`hermes auth logout openai-codex|anthropic`).
   - **Hermes con tu cuenta de Nous Portal en la nube**: pestaña «Tu cuenta de Nous Portal». El espacio lanza
     `hermes auth add nous --type oauth --no-browser` y enseña su enlace (`portal.nousresearch.com/…?user_code=…`) y su
     código; al aprobarlo, kywai pregunta a Hermes qué modelos deja tu plan (el gratis solo los gratuitos, como en
@@ -2312,7 +2339,7 @@ cuadrada sale al tamaño que tengas puesto).
 
 - **En el chat**: «hazme una imagen de un gato astronauta en acuarela», «dibújame…», «genera un póster de…». El
   coordinador pone la imagen en el campo `"image"` de su plan (el texto en inglés y el formato) y kywai la dibuja en el
-  acto, sin tareas; sale en el chat con Abrir y Descargar y queda en `artifacts/imagenes/` (o
+  acto, sin tareas; **la imagen se ve en el propio chat** (grande si es una, en cuadrícula hasta 4; al pulsarla se abre en la vista previa) y debajo queda su fila con Abrir y Descargar y queda en `artifacts/imagenes/` (o
   `.ai-cowork/entregables/imagenes/` en una carpeta tuya). Hasta 4 por mensaje.
 - **Los agentes** la dibujan con la herramienta **`generar_imagen`** del servidor de kywai (Claude, Codex, Gemini,
   Hermes en sus tareas) o **`generate_image`** (Gemma y los demás modelos de LM Studio dentro de kywai): para una web,
@@ -3542,13 +3569,16 @@ y la deja en `habilidades/kywai-default-skills/<fuente>/<habilidad>/SKILL.md`. S
 que no recomienda no se queda. Si una fuente falla (sin red), se reintenta al día siguiente; las fuentes nuevas que se
 añadan a `PACK_SOURCES` llegan solas al arrancar. El estado va en `habilidades/.kywai-default-skills.json`.
 
-Trae 37 fuentes: Superpowers, Anthropic Skills, Knowledge Work (Anthropic), Agent Skills de Addy Osmani, Vercel Agent
+Trae 41 fuentes: Superpowers, Anthropic Skills, Knowledge Work (Anthropic), Agent Skills de Addy Osmani, Vercel Agent
 Skills, Impeccable, Hallmark, Modern Web Guidance, Liquid Glass, Diagram Design, Stitch Skills, Page Mascot, Auditoría
 de seguridad (Cloudflare), Open Code Review, Graphify, REA, Reverse API Engineer, agent-browser, Scrapling,
 /last30days, Humanizer, Marketing Skills, OpenSEO, Text to CAD, Gamedev Skills, HyperFrames y Bang Motion (estas dos,
 al guion de los vídeos). El 20 nov 2026 se sumaron 10 de las más usadas en los rankings de skills: Matt Pocock
 Skills, Planning with Files, UI UX Pro Max, Taste Skill, Emil Kowalski Skills, Archify, Frontend Slides, PM Skills,
-Scientific Skills y Stop Slop. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
+Scientific Skills y Stop Slop. El 22 nov 2026 llegaron Make Interfaces Feel Better (detalles finos de interfaz:
+animaciones, alineación óptica, radios concéntricos, sombras, zonas de clic) y Loopy (bucles de hacer, comprobar y
+corregir con un final claro; solo publica un bucle en Loop Library si el usuario lo pide), y después Claude SEO (auditoría SEO a fondo, 29
+habilidades) y Social Media Skills (estrategia, calendario y textos para redes). De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
 traen algunas (Planning with Files, Taste Skill) no se ejecutan. Una habilidad en la raíz de su repositorio lleva sus
 carpetas (como `references/`), menos las de pruebas y las ocultas; con `only`, si la misma sale copiada en varias
 carpetas, vale la primera. Fuera a propósito: ECC y gstack (marcos con hooks que se solapan con Superpowers), Caveman
@@ -3685,6 +3715,19 @@ memoria (como el FTS5 con trigramas del original, sin base de datos), y guarda l
 Claude, Codex, Gemini y Hermes en las tareas (no el coordinador). Se apaga en ⚙ → Ajustes → Agentes → «Modo
 contexto». Código: `src/main/contextMode.ts` (+ test), `coworkMcp.ts` (`CONTEXT_TOOL`, `readBigTool`) y la regla del
 encargo en `orchestrator.ts`; ajuste `contextMode` (`setTaskAdvice({ context })`).
+
+**Leer página limpia** (22 nov 2026, con **Defuddle**, kepano/defuddle, MIT, el motor de Obsidian Web Clipper). La
+herramienta de kywai **`leer_pagina`** (`{"url": "https://…"}`) baja una web pública y devuelve solo su contenido (el
+artículo, la documentación, la ficha) en Markdown, con título, autor, web y fecha, sin menús, cabeceras, pies,
+anuncios ni comentarios. Gasta muchos menos tokens que el HTML o el texto entero, así que el encargo y la guía del
+coordinador piden usarla antes que WebFetch, curl o web_extract. La llevan las tareas de Claude, Codex y Gemini (con el
+servidor de kywai o el del navegador) y el modo de solo lectura del coordinador, porque no cambia nada. Hermes no: su
+gateway solo admite los servidores de `~/.hermes` (por eso tampoco lleva el navegador) y sigue con su `web_extract`. No lee direcciones locales
+ni privadas (la red de casa o de la empresa), ni páginas con sesión iniciada (para eso está el navegador de kywai);
+corta a 60 000 caracteres y, si la página se dibuja con JavaScript y sale vacía, dice que se abra con `navegador_ir`.
+Funciona sin navegador (DOM de linkedom), igual en el escritorio y en kywai cloud. Los modelos locales (LM Studio)
+también la usan por dentro en su `fetch_url`. Código: `src/main/cleanPage.ts` (+ test), `coworkMcp.ts` (`PAGE_TOOL`)
+y `agents/localTools.ts` (`fetchUrl`).
 
 ### Navegador de kywai: tus cuentas para los agentes
 
