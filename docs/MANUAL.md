@@ -276,8 +276,34 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   instaladas y los clones con el remote antiguo siguen funcionando; no hay que crear nunca un repo con un nombre viejo.
   Para apuntar un clon al nombre nuevo: `git remote set-url origin https://github.com/Yiku21/kywai-original.git`.
 
-Al abrir la app instalada por primera vez aparece el **asistente de configuración** (también desde
-⚙ → Ajustes → «Configurar agentes…»):
+**Primera vez: «Tu primer agente»** (`src/renderer/src/ui/setup/FirstAgent.tsx`, 22 nov 2026). Una instalación
+nueva de la app de escritorio empieza **sin agentes**, como kywai cloud: `loadConfig` llama a `mergeConfig(…,
+{ emptyTeam: true })` cuando no hay `config.json`, la app está empaquetada y no es una self host sin pantalla, y deja
+los 6 de fábrica en `removedAgents` para que no vuelvan solos al abrirla otra vez (en desarrollo y en las pruebas
+sigue el equipo de fábrica). En vez del asistente de cuatro pestañas sale un asistente de 5 pasos, de uno en uno y
+con barra de progreso:
+
+1. **Bienvenida e idioma**: el idioma ya viene elegido según el sistema (`src/main/systemLang.ts`: idiomas
+   preferidos y, si el primero es inglés, el **formato regional**; un Windows en inglés con región España abre en
+   español). Al arrancar una instalación nueva el motor lo guarda en `config.language` y la ventana lo sigue. Si se
+   cambia aquí, la ventana se recarga y vuelve al paso 2.
+2. **¿Con qué agente empiezas?**: nada viene marcado. **Hermes + OmniRoute** sale arriba como «Recomendado»; debajo,
+   Claude, Codex y Gemini, y «Ver todos los agentes» abre el catálogo completo. «Siguiente» lo añade al equipo
+   (`addAgent`). Si es el único, Hermes también trabaja (`plannerOnly: false`), como en kywai cloud.
+3. **Instalamos lo que falta**: su programa (y Node.js o Python si hacen falta) con un clic, o «Descargar» y
+   «Comprobar» si no se puede instalar desde la app. Con Hermes avisa de que OmniRoute se instala en el paso 4.
+4. **Conéctalo y pruébalo**: la misma pantalla de «Configura {agente}» (`ConfigureAgent` con `firstRun`): Hermes abre
+   en «Clave de API» → OmniRoute con «Instalar y preparar OmniRoute»; los demás, con su cuenta o su clave. «Siguiente»
+   no se activa hasta que el agente responde de verdad.
+5. **Listo**: enseña lo que contestó y «Ir a kywai» termina el asistente (`setupFinish`); después sale el recorrido
+   de la interfaz.
+
+«Ahora no» (o ✕) lo cierra sin añadir ningún agente y deja abajo el botón **«Conecta tu primer agente»** para
+volver. Se sigue enseñando aunque el agente ya se haya añadido a mitad, hasta terminarlo. Quien ya usaba kywai no lo
+ve.
+
+Desde ⚙ → Ajustes → «Configurar agentes…» (y en una configuración vieja sin terminar) sale el **asistente de
+configuración** de siempre:
 
 1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio, Ollama o Colibri).
    Debajo, el recuadro plegable **«¿No pagas ninguna suscripción? Así puedes usar kywai gratis»** explica cómo
@@ -7749,8 +7775,11 @@ vez y son los mismos para todos: parpadea y mira en reposo, se pone a trabajar, 
 giran), espera, te llama cuando te necesita, celebra al terminar, se marea con un error y se duerme. Como no hay que
 dibujar nada por agente, vale para los que se añadan en el futuro.
 
-- **Activarlo**: Ajustes → Agentes → «Aspecto de los agentes» → **Formas animadas**. Se ven en el chat, las fichas, las
-  listas y el espacio 2D. En el 3D se usan los personajes (como con «Personajes»). Órbita sigue con sus dibujos.
+- **Activarlo**: Ajustes → Agentes → «Aspecto de los agentes» → **Formas animadas**. Se ven igual en el chat, las
+  fichas, las listas, el espacio 2D y el **espacio 3D**: en el 3D cada agente es su forma, de pie en su puesto y mirando
+  siempre a la cámara, con las mismas caras y movimientos que en su ficha (también los becarios). Solo la cotorra
+  coordinadora y los agentes con modelo 3D propio de «Crea tu agente» siguen siendo personajes 3D. Órbita sigue con sus
+  dibujos.
 - **Elegir la de cada agente**: pulsa el agente en el espacio → **Forma animada: elige su forma y su color**. Vista
   previa con las poses (pasan solas hasta que tocas una), 12 formas, 12 colores rápidos y «Otro color», **Sorpréndeme**
   y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
@@ -7765,7 +7794,11 @@ y no se usa su código ni sus personajes de ejemplo). Las formas están en `src/
 piezas en unidades del motor), lo que se guarda en `AgentConfig.figure` (`src/shared/agentFigure.ts`, IPC y web
 `setAgentFigure`) y el dibujo en `lib/AgentFigure.tsx` (en listas se queda quieto a los 1,5 s para no gastar). Las poses
 del espacio 2D pasan a estados del motor con `figureState` (reposo → idle, trabaja → working, piensa → thinking,
-espera → waiting, te necesita → alerting, celebra → celebrate, error → failed, duerme → sleeping). El validador del
+espera → waiting, te necesita → alerting, celebra → celebrate, error → failed, duerme → sleeping). En el 3D, `scene/figureCard.ts` pinta cada fotograma del
+motor en un lienzo de 256 px (30 por segundo, 15 con efectos reducidos) que va en un cartel que mira a la cámara;
+`Robot.tsx` lo trata como un personaje más (lo apoya en su plataforma con los pies que mide `figureExtent` y esconde el
+robot de debajo), y `figureStateFor` pasa el estado del robot al del motor (piensa, trabaja, espera, error → failed,
+sin conexión o dormido → sleeping, te llama → alerting, acaba → celebrate, cansado → drowsy). El validador del
 motor compila su esquema con `new Function`, que la política de seguridad de la ventana no deja: por eso los
 personajes propios pasan por `sanitizeCharacter`, que los rehace solo con los campos del formato y sus límites (las
 pruebas comprueban con el validador oficial que lo que sale es válido).
