@@ -39,14 +39,14 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.6 var(--body); overflow-x: hidden; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.6 var(--body); overflow-x: hidden; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 img, video { max-width: 100%; display: block; }
 a { color: inherit; }
 a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
 h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; letter-spacing: -.02em; }
 h2 { font-size: clamp(30px, 4.2vw, 46px); font-weight: 700; }
 h3 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.25; }
-p { margin: 0; }
+p { margin: 0; text-wrap: pretty; }
 code, .mono { font-family: var(--mono); font-size: .88em; }
 .wrap { max-width: var(--wrap); margin: 0 auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
 .section { padding-block: clamp(64px, 9vw, 112px); }
@@ -59,6 +59,8 @@ code, .mono { font-family: var(--mono); font-size: .88em; }
 /* Botones */
 .btn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 12px; font: 600 16px/1 var(--body); text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .15s ease, background-color .15s ease, border-color .15s ease; }
 .btn:hover { transform: translateY(-1px); }
+/* Al pulsar, el botón cede un poco (habilidad Make Interfaces Feel Better: 0,96, nunca menos de 0,95). */
+.btn:active { transform: scale(.96); transition-duration: 70ms; }
 .btn-primary { background: var(--fg); color: var(--bg); }
 .btn-ghost { border-color: var(--line); color: var(--fg); background: transparent; }
 .btn-ghost:hover { border-color: var(--muted); }
@@ -253,6 +255,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   html { scroll-behavior: auto; }
   .mark img { animation: none; }
   .btn, .team li img { transition: none; }
+  .btn:active { transform: none; }
 }
 
 /* Páginas independientes: navegación compartida y la paleta azul, verde y naranja de kywai. */
@@ -448,3 +451,6 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* Hindi (devanagari): las matras necesitan más alto de línea y nada de espaciado negativo. */
 :lang(hi) h1, :lang(hi) h2, :lang(hi) h3 { line-height: 1.3; letter-spacing: 0; }
 :lang(hi) .eyebrow { letter-spacing: .02em; }
+
+/* Cifras que no bailan: precios y contadores con dígitos del mismo ancho. */
+.plan-price, .plan-price strong { font-variant-numeric: tabular-nums; }
