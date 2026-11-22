@@ -1375,6 +1375,14 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     `openrouter/free` con la clave de reserva (que se le pasa como OPENROUTER_API_KEY). Así cambia a mitad de la tarea
     sin perder la conversación. Si aun así falla todo el intento, kywai lo repite con la reserva (`HERMES_SUBSCRIPTIONS`
     en `agents/hermes.ts`). Quitar a Hermes cierra también estas sesiones (`hermes auth logout openai-codex|anthropic`).
+    **Modelos según la dificultad con tu suscripción**: tras entrar, kywai pregunta a Hermes qué modelos deja tu cuenta,
+    igual que su `hermes model` (`hermesAccountModels` llama a `provider_model_ids` con el Python de Hermes: con Claude
+    lee la lista de Anthropic con tu sesión, sin los Claude 2 y 3 retirados; con ChatGPT, la de tu cuenta de Codex). La
+    lista se guarda en `kywai-modelos.json`, en la carpeta de Hermes (`setHermesModelsFile`), para que no se pierda al
+    reiniciar kywai ni al desplegar la nube (antes vivía solo en memoria y, tras reiniciar, Fácil y Difícil solo
+    ofrecían el modelo actual). Si Hermes no contesta, la ficha usa el catálogo de respaldo `HERMES_ACCOUNT_CATALOG`
+    (Haiku, Sonnet y Opus 5.5, Fable 5.2…; GPT-6 Luna/Sol, GPT-5.6…) con nombre corto y nota (`hermesModelOption` en
+    `models.ts`). Si se conectó con una versión anterior, al abrir la ficha se le pregunta una vez en segundo plano.
   - **Hermes con tu cuenta de Nous Portal en la nube**: pestaña «Tu cuenta de Nous Portal». El espacio lanza
     `hermes auth add nous --type oauth --no-browser` y enseña su enlace (`portal.nousresearch.com/…?user_code=…`) y su
     código; al aprobarlo, kywai pregunta a Hermes qué modelos deja tu plan (el gratis solo los gratuitos, como en
