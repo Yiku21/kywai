@@ -363,7 +363,7 @@ kywai oscurece la ventana e ilumina, uno a uno, los sitios de la app con una exp
   en el cuadro de escribir, lleva **«Enseñarme todo»**.
 - **Todo lo demás** (con «Enseñarme todo»): proyecto, barra lateral (Nuevo chat, Buscar, Historial, Amigos, Tareas,
   Tablero, Rutinas, Proyectos e importar chats), las secciones del proyecto, esfuerzo, hablar con kywai, 3D o 2D,
-  Navegador, Música, ocultar el espacio y cada pestaña de Ajustes (la abre y la cierra sola). En «Conectar un agente»
+  «⋯» del espacio (Modo noche y Navegador), Música, ocultar el espacio y cada pestaña de Ajustes (la abre y la cierra sola). En «Conectar un agente»
   explica el recomendado (Hermes con OmniRoute, que elige el modelo según la dificultad y sigue con la reserva gratis
   de OpenRouter si OmniRoute no responde), los agentes gratis y que en kywai cloud Hermes entra con tu ChatGPT o Claude
   desde Mi cuenta → Mis agentes y trabaja 24/7.
@@ -605,6 +605,50 @@ y por eso kywai no escribe a nadie más que a ti. La sesión se guarda en `whats
 sola. **Desvincular** cierra la sesión y la borra; si quitas kywai de Dispositivos vinculados en el móvil, Ajustes lo
 dice y hay que volver a escanear. Por ahora solo entiende texto. Código: `src/main/whatsapp.ts` (lógica, con pruebas
 en `whatsapp.test.ts`) y `src/main/whatsappBaileys.ts` (la conexión).
+
+### Hablar con kywai desde Slack (22 nov 2026)
+
+Idea de OpenComputer (diggerhq/opencomputer, Apache 2.0), que lanza agentes al mencionarlo en Slack. kywai se usa
+desde Slack como desde Telegram, y en un canal lo puede usar todo el equipo.
+
+1. En kywai: ⚙ → Ajustes → **Conexión → Slack → Crear la app**. Se abre Slack con la app ya rellenada (un manifiesto
+   con Socket Mode y solo los permisos que hacen falta: leer menciones y mensajes directos, escribir y subir
+   archivos). Elige el espacio y pulsa **Create**.
+2. **Install to Workspace** y copia el **Bot User OAuth Token** (`xoxb-…`).
+3. En **Basic Information → App-Level Tokens**, crea uno con el permiso `connections:write` (`xapp-…`).
+4. Pega los dos en Ajustes y pulsa **Conectar**. kywai los comprueba con Slack y los guarda cifrados.
+5. Enlaza UNA conversación: manda el código de 6 cifras que enseña Ajustes por mensaje directo al bot, o en un canal
+   («/invite @kywai» y luego «@kywai 123456»). Las demás conversaciones reciben que el bot es privado.
+
+En un mensaje directo vale cualquier mensaje; en un canal, solo los que mencionan a @kywai. Al recibirlo pone 👀 y la
+respuesta del equipo (no las tareas a medias) llega **en el hilo de ese mensaje**, con hasta 3 archivos entregados.
+Por defecto solo quien enlazó puede pedir trabajo; **Todo el canal puede pedir trabajo** lo abre a sus compañeros
+(lanzan tareas con tus agentes, tus créditos y tus permisos). «proyectos» y «proyecto N» cambian de proyecto, igual
+que el desplegable de Ajustes. Socket Mode es una conexión que abre kywai hacia Slack: no hace falta abrir puertos
+ni tener dirección pública, así que vale en el Mac mini, en el PC y en kywai Cloud. Código: `src/main/slack.ts`
+(pruebas en `slack.test.ts`); datos en `slack.json` de la carpeta de datos.
+
+### Hablar con kywai desde Microsoft Teams (22 nov 2026)
+
+Un bot de Teams de verdad necesita una dirección pública y Azure Bot Service, y kywai corre sin puertos abiertos. Por
+eso kywai entra en Teams **con tu cuenta**, por Microsoft Graph, y mira un chat que eliges (como WhatsApp con tu chat
+contigo mismo):
+
+1. ⚙ → Ajustes → **Conexión → Microsoft Teams → Entrar**. Sale un código: escríbelo en microsoft.com/devicelogin,
+   entra con tu cuenta de **trabajo o de centro educativo** y acepta los permisos (Chat.ReadWrite para tus chats,
+   Files.ReadWrite para subir lo entregado a tu OneDrive y User.Read; ninguno pide permiso del administrador). Graph
+   no da los chats de las cuentas personales de Teams.
+2. Elige el chat: **Tú (chat contigo mismo)** sale primero; también vale un chat de grupo con tu equipo.
+3. Lo que escribas en ese chat llega al proyecto elegido (o «proyectos» y «proyecto N»). kywai lo mira cada 5 s. La
+   respuesta vuelve al chat marcada con 🤖, con hasta 3 archivos, que se suben a la carpeta **kywai** de tu OneDrive y
+   van adjuntos.
+
+Por defecto solo cuenta lo que escribes tú; **Todos los del chat pueden pedir trabajo** lo abre a los demás del chat.
+**Salir** borra la sesión (cifrada con las claves de los agentes). Hace falta una app de Microsoft Entra (cliente
+público, sin secreto): la de kywai va en `TEAMS_CLIENT_ID` de `src/main/index.ts` (o la variable
+`KYWAI_TEAMS_CLIENT_ID`); mientras esté vacía, Ajustes pide el id de una app propia (portal.azure.com → App
+registrations → New registration, «Allow public client flows» y los tres permisos delegados). Código:
+`src/main/teams.ts` (pruebas en `teams.test.ts`); datos en `teams.json`.
 
 ### Acceso desde el móvil o el portátil (Tailscale)
 
@@ -1242,7 +1286,7 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
 - **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, **Claude Code + DeepSeek, Kimi o GLM**, **NVIDIA (gratis)**, OpenCode,
   GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid,
   Auggie, Junie, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kiro, **Qwen Code**, **Antigravity CLI**,
-  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**, **Kilo CLI**… y los de fábrica que hayas
+  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**, **Kilo CLI**, **Codewhale**… y los de fábrica que hayas
   quitado), con la cuenta o suscripción con la que funciona cada uno. Elige uno y se añade con su robot y su estación en el
   espacio digital. **«Otro programa…»** conecta cualquiera: el comando, cómo recibe el encargo (por stdin, en un
   archivo o como argumento) y sus argumentos.
@@ -1252,6 +1296,15 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
   acepta, **«Clave de API de …» · Alternativa** (se cobra cada uso aparte; al pasar el ratón lo dice). Kilo sale «Sin
   cuenta». Las formas están en `src/shared/agentWays.ts` (una prueba exige que todo el catálogo tenga forma e icono).
   «Otra cuenta…» también enseña los iconos.
+  **Codewhale** (22 nov 2026, codewhale-hq/Codewhale, MIT): agente en Rust para más de 40 proveedores, por defecto
+  DeepSeek V4.1 Flash (pide la clave de DeepSeek; también vale `codewhale auth chatgpt`). kywai lo lanza con
+  `codewhale exec` y el encargo por la entrada estándar: `--permission-mode plan` para planificar y
+  `--auto --sandbox workspace-write` para trabajar (con «Acceso completo», solo `--auto`), y le apaga el aviso de uso
+  y la comprobación de versión (`DO_NOT_TRACK`, `CODEWHALE_TELEMETRY=false`, `CODEWHALE_NO_UPDATE_CHECK`). Probado con
+  la versión 0.10.3.
+- **«Mis agentes» en Mi cuenta (kywai cloud, 22 nov 2026)**: cada tarjeta enseña «Pruébame» y «Hacer principal»; Desactivar,
+  Cambiar cuenta o clave, Quitar cuenta o clave y Quitar del equipo van en el menú **«⋯»** (se cierra al pulsar fuera o
+  con Escape). Si al agente le falta la clave, «Poner la clave» sigue a la vista. Plantilla `portal/templates/account.html`.
 - **Configurar y probar al añadir** (`ConfigureAgent.tsx`): al pulsar «Añadir» la ventana no se cierra, pasa a
   **«Configura {agente}»** con tres pasos: **1 · Conéctalo** (pestañas «Tu cuenta de …», «Clave de API» o «Sin cuenta»,
   la recomendada primero), **2 · Modelo** (lista si su programa tiene varios; si es de terminal, se escribe) y
@@ -2647,7 +2700,7 @@ contestaba «escribe `/miniatura`» y te tocaba lanzarla a ti. Ahora la pone en 
 | De qué hacer el próximo vídeo, qué temas suben | `/radar <tema>` |
 | Tu último vídeo de `/video` en otro idioma | `/doblar <idioma>` |
 | Editar la grabación que adjuntas (muletillas, silencios, subtítulos) | `/editar` |
-| Los mejores momentos de un vídeo largo que adjuntas | `/recortes [n]` |
+| Los mejores momentos de un vídeo largo que adjuntas o enlazas | `/recortes [n] [enlace]` |
 | El diseño de una web, una landing o una pantalla para verlo | `/diseno <qué>` |
 | Un personaje en pixel art para tu juego | `/sprite <personaje>` |
 | La mascota animada de tu marca | `/mascota <cómo es>` |
@@ -2669,8 +2722,8 @@ Antes de lanzar nada, kywai comprueba la orden con las mismas reglas del apartad
   habilidades del equipo) y todo lo que pide tu visto bueno **sigue siendo cosa tuya**: quien coordina te dice qué
   orden usar y la lanzas tú con un clic.
 - **Que está completa**, con las mismas reglas con las que luego se lanza: `/demo` sin dirección, `/presentacion` sin
-  tema ni archivo, `/miniatura` sin ningún vídeo en el proyecto, `/editar` o `/recortes` sin el vídeo adjunto a tu
-  mensaje, `/doblar` sin idioma, sin un vídeo hecho con `/video` o con uno que ya está en ese idioma, y `/diseno`,
+  tema ni archivo, `/miniatura` sin ningún vídeo en el proyecto, `/editar` sin el vídeo adjunto a tu mensaje, `/recortes` sin
+  vídeo adjunto ni enlace, `/doblar` sin idioma, sin un vídeo hecho con `/video` o con uno que ya está en ese idioma, y `/diseno`,
   `/sprite`, `/mascota` o `/imprimir3d` sin decir qué ni adjuntar nada no se lanzan. Si le falta algo que solo sabes
   tú (el vídeo, el idioma), te lo pide en su mensaje.
 
@@ -4054,7 +4107,10 @@ memoria, o el chip de Apple con memoria unificada) y el disco libre, y recomiend
 con soltura** (familia Qwen3, de 1,7B a 32B):
 
 - **NVIDIA de 5 GB o más**: cuenta la memoria de la tarjeta (8 GB → `qwen3:8b`, 12 GB → `qwen3:14b`, 24 GB → `qwen3:32b`).
-- **Mac con Apple Silicon**: unos 2/3 de la memoria unificada (16 GB → `qwen3:8b`, 24 GB → `qwen3:14b`, 64 GB → `qwen3:32b`).
+- **Mac con Apple Silicon**: unos 2/3 de la memoria unificada (16 GB → `qwen3:8b`, 24 GB → `qwen3:14b`, 32 GB o más → `inkling-2-mini`).
+- **Inkling 2 Mini** (Thinking Machines, Apache 2.0, 20 nov 2026): 26B con 3,4B activos, 1M de contexto y el mejor en
+  código de los modelos abiertos de menos de 100B. Ollama lo sirve con MLX, así que kywai solo lo ofrece en un Mac con
+  32 GB o más (unos 20 GB de descarga); en Windows, Linux o NVIDIA no sale en la lista.
 - **Sin tarjeta compatible** (o AMD/Intel): corre en el procesador; evita los modelos densos grandes, que irían lentos,
   y con mucha RAM prefiere `qwen3:30b` (mezcla de expertos, rápido sin tarjeta).
 - Si el disco no tiene sitio para la descarga, ese tamaño sale «Sin espacio». Con menos de ~5 GB útiles avisa de que
@@ -4503,6 +4559,11 @@ momentos** (3 por defecto, hasta 8) como clips de 15 a 60 s para Reels, TikTok y
 acaba con la idea cerrada, sin muletillas ni pausas largas, en **vertical** (o `cuadrado` / `horizontal`), con
 subtítulos y **su título arriba** los primeros 3 segundos. Al entregarlos dice por qué engancha cada uno; para publicar
 uno, adjúntalo a `/instagram` o `/tiktok`.
+
+**Desde un enlace** (22 nov 2026, idea de neonclipping): en vez de adjuntar el vídeo, pega su enlace de YouTube u
+otra web que entienda yt-dlp: «/recortes 5 https://youtu.be/… los consejos más útiles». kywai lo baja (hasta 1080p,
+con `uvx yt-dlp`, sin shell) a la carpeta de trabajo de la tarea, usa su título como nombre y sigue igual que con un
+adjunto. Si la web pide iniciar sesión, lo dice y hay que adjuntarlo. Código: `downloadVideo` en `src/main/learn.ts`.
 
 **El encuadre que sigue a quien habla** (como Clipify, sin reconocer caras): kywai compara cada fotograma con el
 anterior y busca la franja de la imagen con más movimiento (quien habla mueve la boca y la cabeza). Si en una
@@ -6027,7 +6088,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/video tema` | Crea un vídeo completo en el estilo que elijas y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
 | `/serie idea [en 5 episodios]` | Una historia en episodios con los mismos personajes, cada uno acaba en suspense (ver «Series por episodios») |
 | `/editar` (con un vídeo adjunto) | Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos (ver «Editar tus grabaciones») |
-| `/recortes [n]` (con un vídeo adjunto) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
+| `/recortes [n]` (con un vídeo adjunto o su enlace) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
 | `/demo <web> [vertical]` | Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos (ver «Vídeo de presentación de una web») |
 | `/miniatura [vertical\|horizontal]` | Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha (ver «Portadas para tu vídeo») |
 | `/mascota [qué es] [saluda, salta, piensa…]` | La mascota de tu marca o tu app, siempre igual y animada en bucle (ver «Mascota animada») |
@@ -6084,6 +6145,14 @@ dentro de la ventana. Si falta altura, se puede desplazar su contenido sin que q
   llega el texto de la plantilla. También vale en las rutinas: una rutina cuya petición sea `/revisar-pr 42` la lanza.
 - **Los archivos** que tengas preparados en el cuadro van con la plantilla; lo que hubieras escrito se queda.
 - En el chat, el mensaje dice con qué plantilla se lanzó («Tú · plantilla «Revisar PR»»).
+
+**Un agente fijo para lo que repites** (22 nov 2026). Cuando mandas por tercera vez casi el mismo encargo en 60 días
+(«prepara el informe semanal de ventas…» con otras palabras cuenta igual), kywai, al acabar, enseña una tarjeta:
+«Es la 3.ª vez que me pides esto. ¿Lo guardo como plantilla fija?». **Guardar como plantilla** la deja como botón 📌
+encima del chat, solo en ese proyecto, con su orden («/prepara-el-informe…») y, si lo hizo un solo agente, **directa a
+ese agente** (sin pasar por el coordinador). **Descartar** no vuelve a proponerlo para ese encargo. No sale si la
+petición vino de una plantilla, de una orden «/…» o de una rutina, ni si ya tienes una plantilla parecida. La cuenta la
+hace `src/shared/repeatRequests.ts` (palabras con peso en común, sin tildes ni palabras vacías).
 
 **Hazlo con kywai** (20 nov 2026). El botón 🔨 **«Hazlo con kywai»**, en la misma fila, abre una galería con 156 apps
 de pago que un equipo de agentes puede construirte para dejar de pagarlas (las de veredicto «sí» de
@@ -6852,9 +6921,11 @@ al momento en el escritorio, el navegador y los clientes. Los agentes ya añadid
 al actualizar la app. Los que comparten una cuota mantienen un único indicador y aparecen juntos en su detalle.
 Los agentes del catálogo, los personalizados y Hermes tienen un grupo propio si no estaban vinculados a otro.
 Si su programa no informa del límite, se muestran los usos registrados de hoy («0 hoy», «3 hoy»; ya no sale **N/D**)
-y, al abrirlo, también los de los últimos 7 días; puedes configurar un presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito. Si los indicadores no
-caben en la cabecera, el borde que queda oculto se desvanece y aparece una flecha (‹ o ›) para ver los demás; la rueda
-del ratón también desplaza la fila. Nunca queda un indicador cortado sin forma de verlo.
+y, al abrirlo, también los de los últimos 7 días; puedes configurar un presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito.
+
+**Una sola ficha en la cabecera** (desde el 22 nov 2026; antes, una por suscripción): un anillo con el % que le queda
+a la primera suscripción con dato («Cuota 62 %») y un **punto** ámbar o rojo si alguna se está acabando o se ha
+acabado. Al pasar el ratón dice cómo va cada una; al pulsarla se abren todas las fichas, y cada una abre su detalle.
 
 | Indicador | Fuente |
 |---|---|
@@ -7217,9 +7288,10 @@ el chat:
   sale al pasar el ratón). Si aun así no caben, la fila **se desplaza de izquierda a derecha** con la rueda del ratón
   (también la normal, sin Mayús), con el trackpad o con las flechas **‹ ›** que salen en los bordes; la pestaña
   abierta siempre queda a la vista. Al ensanchar, vuelven los nombres.
-- **Cabecera del Espacio digital:** cuando el 3D se queda estrecho, sus botones se compactan (primero el texto de la
-  demo y de «Música», luego los nombres de «Modo noche» y «Auto»); el título se recorta con «…» y, si aun así falta
-  sitio, queda solo su icono. Nada se monta encima del título.
+- **Cabecera del Espacio digital** (desde el 22 nov 2026, más limpia): a la vista solo el título con un punto de
+  estado («En vivo» o «Demo»), 3D / 2D, Música, **«⋯»** y ocultar el espacio. Dentro de «⋯» están Modo noche y Auto,
+  el Navegador y, en la demo, su escena con pausar y reiniciar. Cuando el 3D se queda estrecho, primero se esconde el
+  texto del estado; el título se recorta con «…» y, si aun así falta sitio, queda solo su icono.
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
 
@@ -8053,6 +8125,11 @@ marino, Olimpo, fábrica, ciudad, refugio y oficina, con los colores de `space2d
 dibujo del agente con su aspecto de Ajustes → Agentes. Basta con soltar las imágenes en esas carpetas y compilar.
 
 ### Expresiones de los robots
+
+**Fichas sobre los robots** (desde el 22 nov 2026): quien trabaja, piensa, espera o tiene un problema lleva su
+ficha entera (nombre, modelo, estado y progreso). Quien está libre, en reposo, bailando o apagado se queda solo con
+el punto y el nombre, en una píldora pequeña: así se ve de un vistazo quién está haciendo algo. Al pasar el ratón por
+encima, o al elegirlo, vuelve la ficha entera. Lo hace `quiet` en `scene/RobotLabel.tsx`.
 
 Todos los robots tienen el mismo juego de ojos, cada uno con su color, y la forma cuenta lo que está haciendo de
 verdad: ojos redondos (normal), «> <» (esfuerzo), párpados caídos (cansado o aburrido), rayitas (dormido o
