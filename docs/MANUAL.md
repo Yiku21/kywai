@@ -6220,7 +6220,7 @@ Los cambios llegan con el evento `templates.updated`.
 
 ### Tablero de tareas: déjalas en cola y vuelve a por los resultados
 
-La pestaña **Tablero** del proyecto (también en la barra lateral, debajo de Tareas) es un Kanban con cuatro
+La pestaña **Tablero** del proyecto es un Kanban con cuatro
 columnas: **Por hacer**, **En marcha**, **Te espera** y **Hecho**. Escribes lo que quieras que haga el equipo
 (Ctrl + Intro añade la tarjeta) y kywai coge la primera de «Por hacer», la envía al chat como si la escribieras tú
 (en el chat sale como «**Tablero de tareas**») y, cuando termina, pasa sola a la siguiente, aunque no estés delante.
@@ -7298,6 +7298,11 @@ el chat:
   texto del estado; el título se recorta con «…» y, si aun así falta sitio, queda solo su icono.
 - **Caja de escribir** (desde el 22 nov 2026): el texto ocupa todo el ancho y debajo van adjuntar, imagen, micro y
   esfuerzo a la izquierda y Enviar a la derecha, todo dentro de la misma caja.
+- **Sin repeticiones en la barra lateral** (desde el 22 nov 2026): Tareas, Tablero, Resultados y Rutinas ya no salen
+  en la barra lateral, porque son las mismas pestañas del chat (la introducción las señala ahí). La barra queda con
+  Nuevo chat, Buscar, Historial, Amigos, «Te necesita» y tus proyectos. En Tareas, una tarea en curso con barra de
+  progreso enseña el tiempo solo al final de la barra. El Tablero se explica en una línea con «ⓘ» (la explicación
+  entera, al pasar el ratón). En la demo web, el pie de la barra dice «kywai · Demo» con el punto en gris.
 - **Un solo aviso de demo** (desde el 22 nov 2026): en la demo solo lo dice el sello «Demo» de la cabecera; ya no se
   repite en el menú lateral, bajo el chat, junto al título del espacio ni en una etiqueta sobre el 3D.
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
