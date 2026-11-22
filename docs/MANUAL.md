@@ -7283,15 +7283,23 @@ el chat:
   entregable…) vuelve a partir la ventana: chat a la izquierda y el archivo a la derecha. El 3D sigue cerrado y parado;
   al cerrar el archivo, vuelves a tener solo chat. Llevar el borde **casi hasta la izquierda** hace lo contrario: deja solo el
   3D (como el botón de pantalla completa; Escape vuelve).
-- **Pestañas de arriba del chat** (Chat, Archivos, Tareas, Resultados, Memoria, Rutinas): si al estrechar el panel
+- **Pestañas de arriba del chat** (desde el 22 nov 2026, más limpias): a la vista solo **Chat, Tareas, Tablero y
+  Resultados** (`MAIN_TABS` en `ui/left/LeftPanel.tsx`); el resto (Archivos, Memoria, Rutinas, Secretos y Mods) va en
+  **«⋯»**, a la derecha de la fila. Si abres una de «⋯», sale también como pestaña mientras la tienes abierta. Un punto
+  en «⋯» avisa si alguna de dentro tiene algo (por ejemplo, notas de memoria por revisar). Si al estrechar el panel
   ya no caben con su nombre, quedan **solo los iconos** (la pestaña abierta conserva su nombre; el nombre de cada una
   sale al pasar el ratón). Si aun así no caben, la fila **se desplaza de izquierda a derecha** con la rueda del ratón
   (también la normal, sin Mayús), con el trackpad o con las flechas **‹ ›** que salen en los bordes; la pestaña
   abierta siempre queda a la vista. Al ensanchar, vuelven los nombres.
 - **Cabecera del Espacio digital** (desde el 22 nov 2026, más limpia): a la vista solo el título con un punto de
-  estado («En vivo» o «Demo»), 3D / 2D, Música, **«⋯»** y ocultar el espacio. Dentro de «⋯» están Modo noche y Auto,
+  estado («En vivo»; en la demo no sale, porque ya lo dice el sello «Demo» de la cabecera), 3D / 2D, Música, **«⋯»** y
+  ocultar el espacio. Dentro de «⋯» están Modo noche y Auto,
   el Navegador y, en la demo, su escena con pausar y reiniciar. Cuando el 3D se queda estrecho, primero se esconde el
   texto del estado; el título se recorta con «…» y, si aun así falta sitio, queda solo su icono.
+- **Caja de escribir** (desde el 22 nov 2026): el texto ocupa todo el ancho y debajo van adjuntar, imagen, micro y
+  esfuerzo a la izquierda y Enviar a la derecha, todo dentro de la misma caja.
+- **Un solo aviso de demo** (desde el 22 nov 2026): en la demo solo lo dice el sello «Demo» de la cabecera; ya no se
+  repite en el menú lateral, bajo el chat, junto al título del espacio ni en una etiqueta sobre el 3D.
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
 
@@ -8130,6 +8138,8 @@ dibujo del agente con su aspecto de Ajustes → Agentes. Basta con soltar las im
 ficha entera (nombre, modelo, estado y progreso). Quien está libre, en reposo, bailando o apagado se queda solo con
 el punto y el nombre, en una píldora pequeña: así se ve de un vistazo quién está haciendo algo. Al pasar el ratón por
 encima, o al elegirlo, vuelve la ficha entera. Lo hace `quiet` en `scene/RobotLabel.tsx`.
+Los **bocadillos** (lo que dice cada robot) cuentan como parte de su ficha al repartir las etiquetas
+(`scene/LabelProjector.tsx`): si un bocadillo iba a tapar la ficha de otro robot, la etiqueta más lejana sube lo justo.
 
 Todos los robots tienen el mismo juego de ojos, cada uno con su color, y la forma cuenta lo que está haciendo de
 verdad: ojos redondos (normal), «> <» (esfuerzo), párpados caídos (cansado o aburrido), rayitas (dormido o
