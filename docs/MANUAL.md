@@ -7682,6 +7682,14 @@ La mascota de kywai es una cotorra verde (cara crema, pico salmón y puntas de l
 cara del coordinador: sus mensajes, y cualquier mensaje con un plan, llevan una pegatina de la cotorra (56 px) en vez del
 robot, y la pegatina cambia según en qué va el trabajo (`mascotMoodFor` en `lib/mascot.ts`):
 
+**Nombre y cara del coordinador en todas partes (22 nov).** El agente que coordina (el primero de `plannerOrder`) se
+llama «kywai / <agente>» (p. ej. «kywai / Hermes») y lleva la cotorra de kywai, no su avatar, en el chat, su ficha del
+espacio, las píldoras de las listas (tareas, resultados, archivos, cuotas), la etiqueta del 3D y la percha del 2D. Si otro
+agente pasa a coordinar con «Hacer coordinador», el cambio es inmediato con su nombre. Se hace en un solo sitio:
+`lookupAgent` (`ui/common/agents.ts`) marca `coordinator` y pone `coordinatorName()`; `AgentAvatar` y `AgentPill`
+(`AgentBits.tsx`) pintan entonces `CoordinatorBird` (la cotorra en reposo con el estilo elegido). El nombre guardado del
+agente no cambia (sigue siendo «Hermes» en Ajustes y en las menciones), y los becarios nunca llevan la cotorra.
+
 | Pegatina | Cuándo sale |
 |---|---|
 | Saluda | Primera respuesta de la conversación |
