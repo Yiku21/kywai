@@ -240,9 +240,21 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   (el Mac mini), un espacio de kywai cloud o un servidor anterior a esta versión. Por dentro (`updateChannel.ts`,
   `updater.ts`): en GitHub las Beta son «pre-release» y la Estable es la marcada como «latest»; en Beta la app acepta
   también las «pre-release». La web y los instaladores de una línea ofrecen siempre la última Estable.
-- **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
-  va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
-  `xattr -cr "/Applications/kywai.app"`.
+- **Firma del instalador de Windows (Azure Artifact Signing, antes «Trusted Signing»):** el flujo del escaparate
+  firma la app, el desinstalador y el instalador cuando el repositorio `Yiku21/kywai` tiene estos seis secretos
+  (Settings → Secrets and variables → Actions): `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` (la
+  aplicación de Entra con el rol «Artifact Signing Certificate Profile Signer»), `AZURE_FIRMA_ENDPOINT` (p. ej.
+  `https://eus.codesigning.azure.net`, según la región de la cuenta), `AZURE_FIRMA_CUENTA` (nombre de la cuenta de
+  firma) y `AZURE_FIRMA_PERFIL` (nombre del perfil de certificado «Public Trust»). Sin ellos el .exe sale sin
+  firmar, como antes. Con ellos, el paso «Comprobar la firma de Windows» para la publicación si algún .exe no sale
+  firmado, y las notas de la Release cambian el aviso. electron-builder firma antes de calcular `latest.yml`, así
+  que las actualizaciones automáticas siguen igual; no se fija `publisherName`, de modo que la app instalada no
+  exige firma a las versiones nuevas. Firmar no quita el aviso de SmartScreen al momento: Windows lo va quitando
+  a medida que la gente descarga e instala versiones firmadas con la misma identidad (días o semanas). El secreto
+  de la aplicación de Entra caduca (se elige al crearlo): renovarlo antes y cambiar `AZURE_CLIENT_SECRET`.
+- **Mac sin firma de Apple:** Windows sin los secretos de arriba avisa con SmartScreen («Más información» →
+  «Ejecutar de todas formas»). En el Mac va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que
+  está dañada, `xattr -cr "/Applications/kywai.app"`.
 - Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
   `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
   Si ese clon ya no está (no hay `source-dir.txt` o su carpeta no tiene `.git`) o apunta al antiguo repositorio
@@ -340,7 +352,8 @@ npm run dist:win
 ```
 
 Genera `release/kywai-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
-instalación y crea los accesos directos. Como no está firmado, Windows puede avisar («Windows protegió tu PC»):
+instalación y crea los accesos directos. Compilado en el propio equipo no va firmado (solo se firman los de la
+Release), así que Windows puede avisar («Windows protegió tu PC»):
 «Más información» → «Ejecutar de todas formas».
 
 #### Mac (se compila en el propio Mac)
@@ -2481,6 +2494,15 @@ contestaba «escribe `/miniatura`» y te tocaba lanzarla a ti. Ahora la pone en 
 | Una demo o un anuncio de una web | `/demo <dirección>` |
 | Una presentación o unas diapositivas | `/presentacion <tema>` |
 | De qué hacer el próximo vídeo, qué temas suben | `/radar <tema>` |
+| Tu último vídeo de `/video` en otro idioma | `/doblar <idioma>` |
+| Editar la grabación que adjuntas (muletillas, silencios, subtítulos) | `/editar` |
+| Los mejores momentos de un vídeo largo que adjuntas | `/recortes [n]` |
+| El diseño de una web, una landing o una pantalla para verlo | `/diseno <qué>` |
+| Un personaje en pixel art para tu juego | `/sprite <personaje>` |
+| La mascota animada de tu marca | `/mascota <cómo es>` |
+| Una pieza para la impresora 3D | `/imprimir3d <pieza>` |
+| La ficha de tu cliente ideal, a quién le vendes | `/cliente-ideal` |
+| Revisar la seguridad de tu proyecto | `/seguridad [qué mirar]` |
 
 En el chat la orden sale como un mensaje más, con la etiqueta **«Orden lanzada por Hermes»** (o el nombre de quien
 coordine) en vez de «Tú», y no se puede editar: así ves siempre qué se lanzó y quién lo decidió. El resultado llega
@@ -2490,20 +2512,30 @@ lanzarlo y el resultado sale aquí cuando esté».
 Antes de lanzar nada, kywai comprueba la orden con las mismas reglas del apartado anterior:
 
 - **Que existe.** Una orden inventada no se lanza.
-- **Que es de las cuatro de la tabla.** Son las que solo crean contenido dentro de tu proyecto. Publicar en Instagram
-  o TikTok, proponer rutinas, guardar claves, cambiar ajustes y todo lo que pide tu visto bueno **sigue siendo cosa
-  tuya**: quien coordina te dice qué orden usar y la lanzas tú con un clic.
-- **Que está completa.** `/demo` sin dirección, `/presentacion` sin tema ni archivo o `/miniatura` sin ningún vídeo en
-  el proyecto no se lanzan.
+- **Que es de las de la tabla.** Son las que solo crean contenido dentro de tu proyecto. Publicar en Instagram
+  o TikTok, proponer rutinas, guardar claves, cambiar ajustes, arreglar código (`/arreglar`), las extensiones, los
+  efectos de sonido (`/sonido`, que gasta tu clave de ElevenLabs), aprender de un vídeo (`/aprende`, que cambia las
+  habilidades del equipo) y todo lo que pide tu visto bueno **sigue siendo cosa tuya**: quien coordina te dice qué
+  orden usar y la lanzas tú con un clic.
+- **Que está completa**, con las mismas reglas con las que luego se lanza: `/demo` sin dirección, `/presentacion` sin
+  tema ni archivo, `/miniatura` sin ningún vídeo en el proyecto, `/editar` o `/recortes` sin el vídeo adjunto a tu
+  mensaje, `/doblar` sin idioma, sin un vídeo hecho con `/video` o con uno que ya está en ese idioma, y `/diseno`,
+  `/sprite`, `/mascota` o `/imprimir3d` sin decir qué ni adjuntar nada no se lanzan. Si le falta algo que solo sabes
+  tú (el vídeo, el idioma), te lo pide en su mensaje.
 
 Si la orden no pasa, se le devuelve una vez y, si insiste, no se lanza y su mensaje lleva el aviso de siempre
 («La orden «/demo mi tienda»: le faltaba algo para poder lanzarla»). Como mucho lanza tres órdenes por respuesta. En
 una rutina funciona igual. En Órbita la orden lanzada se ve como un mensaje tuyo normal, sin la etiqueta.
 
-Código: la lista está en `PLANNED_COMMANDS` (`src/main/planActions.ts`); `launchPlannedCommand` y
+Para que el encargo de quien coordina no crezca con cada orden, solo le explica enteras las que vienen a cuento por
+lo que hablas (o por lo que adjuntas: con un vídeo adjunto, `/editar` y `/recortes`); las demás las nombra en una
+línea.
+
+Código: cada orden tiene su ficha en `src/main/plannedCommands.ts` (cuándo viene a cuento, cómo se escribe y qué le
+falta si llega incompleta) y `commandRule` escribe con ellas la regla del encargo; `launchPlannedCommand` y
 `plannedCommandReady` en `src/main/orchestrator.ts` la comprueban y la lanzan por el mismo camino que si la escribes
-tú. Para añadir otra orden a la lista: tiene que crear solo contenido en el proyecto, tener su comprobación de
-«está completa» y su prueba en `planActionsFlow.test.ts`.
+tú. Para añadir otra orden: tiene que crear solo contenido en el proyecto, tener su ficha, su comprobación de «está
+completa» y su prueba en `planActionsFlow.test.ts`.
 
 ### Vigilante de trabajos largos: nada se queda colgado sin avisar
 
