@@ -3823,6 +3823,12 @@ Funciona sin navegador (DOM de linkedom), igual en el escritorio y en kywai clou
 también la usan por dentro en su `fetch_url`. Código: `src/main/cleanPage.ts` (+ test), `coworkMcp.ts` (`PAGE_TOOL`)
 y `agents/localTools.ts` (`fetchUrl`).
 
+Ojo al empaquetar: `defuddle` va en devDependencies y electron-vite lo mete dentro de `out/main`, pero turndown (que
+usa por dentro) hace `require("@mixmark-io/domino")` en tiempo de ejecución. Por eso `@mixmark-io/domino` está en
+`dependencies`: la app instalada y la imagen de la nube (`npm ci --omit=dev`) solo llevan esas, y sin él la app se cae
+al arrancar (22 nov: seis despliegues de la nube se pararon solos por esto). Cualquier dependencia nueva del proceso
+principal que no se meta entera en el paquete tiene que ir en `dependencies`.
+
 ### Navegador de kywai: tus cuentas para los agentes
 
 Un navegador de verdad dentro de kywai, donde entras con tus cuentas (GoHighLevel, un CRM, el panel de tu web, una
@@ -7881,6 +7887,9 @@ agente pasa a coordinar con «Hacer coordinador», el cambio es inmediato con su
 `lookupAgent` (`ui/common/agents.ts`) marca `coordinator` y pone `coordinatorName()`; `AgentAvatar` y `AgentPill`
 (`AgentBits.tsx`) pintan entonces `CoordinatorBird` (la cotorra en reposo con el estilo elegido). El nombre guardado del
 agente no cambia (sigue siendo «Hermes» en Ajustes y en las menciones), y los becarios nunca llevan la cotorra.
+Siempre hay coordinador: si `plannerOrder` llega vacío (los agentes dados de alta desde el catálogo de la nube no
+entraban en la lista), `mergeConfig` lo rellena con los agentes del equipo en su orden, y el alta del catálogo ya lo
+añade a la lista.
 
 | Pegatina | Cuándo sale |
 |---|---|
