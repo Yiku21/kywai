@@ -1260,7 +1260,7 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     `GET <dirección>/models` para comprobar dirección y clave (avisa si no responde, si no acepta la clave o si no
     parece compatible), escribe en `config.yaml` de Hermes el proveedor `omniroute` o `kywai-propio` con
     `api_key: ${KYWAI_HERMES_KEY}` (la clave no se escribe en el archivo: va cifrada en kywai y se le pasa al lanzarlo,
-    `hermesSecrets` en `agents/index.ts`), elige el modelo automático (`auto/smart` si lo hay) y lo prueba. El paso
+    `hermesSecrets` en `agents/index.ts`), elige el mejor modelo que tengas para cada dificultad (`pickHermesTiers`: Normal el mejor «del día» como Sonnet, GPT-5 o Gemini Pro; Difícil el más potente como Opus; Fácil uno rápido como Haiku o Flash, mirando la familia y la versión; si no reconoce ninguno, el automático `auto/smart`) y lo prueba. Si conectas más proveedores en OmniRoute, «Comprobar ahora» vuelve a elegir. El paso
     **2 · Modelo** enseña los modelos que dio la dirección. Los proveedores que ya tuvieras en `config.yaml` (p. ej. un
     `omnirouter` propio) no se tocan. En el equipo servidor solo se cambia desde su app de escritorio; en kywai cloud,
     desde la app conectada al espacio. Pasar suscripciones de Claude Code o Copilot por OmniRoute puede ir contra las
@@ -1272,7 +1272,7 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     --no-tray`, lo que dice va a `omniroute.log` en la carpeta de datos). Luego dos pasos: **Abrir el panel** (se abre en tu
     navegador en http://127.0.0.1:20128: los enlaces http solo se abren hacia este mismo equipo, `src/main/externalUrl.ts`;
     la contraseña se ve escrita, con un botón para copiarla) y conectar un proveedor (suscripción o clave: eso no tiene orden ni API), y
-    **volver a kywai**, que lo comprueba solo al recuperar la ventana y deja Hermes con su modelo automático. Si aún
+    **volver a kywai**, que lo comprueba solo al recuperar la ventana y deja Hermes con los mejores modelos para cada dificultad. Si aún
     no hay proveedor, lo dice; si OmniRoute pide una clave y no pegaste ninguna, dice que la crees en su panel
     («Endpoints» o «API Keys») y la pegues abajo. **Se enciende solo**: al abrir kywai, si un Hermes encendido trabaja con el OmniRoute de
     este equipo (127.0.0.1:20128) y no contesta, kywai lo enciende en segundo plano; si no puede, avisa en «Te
