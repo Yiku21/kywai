@@ -7309,6 +7309,9 @@ el chat:
   Nuevo chat, Buscar, Historial, Amigos, «Te necesita» y tus proyectos. En Tareas, una tarea en curso con barra de
   progreso enseña el tiempo solo al final de la barra. El Tablero se explica en una línea con «ⓘ» (la explicación
   entera, al pasar el ratón). En la demo web, el pie de la barra dice «kywai · Demo» con el punto en gris.
+  Para que la demo no se vea vacía, la barra lateral enseña **proyectos de ejemplo** («Lanzamiento app» con dos chats,
+  «Web de la tienda», «Vídeo de presentación»; `DemoProjects` en `ui/sidebar/Sidebar.tsx`) y el Tablero un **tablero de
+  ejemplo** con una tarjeta o dos en cada columna (`demoBoard` en `ui/left/BoardView.tsx`), solo para mirar.
 - **Un solo aviso de demo** (desde el 22 nov 2026): en la demo solo lo dice el sello «Demo» de la cabecera; ya no se
   repite en el menú lateral, bajo el chat, junto al título del espacio ni en una etiqueta sobre el 3D.
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
