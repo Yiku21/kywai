@@ -1383,6 +1383,8 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     ofrecían el modelo actual). Si Hermes no contesta, la ficha usa el catálogo de respaldo `HERMES_ACCOUNT_CATALOG`
     (Haiku, Sonnet y Opus 5.5, Fable 5.2…; GPT-6 Luna/Sol, GPT-5.6…) con nombre corto y nota (`hermesModelOption` en
     `models.ts`). Si se conectó con una versión anterior, al abrir la ficha se le pregunta una vez en segundo plano.
+    Si el espacio no tiene apuntado el proveedor (solo el modelo), se deduce del modelo: `claude-…` es la cuenta de
+    Claude y `gpt-…` la de ChatGPT (`hermesSubscriptionProvider`).
   - **Hermes con tu cuenta de Nous Portal en la nube**: pestaña «Tu cuenta de Nous Portal». El espacio lanza
     `hermes auth add nous --type oauth --no-browser` y enseña su enlace (`portal.nousresearch.com/…?user_code=…`) y su
     código; al aprobarlo, kywai pregunta a Hermes qué modelos deja tu plan (el gratis solo los gratuitos, como en
