@@ -9,6 +9,8 @@
 #      repositorio, sigue enseñando las mejoras.
 #   3. Compila Windows, macOS y Linux desde el código privado y crea la Release v0.1.<commits del código>, con los
 #      mismos nombres de archivo y los latest*.yml de siempre: las apps instaladas se actualizan solas igual que antes.
+#      El instalador de Windows se firma con Azure Artifact Signing cuando están los secretos AZURE_* (ver
+#      «Firma del instalador de Windows» en docs/MANUAL.md); sin ellos sale sin firmar, como antes.
 #
 # Al ser un repositorio público, los minutos de GitHub Actions no cuestan nada. El código se baja con una llave de
 # despliegue de SOLO LECTURA (secreto KYWAI_CODIGO_LLAVE). No hay disparador pull_request: nadie de fuera puede
@@ -181,16 +183,52 @@ jobs:
         working-directory: codigo
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # Firma del instalador de Windows con Azure Artifact Signing (antes «Trusted Signing»). Si faltan los
+          # secretos, se compila sin firmar como siempre. electron-builder firma la app, el desinstalador y el
+          # instalador, y calcula los latest.yml después de firmar, así que las actualizaciones siguen cuadrando.
+          # No se pone publisherName: la app instalada no exige firma a las versiones nuevas (si un día falla la
+          # firma, las actualizaciones no se rompen).
+          AZURE_TENANT_ID: ${{ runner.os == 'Windows' && secrets.AZURE_TENANT_ID || '' }}
+          AZURE_CLIENT_ID: ${{ runner.os == 'Windows' && secrets.AZURE_CLIENT_ID || '' }}
+          AZURE_CLIENT_SECRET: ${{ runner.os == 'Windows' && secrets.AZURE_CLIENT_SECRET || '' }}
+          FIRMA_ENDPOINT: ${{ runner.os == 'Windows' && secrets.AZURE_FIRMA_ENDPOINT || '' }}
+          FIRMA_CUENTA: ${{ runner.os == 'Windows' && secrets.AZURE_FIRMA_CUENTA || '' }}
+          FIRMA_PERFIL: ${{ runner.os == 'Windows' && secrets.AZURE_FIRMA_PERFIL || '' }}
           # La app ya no cabe en la memoria que Node da por defecto en macOS (se paraba con «heap out of memory»).
           NODE_OPTIONS: --max-old-space-size=6144
         run: |
+          firma=()
+          if [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ] \
+              && [ -n "$FIRMA_ENDPOINT" ] && [ -n "$FIRMA_CUENTA" ] && [ -n "$FIRMA_PERFIL" ]; then
+            echo "Windows: se firma con Azure Artifact Signing."
+            firma=("-c.win.azureSignOptions.endpoint=$FIRMA_ENDPOINT"
+                   "-c.win.azureSignOptions.codeSigningAccountName=$FIRMA_CUENTA"
+                   "-c.win.azureSignOptions.certificateProfileName=$FIRMA_PERFIL")
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            echo "::warning::Faltan los secretos AZURE_* de la firma: el instalador de Windows sale sin firmar."
+          fi
           npx electron-vite build
-          npx electron-builder ${{ matrix.args }} --publish never \
+          npx electron-builder ${{ matrix.args }} --publish never "${firma[@]}" \
             -c.extraMetadata.version=${{ needs.revisar.outputs.version }} \
             -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=kywai -c.publish.releaseType=release \
             '-c.nsis.artifactName=kywai-Setup-${version}.${ext}' \
             '-c.mac.artifactName=kywai-${version}-${arch}.${ext}' \
             '-c.linux.artifactName=kywai-${version}-${arch}.${ext}'
+      - name: Comprobar la firma de Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          FIRMA_CONFIGURADA: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_FIRMA_PERFIL != '' }}
+        run: |
+          if ($env:FIRMA_CONFIGURADA -ne 'true') { Write-Output 'Sin firma configurada: no hay nada que comprobar.'; exit 0 }
+          $fallos = 0
+          foreach ($exe in Get-ChildItem codigo/release/*.exe) {
+            $firma = Get-AuthenticodeSignature $exe.FullName
+            Write-Output "$($exe.Name): $($firma.Status) ($($firma.SignerCertificate.Subject))"
+            if ($firma.Status -ne 'Valid') { $fallos++ }
+          }
+          # Si la firma está configurada y el .exe no sale firmado, no se publica: mejor ninguna versión que una a medias.
+          if ($fallos -gt 0) { Write-Output '::error::El instalador no salió firmado.'; exit 1 }
       - uses: actions/upload-artifact@v4
         with:
           name: escritorio-${{ matrix.os }}
@@ -223,8 +261,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           V: ${{ needs.revisar.outputs.version }}
           TARGET: ${{ needs.revisar.outputs.escaparate }}
+          FIRMADO: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_FIRMA_PERFIL != '' }}
         run: |
           ls -la dist
+          # Si se compiló con firma (el paso «Comprobar la firma de Windows» para el flujo si no salió), las notas lo dicen.
+          if [ "$FIRMADO" = "true" ]; then
+            AVISO_FIRMA='The Windows installer is code-signed. For the first weeks Windows may still say it does not recognise the app: click "More info" → "Run anyway". The macOS and Linux apps are not code-signed yet:'
+            AVISO_WIN=''
+          else
+            AVISO_FIRMA='The apps are not code-signed yet:'
+            AVISO_WIN='- **Windows:** if SmartScreen warns you, click "More info" → "Run anyway".'
+          fi
           cat > notas.md <<EOF
           Once installed, kywai checks for a newer version every time it opens.
 
@@ -237,8 +284,8 @@ jobs:
           | Linux ARM | \`kywai-${V}-arm64.AppImage\` |
           | Android (Órbita, the phone app) | \`kywai-orbita.apk\` |
 
-          The apps are not code-signed yet:
-          - **Windows:** if SmartScreen warns you, click "More info" → "Run anyway".
+          ${AVISO_FIRMA}
+          ${AVISO_WIN}
           - **macOS:** drag the app to Applications, then right-click it → Open (only the first time). If macOS says it is damaged, run \`xattr -cr "/Applications/kywai.app"\` in Terminal.
           - **Linux:** \`chmod +x kywai-*.AppImage\` and open it.
           - **Android:** open \`kywai-orbita.apk\` on the phone and allow installing apps from that source.
