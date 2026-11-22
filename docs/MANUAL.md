@@ -50,6 +50,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Tu visto bueno a cada plan](#tu-visto-bueno-a-cada-plan)
     - [Revisión del plan con ojos nuevos](#revisión-del-plan-con-ojos-nuevos)
   - [«Te necesita»: lo que espera una decisión tuya](#te-necesita-lo-que-espera-una-decisión-tuya)
+  - [«Tu día»: lo que hay hoy al volver a kywai](#tu-día-lo-que-hay-hoy-al-volver-a-kywai-22-nov-2026)
   - [Criterio de aceptación y archivos de cada tarea](#criterio-de-aceptación-y-archivos-de-cada-tarea)
   - [A dos manos: dos agentes, dos opciones y un juez](#a-dos-manos-dos-agentes-dos-opciones-y-un-juez)
   - [Los agentes retoman su sesión en las continuaciones](#los-agentes-retoman-su-sesión-en-las-continuaciones)
@@ -351,13 +352,21 @@ configuración** de siempre:
    se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
 4. **Listo**: resumen de lo que queda pendiente.
 
-**Introducción guiada** (desde el 20 nov 2026, `src/renderer/src/ui/tour/`). Al terminar el asistente (en el
-navegador y en kywai Cloud, la primera vez que se abre en ese dispositivo) kywai oscurece la ventana e ilumina, uno a
-uno, cada sitio de la app con una explicación corta de para qué sirve: estado del equipo, proyecto, cuota restante,
-barra lateral (Nuevo chat, Buscar, Historial, Amigos, Te necesita, Tareas, Tablero, Resultados, Rutinas, Proyectos e
-importar chats), las secciones del proyecto, el cuadro de escribir (con «@» y las órdenes «/»), adjuntar y dictar,
-esfuerzo, hablar con kywai, enviar, el espacio digital (3D o 2D, Navegador, Música y ocultarlo), la rueda ⚙ y cada
-pestaña de Ajustes (la abre y la cierra sola). Acaba en el cuadro de escribir para mandar la primera tarea.
+**Introducción guiada** (desde el 20 nov 2026, rehecha el 22 nov 2026, `src/renderer/src/ui/tour/`). Al terminar
+«Tu primer agente» o el asistente (en el navegador y en kywai Cloud, la primera vez que se abre en ese dispositivo)
+kywai oscurece la ventana e ilumina, uno a uno, los sitios de la app con una explicación corta. Va en dos partes:
+- **Lo esencial** (sale sola, 11 pasos, un minuto): quién coordina («kywai / Hermes», con la cotorra de kywai), el
+  cuadro de escribir (lo sencillo se contesta al instante, lo grande se convierte en plan y quien coordina lanza él las
+  herramientas de kywai; «@» y «/»), adjuntar y dictar, enviar, estado del equipo, cuota (en Hermes, el % real de
+  OmniRoute o su uso de hoy), «Te necesita», Resultados (las imágenes salen ya en el propio chat), el espacio (cada
+  agente con su forma y la cotorra de quien coordina) y la rueda ⚙ (tema, también Vidrio líquido). El último paso,
+  en el cuadro de escribir, lleva **«Enseñarme todo»**.
+- **Todo lo demás** (con «Enseñarme todo»): proyecto, barra lateral (Nuevo chat, Buscar, Historial, Amigos, Tareas,
+  Tablero, Rutinas, Proyectos e importar chats), las secciones del proyecto, esfuerzo, hablar con kywai, 3D o 2D,
+  Navegador, Música, ocultar el espacio y cada pestaña de Ajustes (la abre y la cierra sola). En «Conectar un agente»
+  explica el recomendado (Hermes con OmniRoute, que elige el modelo según la dificultad y sigue con la reserva gratis
+  de OpenRouter si OmniRoute no responde), los agentes gratis y que en kywai cloud Hermes entra con tu ChatGPT o Claude
+  desde Mi cuenta → Mis agentes y trabaja 24/7.
 - **Se puede omitir siempre**: botón «Omitir», la ✕ o Esc. Terminada u omitida, se apunta en el dispositivo
   (`kywai.introduccion.vista` en su almacenamiento) y no vuelve a salir sola; se repite con **⚙ → «Ver la introducción»**.
 - Sale después de cualquier ventana abierta (asistente, «Novedades»…) y nunca en la demo sin motor ni cuando la
@@ -366,11 +375,12 @@ pestaña de Ajustes (la abre y la cierra sola). Acaba en el cuadro de escribir p
   Ajustes que no hay sin motor) se saltan solos.
 - Usa [driver.js](https://github.com/nilbuild/driver.js) 1.14.0 (MIT, sin dependencias), con la versión fijada. Cada
   sitio lleva `data-tour="<id>"` en la interfaz; los pasos y sus textos (en los cinco idiomas) están en
-  `introTourPasos.ts`. Para añadir un paso: marca el elemento con `data-tour`, añade el paso en su sitio y sus traducciones.
-- Hay un paso propio para **conectar un agente** (Ajustes → Agentes → «Configurar agentes…»): elegir agentes, instalar
-  sus programas, iniciar sesión con la cuenta o pegar una clave, y las opciones gratis.
+  `introTourPasos.ts` (`essentialSteps` y `restSteps`). Para añadir un paso: marca el elemento con `data-tour`, añade el
+  paso en la parte que toque (lo esencial debe seguir siendo corto: la prueba pide 12 pasos como mucho) y sus traducciones.
 - **Mi cuenta** (kywai Cloud) tiene su propio recorrido de 16 pasos por cada sección del panel, también con «Omitir»;
-  se repite con «Ver el recorrido» en el Resumen o en Ayuda y cuenta (está en el repositorio kywai-cloud).
+  se repite con «Ver el recorrido» en el Resumen o en Ayuda y cuenta (está en el repositorio kywai-cloud). Desde el
+  22 nov 2026 cuenta también que Hermes trabaja 24/7 con tu suscripción de ChatGPT o Claude (con la reserva gratis de
+  OpenRouter) y que los créditos pagan las imágenes hechas con la GPU de kywai.
 
 Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta de datos del usuario
 (`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en Mac, `~/.config/AI Cowork` en Linux).
@@ -2095,6 +2105,13 @@ tareas** en lugar de 6, pero solo si tiene esa forma (muchas sin dependencias y 
 `isWidePlan`); si no, se queda en 6 como siempre. Se lanzan a la vez las que caben en «Tareas a la vez en todo el
 equipo» y el resto en cuanto se libran.
 
+**Encargos en lote (22 nov 2026, idea de Kimi Work).** Lo mismo vale para hacer algo con cada fila de una lista:
+«escribe un correo a cada uno de estos 30 negocios», «una tarea por fila», «en lote». Si la lista aún no existe, la
+primera tarea la prepara en `lote/lista.csv` y las de cada elemento dependen solo de ella; cada una trabaja en su
+carpeta `lote/<número>-<nombre-corto>/` para que no se pisen, y la última, «Juntar los resultados», escribe
+`lote/resultados.csv` (una fila por elemento, con su estado y el enlace a lo que entregó). `isWidePlan` acepta también
+esa forma: una sola tarea raíz, al menos 7 que dependen solo de ella y como mucho una que las junta.
+
 ### El plan se ve mientras se escribe
 
 Mientras el coordinador prepara el plan, la fila «prepara el plan» del chat ya no enseña solo un texto fijo: va
@@ -2293,6 +2310,22 @@ vídeos de prueba) sin salir en el chat. Ahora:
 En un mensaje directo («@Codex …») «BLOQUEADA» no significa nada especial: la respuesta sale tal cual. En el código:
 `handleBlocked`, `blockedNeedsYou` y `settleBlocked` en `src/main/orchestrator.ts` (pruebas G, G3 y G4 de
 `orchestrator.check.ts`); el aviso de la tarjeta es `AgentRuntime.notice` y la tarea lleva `needsYou`.
+
+### «Tu día»: lo que hay hoy al volver a kywai (22 nov 2026)
+
+Idea de Herald OS. Cuando vuelves a abrir kywai **otro día o tras 3 horas sin mirarlo**, encima del chat sale una
+tarjeta con un saludo y la fecha, y solo las filas que tienen algo:
+
+- **Te necesita**: cuántas cosas esperan tu sí, con la primera y un botón «Ver» que abre «Te necesita».
+- **Rutinas de hoy**: las rutinas activas de todos tus proyectos que se lanzan de aquí al final del día, con su hora.
+- **Mientras no estabas**: las tareas que terminaron (o fallaron) desde la última vez que tuviste kywai abierto, con
+  su proyecto; al pulsar una se abre ese proyecto.
+- **Seguir donde lo dejaste**: el último proyecto en el que trabajaste y su chat, si no es el que ya tienes abierto.
+
+La primera vez que abres kywai no sale (ya está la bienvenida), y si no hay nada que contar tampoco. Se cierra con la
+X hasta la próxima vez que vuelvas. La última visita se apunta solo en este dispositivo (cada minuto, al ocultar la
+ventana y al cerrarla). Por dentro: `dayBrief.ts` junta los proyectos (como mucho 8, y solo abre los que cambiaron
+desde tu visita o tienen rutinas) y `getDayBrief(since)` lo da a la tarjeta (`DayBrief.tsx`).
 
 ### Criterio de aceptación y archivos de cada tarea
 
@@ -2845,6 +2878,14 @@ lleva en el servidor MCP de kywai; Codex y Gemini, junto al navegador). Abre un 
 su servidor de desarrollo (solo `localhost` o `127.0.0.1`, nunca una web de fuera), sigue el guion si se lo dan y les
 devuelve los fallos medidos, los errores de la consola, el esquema y la captura de escritorio. El encargo de cada
 tarea les pide usarla cuando cambian una web o una interfaz y arreglar lo que salga por su cambio.
+
+**Rehacer una web y medir cuánto se parece (22 nov 2026, idea de Craft Anything).** Cuando pides copiar, rehacer o
+igualar una web o un diseño, el agente usa `comparar_con_original` (mismo servidor MCP): saca la foto de su página y la
+del original (una web pública o una imagen de su carpeta; nunca `localhost` ni la red de casa) en escritorio y en
+móvil, y devuelve un **parecido de 0 a 100** (SSIM por bloques en pequeño: mide disposición, tamaños y contrastes) con
+la imagen de las dos lado a lado, guardada en `.ai-cowork/verificacion/<tag>-parecido-<escritorio|movil>.png`. La
+habilidad `web-rehacer-con-parecido` le dice cómo trabajar: estudiar el original en `estudio.md`, construir, comparar
+y corregir hasta 85 o más, y copiar solo la forma (nada de logos, textos ni fotos con derechos de otros).
 
 **Quién verifica.** Entre los agentes de otra familia que valen (libres antes que ocupados), kywai elige con lo
 medido en los últimos 30 días: primero el que da un veredicto claro (menos «sin verificar») y, si se parecen, el
