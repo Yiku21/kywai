@@ -37,6 +37,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
 - **[Puesta en marcha](#puesta-en-marcha)**
   - [Requisitos](#requisitos)
   - [Instalar en otro equipo](#instalar-en-otro-equipo)
+  - [Desinstalar kywai](#desinstalar-kywai-22-nov-2026)
   - [Abrir la app (este equipo, versión de desarrollo)](#abrir-la-app-este-equipo-versión-de-desarrollo)
   - [Actualizar y reiniciar](#actualizar-y-reiniciar)
   - [Acceso desde el móvil o el portátil (Tailscale)](#acceso-desde-el-móvil-o-el-portátil-tailscale)
@@ -419,6 +420,37 @@ En Linux:
   esa no se actualiza sola.
 - Tailscale se busca en `/usr/bin/tailscale` o `/usr/local/bin/tailscale`.
 
+### Desinstalar kywai (22 nov 2026)
+
+**Ajustes › Avanzado › Desinstalar kywai** quita la app de este equipo (servidor o cliente) y deja elegir:
+
+- **Solo el programa**: los chats, proyectos, agentes, ajustes y claves se quedan. Si se vuelve a instalar, todo
+  sigue ahí.
+- **El programa y todos mis datos**: como una instalación nueva. Ofrece guardar antes una copia de seguridad y pide
+  marcar «Entiendo…». En modo cliente borra la conexión de este equipo (en kywai Cloud, además, lo quita del espacio);
+  lo del servidor o la nube no se toca.
+
+Nunca se tocan las carpetas de proyectos elegidas fuera de kywai ni los programas de los agentes (Claude, Codex,
+Gemini, Hermes, LM Studio…). «Abrir kywai al iniciar sesión» se apaga antes de cerrar.
+
+Cómo lo hace (`src/main/uninstall.ts`):
+
+- **Windows**: lanza `Uninstall kywai.exe /currentuser /S` (o el antiguo `Uninstall AI Cowork.exe`) y se cierra; con
+  «borrar todo» añade `--borrar-datos`. El desinstalador (`build/installer.nsh`, macro `customUnInstall`) borra
+  `%APPDATA%\AI Cowork`, `%APPDATA%\kywai`, `%LOCALAPPDATA%\kywai-updater` y `ai-cowork-updater`,
+  `%LOCALAPPDATA%\Programs\kywai-wordcraft` y `~\.kywai-mudanza`, y quita la entrada de «Run». Si se desinstala desde
+  **Aplicaciones** de Windows, pregunta con una ventana si borrar también los datos (de serie, «No»). Al actualizar
+  (`--updated`) no hace nada de esto.
+- **macOS**: la `.app` y, con «borrar todo», la carpeta de datos, las cachés del actualizador, los registros y
+  `~/.kywai-mudanza` van a la **Papelera** (se pueden recuperar).
+- **Linux**: igual con la AppImage. Si kywai vino de un paquete `.deb`/`.rpm`, la ventana explica que se quite con el
+  gestor del sistema.
+- En la versión de desarrollo (sin empaquetar) no se ofrece: se quita borrando su carpeta.
+
+Para dejar un PC Windows como el de un usuario nuevo sin perder nada (pruebas de instalación limpia), hay un script
+que primero solo mira y con `-Mover` lo aparta todo a una carpeta `kywai-copia-<fecha>`:
+`/mnt/project-files/pc-windows-instalacion-limpia/limpiar-kywai.ps1` (en la carpeta del proyecto).
+
 ### Abrir la app (este equipo, versión de desarrollo)
 
 Usa el acceso directo **AI Cowork** del Escritorio o del menú Inicio. Si el código cambió desde la última vez
@@ -460,6 +492,16 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   apartan, en una rama `apartado/<fecha>`, y el código vuelve a ser el de GitHub. Y si el código descargado es
   más nuevo que la app instalada (por ejemplo, porque se subió desde ese mismo equipo sin recompilar), ofrece
   instalarlo: la app sabe con qué commit se compiló.
+- **Actualizaciones grandes (cientos de cambios).** `sh()` (`src/main/setup.ts`) guarda solo los últimos 20.000
+  caracteres de la salida de cada orden. Por eso el actualizador ya no lee listas largas enteras: pregunta a git si
+  cambiaron las dependencias con `git diff --quiet <base> HEAD -- package.json package-lock.json`
+  (`depsChangedSince`) y, si es así, ejecuta `npm install` antes de compilar. Antes buscaba `package.json` en la
+  lista completa de archivos cambiados; con 763 archivos la lista llegaba cortada, se saltaba `npm install`, la
+  compilación fallaba a los pocos segundos por falta de dependencias y la app volvía sola a la versión anterior (desde
+  el cliente parecía que «Actualizar y reiniciar» cargaba y no hacía nada). Los cambios nuevos se listan como mucho
+  100 (los más recientes) y el total sale de `git rev-list --count` (`commitCount` en `UpdateStatus`): antes el
+  diálogo decía «199 cambios» cuando eran 398. Un servidor que tenga una versión anterior a este arreglo se
+  desbloquea una vez a mano en la carpeta del código: `git pull --ff-only`, `npm install`, compilar y reabrir.
 - **Aviso amarillo de actualización pendiente.** Cuando hay una versión nueva esperando, la rueda **⚙** del pie de la
   barra lateral brilla en amarillo (con un punto) y, al abrirla, la opción pasa a ser **«Actualizar kywai…»**, también
   en amarillo, con la versión o los cambios que hay. En Ajustes, la pestaña «Acerca de» y su fila de actualizar brillan
