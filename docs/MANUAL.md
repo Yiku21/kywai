@@ -1913,6 +1913,24 @@ poco esfuerzo) y contesta, o dice «MIRAR» (y qué mirar) o «PLAN». Ante la d
 de 25 s, falla o está ocupado, la petición se planifica como siempre. Las rutinas, las recetas y los cambios a un plan
 propuesto nunca usan el triaje.
 
+**Lo trivial, al instante y sin modelo.** Un saludo («hola», «buenas»), «¿cómo estás?», «¿estás?» (también «estas», «sigues ahí»,
+«hay alguien») o «gracias», con o sin tildes ni signos, lo contesta la propia app en el acto, sin llamar a nadie
+(`instantReply` en src/main/plan.ts). Si hay trabajo en marcha en el proyecto no: entonces «¿estás?» suele preguntar
+por él y lo contesta el coordinador, que sabe cómo va.
+
+**Mientras te contesta**, la fila del chat dice «kywai / Hermes te está contestando» y no «prepara el plan»: el plan
+solo se anuncia cuando de verdad lo prepara (hay que hacer algo). Lo marca `replying` en el estado del agente.
+
+**Mensajes muy cortos de charla** (hasta 5 palabras y 40 caracteres, sin preguntar qué se puede hacer: `isTinyMessage`):
+su triaje no lleva memoria, extractos del manual ni la tabla de lo que puede hacer el equipo, y no espera a comprobarla
+(va con lo último que se supo; antes esperaba hasta 2,5 s). Lo que pregunta «¿puedes hacer vídeos?» sigue con todo.
+
+**Sin razonar.** En el triaje, Hermes va con `--reasoning none` y una sola herramienta (`-t todo`): su configuración
+suele traer el razonamiento en «medium», y con eso hasta Claude Haiku tardaba 7 s en contestar «estas» (22 nov, PC
+Windows: 366 tokens pensando). Un Hermes antiguo que no conozca `--reasoning` se repite sin él. Claude, Codex y Gemini
+ya iban con poco esfuerzo. El encargo también le pide leer los mensajes cortos sin tildes o con erratas por lo más
+probable («estas» es «¿estás?»).
+
 Bajo la respuesta rápida, el chat dice por qué vía fue («Respuesta al momento» o «Respuesta rápida: un agente lo miró,
 sin plan ni revisión»). Si quieres el equipo completo, escribe **«a fondo»** en tu mensaje.
 
@@ -6749,8 +6767,8 @@ La barra sigue al equipo activo: al añadir, quitar, activar o desactivar un age
 al momento en el escritorio, el navegador y los clientes. Los agentes ya añadidos también reciben un indicador
 al actualizar la app. Los que comparten una cuota mantienen un único indicador y aparecen juntos en su detalle.
 Los agentes del catálogo, los personalizados y Hermes tienen un grupo propio si no estaban vinculados a otro.
-Si su programa no informa del límite, se muestra **N/D** (o los usos registrados de hoy), y puedes configurar un
-presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito. Si los indicadores no
+Si su programa no informa del límite, se muestran los usos registrados de hoy («0 hoy», «3 hoy»; ya no sale **N/D**)
+y, al abrirlo, también los de los últimos 7 días; puedes configurar un presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito. Si los indicadores no
 caben en la cabecera, el borde que queda oculto se desvanece y aparece una flecha (‹ o ›) para ver los demás; la rueda
 del ratón también desplaza la fila. Nunca queda un indicador cortado sin forma de verlo.
 
@@ -6759,6 +6777,7 @@ del ratón también desplaza la fila. Nunca queda un indicador cortado sin forma
 | GPT (Codex) | **Dato real**: se pregunta a Codex al abrir la app y cada 5 min (su `app-server`, no gasta uso), y tras cada tarea |
 | Claude | **Dato real**: se pregunta a Claude Code con `/usage` al abrir la app y cada 5 min (no llama al modelo ni gasta uso), y tras cada tarea |
 | Gemini | Con clave de API, Google no informa la cuota: se muestran los usos de hoy («3 hoy»), o una estimación si configuras un presupuesto (clic en el indicador) |
+| Hermes | Con **OmniRoute en este equipo**: **dato real** de OmniRoute. kywai entra en su panel con la contraseña que le puso al prepararlo y lee `/api/usage/quota` y `/api/usage/provider-limits` al abrir la app y cada 5 min (no gasta uso). Si el modelo de Hermes es de un proveedor concreto (`cc/…` = Claude, `cx/…` = Codex…) enseña esa suscripción; si es un combo o «auto», la cuenta conectada con más margen. El % es el de su ventana más justa y el detalle lista todas. Si la contraseña no entra, no insiste en 30 min (su panel bloquea tras varios fallos). Sin OmniRoute, o si está apagado o sin suscripciones, enseña los usos de hoy y de 7 días |
 | Local | Sin cuota (ejecución en tu PC) |
 
 ⚙ → Ajustes → Agentes → Tu equipo → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
