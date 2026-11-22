@@ -7352,6 +7352,10 @@ tema «Vidrio líquido» pasa solo a Amatista + Interfaz Vidrio líquido y lo ve
 el vidrio en `:root:root[data-glass='liquid']`, teñido con el color flotante de cada tema (`--float-rgb`): oscuro en
 los temas oscuros y claro en Perla, Refugio y la Oficina de día (borde de luz más fino y sin sombra en las letras).
 `scene/World.tsx` monta el cristal de verdad con la Interfaz en Vidrio líquido, sea cual sea el tema.
+Dónde va el 3D (a toda la ventana detrás del chat con cristal, o en su panel) lo decide `App.tsx` con `useGlass()`,
+que sigue el tema y la Interfaz. Hasta el 22 nov 2026 solo seguía el tema: al elegir Vidrio líquido el 3D se quedaba en
+su panel hasta tocar otra vez el ajuste, y al volver a Normal se quedaba tapado detrás (pedido por Yil: «tengo que
+reajustarla para que aplique» y «el espacio 3D deja de verse»). La prueba está en `lib/theme.test.ts`.
 
 **Ajustar el vidrio** (21 nov 2026, idea del vídeo «Agentic Liquid Glass»: «un desenfoque tiene un control; el vidrio de
 verdad, treinta»). Con la Interfaz en Vidrio líquido sale debajo «Ajustar el vidrio»: cinco deslizadores (Refracción,
