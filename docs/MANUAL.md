@@ -1269,10 +1269,12 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     comprueba Node.js (OmniRoute pide 22.22 o 24), instala `omniroute@3.8.54` con npm, le pone al panel una contraseña
     aleatoria (`omniroute setup --non-interactive` con `INITIAL_PASSWORD`, nunca la de fábrica `CHANGEME`; si ya tenía
     una tuya, no se toca) que se guarda cifrada en kywai y lo enciende sin ventana (`omniroute serve --no-open
-    --no-tray`, lo que dice va a `omniroute.log` en la carpeta de datos). Luego dos pasos: **Abrir el panel** (con un
-    botón para copiar la contraseña) y conectar un proveedor (suscripción o clave: eso no tiene orden ni API), y
+    --no-tray`, lo que dice va a `omniroute.log` en la carpeta de datos). Luego dos pasos: **Abrir el panel** (se abre en tu
+    navegador en http://127.0.0.1:20128: los enlaces http solo se abren hacia este mismo equipo, `src/main/externalUrl.ts`;
+    la contraseña se ve escrita, con un botón para copiarla) y conectar un proveedor (suscripción o clave: eso no tiene orden ni API), y
     **volver a kywai**, que lo comprueba solo al recuperar la ventana y deja Hermes con su modelo automático. Si aún
-    no hay proveedor, lo dice. **Se enciende solo**: al abrir kywai, si un Hermes encendido trabaja con el OmniRoute de
+    no hay proveedor, lo dice; si OmniRoute pide una clave y no pegaste ninguna, dice que la crees en su panel
+    («Endpoints» o «API Keys») y la pegues abajo. **Se enciende solo**: al abrir kywai, si un Hermes encendido trabaja con el OmniRoute de
     este equipo (127.0.0.1:20128) y no contesta, kywai lo enciende en segundo plano; si no puede, avisa en «Te
     necesita». Antes de cada encargo de Hermes con OmniRoute se mira otra vez y se enciende si hace falta. **Al cerrar
     kywai se apaga, solo si lo encendió kywai** (el que abriste tú sigue funcionando).
@@ -6430,8 +6432,10 @@ actualizaciones* y *Reiniciar kywai* en Ajustes → Acerca de, y *Abrir carpeta 
 proyecto de la barra lateral.
 
 **Ajustes…** abre una ventana con pestañas a la izquierda. Para no abrumar a quien empieza, cada pestaña agrupa sus
-opciones en **secciones plegables**: solo una está abierta a la vez (al abrir otra se recoge la anterior) y cada
-cabecera dice en pequeño cómo está ahora («Español · Órbita», «Preguntarme antes»…), sin tener que abrirla.
+opciones en **secciones plegables**: al entrar salen todas recogidas y abres la que necesites; solo una está abierta
+a la vez (al abrir otra se recoge la anterior) y cada cabecera dice en pequeño cómo está ahora («Español · Órbita»,
+«Preguntarme antes»…), sin tener que abrirla. Solo un aviso concreto (p. ej. el de «Hablar con kywai») entra con su
+sección ya abierta.
 
 - **General**: *Apariencia* (idioma, tema y tema propio en este dispositivo), *Sonido y voz* (una barra de volumen
   para la música, los efectos y las voces de los agentes, cada una con su botón de silenciar, y la voz para leer las
