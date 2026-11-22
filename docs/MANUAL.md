@@ -278,14 +278,17 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
 
 **Primera vez: «Tu primer agente»** (`src/renderer/src/ui/setup/FirstAgent.tsx`, 22 nov 2026). Una instalación
 nueva de la app de escritorio empieza **sin agentes**, como kywai cloud: `loadConfig` llama a `mergeConfig(…,
-{ emptyTeam: true })` cuando no hay `config.json`, la app está empaquetada y no es una self host sin pantalla, y deja
+{ emptyTeam: true })` cuando no hay `config.json` (o lo hay pero nunca se terminó el asistente y sigue con los
+agentes de fábrica tal cual, sin cuentas ni agentes propios), la app está empaquetada y no es una self host sin
+pantalla, y deja
 los 6 de fábrica en `removedAgents` para que no vuelvan solos al abrirla otra vez (en desarrollo y en las pruebas
 sigue el equipo de fábrica). En vez del asistente de cuatro pestañas sale un asistente de 5 pasos, de uno en uno y
 con barra de progreso:
 
 1. **Bienvenida e idioma**: el idioma ya viene elegido según el sistema (`src/main/systemLang.ts`: idiomas
    preferidos y, si el primero es inglés, el **formato regional**; un Windows en inglés con región España abre en
-   español). Al arrancar una instalación nueva el motor lo guarda en `config.language` y la ventana lo sigue. Si se
+   español). Mientras no se termine el asistente, el motor lo vuelve a mirar en cada arranque y lo guarda en
+   `config.language`; la ventana lo sigue (si en ese equipo se eligió otro a mano, manda ese). Si se
    cambia aquí, la ventana se recarga y vuelve al paso 2.
 2. **¿Con qué agente empiezas?**: nada viene marcado. **Hermes + OmniRoute** sale arriba como «Recomendado»; debajo,
    Claude, Codex y Gemini, y «Ver todos los agentes» abre el catálogo completo. «Siguiente» lo añade al equipo
