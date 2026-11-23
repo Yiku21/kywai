@@ -5829,6 +5829,26 @@ tarea vuelve a la cola para escribir el guion de ese tipo con la dirección eleg
 `orchestrator.ts`). Lo que el usuario sí eligió (la voz, el formato) no se cambia. En el selector, con «Sorpréndeme» se
 ocultan personaje, estilo y estructura; la voz se puede elegir igual. Órbita (Android) aún no lo tiene en su selector.
 Origen: Yil, 23 nov: «una plantilla que se adapte al guion… solo le damos el guion y ya».
+
+**«Escenario 3D» (1.18.1).** Otro tipo del selector de «/video» (marca `tipo:escenario`, o escribirlo: «/video
+escenario …», «estilo escenario», «escenario 3D»). Es el vídeo explicativo de siempre (mismo guion, voz, titulares y
+atrezo de interfaz), pero **dentro del monitor de un decorado 3D fijo y acogedor**: un escritorio de madera de noche,
+ventana con la ciudad desenfocada, flexo cálido, libros con una planta y una taza, y **la cotorra de kywai sobre unos
+libros, que abre el pico con la voz** (el volumen de cada voz, fotograma a fotograma: `mouthEnvelope` en
+`src/main/escenarioPlan.ts`), respira, se balancea y parpadea. Fluye porque el decorado no cambia: solo **cortes secos
+entre cuatro planos** (general, cerca, más cerca y final) al empezar cada escena y a mitad de las de más de 7 s, con un
+leve empuje de cámara (`escenarioShots`). Va en vertical salvo que se pida horizontal (las cámaras cambian para cada
+formato). Cómo se hace (`src/main/videoEscenario.ts`): el explicativo se monta en horizontal con HyperFrames, pasa a
+24 fps y es la textura del monitor; **Blender** (gratis) pinta cada fotograma con EEVEE (`src/main/escenario/escenario.py`,
+vale para Blender 4.2 y 5.x; modelos de Meshy reducidos: `cotorra.glb` y `atrezo.glb`, y `ciudad.png`) y ffmpeg lo junta
+con el audio del explicativo. Tarda: unos 1,7 s por fotograma en un Mac M4 con Blender 5.3 (medido; un reel de 45 s, ~35 min). **Sin Blender**, en
+el equipo kywai lo instala solo con el primer vídeo (`installProgram('blender')`, el paquete oficial por winget,
+Homebrew o Flathub; el selector lo avisa) mientras se hacen la voz y las imágenes. **En kywai cloud** va al equipo
+conectado con «Conectar kywai cloud con este PC» (`deviceBridge.video(…, 'blender')`: antes uno que ya tenga Blender);
+sin equipo conectado sale el explicativo sencillo y el chat dice cómo tener el escenario. Si Blender falla a mitad, el
+vídeo sale igual como explicativo en el formato pedido (`escenario: false` en el resultado y una nota en el chat).
+Origen: Yil, 23 nov, con un reel de referencia: «se ve bonito, fluido, interesante… con volumen»; la muestra con Meshy y
+Blender en su Mac mini le gustó («mucho mejor»).
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
 - **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 73 en total): eligiéndolo en el selector con
