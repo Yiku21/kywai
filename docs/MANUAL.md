@@ -8001,6 +8001,31 @@ todos hasta 2 salvo la escarcha, hasta 1; el valor de fábrica es `DEFAULT_LOOK`
 `scene/LiquidGlass.tsx` los pasa a los uniformes del sombreador (`uRefr`, `uDisp`, `uFrost`, `uLight`, `uThick`).
 Solo cambia el cristal de verdad (con el 3D visible y calidad media o alta); el esmerilado de reserva no cambia.
 
+*En tiempo real* (23 nov 2026, kywai 1.15.5; pedido por Yil: «cuando esté moviendo los sliders necesito ver en tiempo
+real cómo cambia el cristal líquido»). Hasta entonces no se veía: con los Ajustes abiertos el 3D se queda quieto
+(`scene/sceneCover.ts`, para evitar parpadeos) y el cristal lo pinta el 3D, así que el cambio no se dibujaba hasta
+cerrarlos; además el velo oscuro de la ventana tapaba la app. Ahora, al pulsar un deslizador (o moverlo con las
+flechas), los Ajustes se apartan: el velo y la ventana desaparecen y solo queda flotando el bloque de los
+deslizadores, con la app detrás y su cristal cambiando mientras arrastras. Al soltar, todo vuelve tras 0,7 s. Por
+dentro: `lib/glassPeek.ts` pone `data-glass-peek` en `:root`; mientras está, `sceneCovered()` no cuenta la ventana como
+tapa (el 3D vuelve a dibujarse) y `SettingsDialog.module.css` oculta el velo y la ventana salvo `.glassTuner` (el marco
+sale con sombras para que el deslizador no se mueva bajo el dedo). Si el cristal de verdad no está encendido (3D cerrado
+o calidad Baja; `useLiquidGlassOn()` mira `data-lg`), no se apartan y la pista lo explica. Pruebas en
+`lib/glassPeek.test.ts` y `scene/sceneCover.test.ts`.
+
+*Letras legibles con cualquier ajuste* (23 nov 2026, kywai 1.15.5; Yil: «las letras no se ven bien por el contraste»,
+en la ficha de Hermes con Refracción 0, Arcoíris 100, Escarcha 1, Luz 100 y Grosor 100 sobre la Oficina). Con la escarcha
+casi a 0 el cristal apenas oscurecía y, sobre un fondo claro, las pistas grises quedaban sobre un gris claro. Ahora el
+sombreador (`lib/liquidShader.ts`) pone un tope: con letras claras, lo que se ve dentro del cristal no pasa de
+`INK_DARK_MAX` (0,26 de luminancia; el gris de las pistas queda por encima de 4,5:1) y con letras oscuras (Perla,
+Refugio, Oficina de día) no baja de `INK_LIGHT_MIN` (0,72). Solo oscurece o aclara lo justo, así que sobre fondos ya
+oscuros el cristal se ve igual que antes. `scene/LiquidGlass.tsx` mira cada 30 fotogramas si `--text-1` del tema es
+claro (`isLightColor`) y lo pasa como `uInk`. Pruebas en `lib/liquidShader.test.ts` (con los cinco deslizadores en sus
+extremos).
+La ficha del agente en el espacio (`ui/space/SelectionPanel.module.css`) llevaba un tinte gris oscuro fijo a medias:
+en los temas claros salían letras oscuras sobre oscuro. Ahora se tiñe con el color flotante del tema (`--float-rgb`,
+claro en los claros y oscuro en los oscuros) al 82-90 %. Capturas en `/mnt/project-files/vidrio-tiempo-real/`.
+
 - **Vidrio líquido** (la Interfaz): el cristal de Apple en el Mac (Liquid Glass), sobre el mismo espacio a
   pantalla completa que Frost Glass. El vidrio es gris neutro y casi opaco
   (el texto se lee sobre cualquier cosa), toma el color de lo que tiene detrás y lleva un borde de luz desigual, más
