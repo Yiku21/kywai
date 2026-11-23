@@ -8389,6 +8389,12 @@ cotorra forma con «Formas animadas»: cada emoción pasa a un estado del motor 
 working, pulgar → humming, te-necesita → notifying, celebra y entrega → celebrate, duerme → sleeping, lo-siento →
 drowsy, el resto → idle) y se queda quieta a los 8 s de cada cambio para no gastar con muchos mensajes. Antes el chat
 seguía con la cotorra dibujada aunque el 3D, el 2D y la ficha ya enseñaran la forma.
+Desde la 1.17.7 las tres (`CoordinatorBird`, `MascotSticker` y la cotorra del espacio 2D en `space2d/Space2D.tsx`)
+llevan el mismo volumen que el 3D: la clase `FIGURE_CLASS` (ojos) y el filtro `figureVolumeFilter(size)` de
+`lib/figureVolume.ts`, como `AgentFigure`. Sin él, la cotorra del chat era la forma de colores planos y a Yil le
+parecía fea. (Se probó también poner en el 3D la cotorra con volumen de Meshy del estilo «Escenario», pero Yil prefirió
+la forma: «el otro parece un globo, es una pelota». El trabajo está guardado en la carpeta del proyecto,
+`parches/cotorra-3d/cotorra-3d-volumen-completo.patch`, por si sirve para /video.)
 
 Los personajes se apoyan en el suelo de verdad: cuando el agente está quieto se mira hacia abajo qué hay bajo sus pies
 (rayo contra la escena, sin contar luces, partículas ni cosas transparentes) y se le sube o baja hasta pisar la
