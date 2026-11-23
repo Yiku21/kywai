@@ -96,6 +96,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
+  - [Uso y coste: créditos kywai](#uso-y-coste-créditos-kywai)
   - [Uso y coste: dinero por agente](#uso-y-coste-dinero-por-agente)
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
@@ -7486,6 +7487,32 @@ Para comparar con un solo agente (por ejemplo Codex aparte), haz la misma petici
 (en Codex, `/status` da los tokens). Hermes no informa sus tokens. El registro se guarda en
 `usage-runs.json`, dentro de la carpeta de datos, y lleva también tu 👍/👎 de cada resultado (ver
 [Valorar un resultado](#valorar-un-resultado-)): así se puede comparar no solo lo que costó, sino lo que sirvió.
+
+### Uso y coste: créditos kywai
+
+Desde el 23 de noviembre de 2026 (v1.17.9), arriba del panel ⚙ → **«Uso y coste…»** sale **«Créditos kywai»** cuando
+hay cuenta kywai: en **kywai Cloud** siempre, y en **tu equipo** si lo enlazaste con tu cuenta en Ajustes →
+Extensiones → Apps conectadas. Sin cuenta kywai no sale nada.
+
+- **Te quedan**: los créditos que quedan, con cuántos son del plan de este mes (no se acumulan) y cuántos comprados o
+  de regalo (no caducan).
+- **Gastados** y **Añadidos** en el periodo elegido (Hoy, 7 días, 30 días o Todo). 1 crédito = 0,01 $.
+- **En qué se gastaron**: una barra por tipo (imágenes con la GPU de kywai, aspecto y modelos 3D de agentes, hablar con
+  kywai, paquetes de minutos de voz, acciones extra de Apps conectadas…), con los créditos y las veces. Lo devuelto
+  (una imagen que no salió) se resta de su tipo.
+- **Recargar créditos** abre Mi cuenta → Créditos kywai.
+- En la **cuenta de administración** (créditos sin límite desde la 1.14.2) sale **«Ilimitados»**, sin botón de recargar,
+  y **Gastados** es lo que habría costado lo usado en el periodo (el portal lo apunta en la columna `valor`, porque a
+  esa cuenta no se le descuenta nada).
+- En una instalación propia sin enlazar, en vez del panel sale una línea con **«Enlazar mi cuenta kywai»** (abre
+  Ajustes → Extensiones).
+- Con la ventana abierta se pone al día cada minuto.
+
+Cómo funciona: la app pregunta al portal `GET /api/creditos?desde=<segundos>` (kywai-cloud `portal/creditos.py`). En la
+nube va con el secreto del espacio (el de la voz incluida, `KYWAI_VOZ_SECRETO`); en tu equipo, con el token `kyl_` de
+Apps conectadas (`src/main/kywaiCredits.ts`). El portal solo da cantidades y tipos, **nunca el texto** de cada
+movimiento (en las imágenes sería lo que escribiste). Si el portal aún no tiene la ruta, la app dice que llegará con la
+próxima actualización de la nube.
 
 ### Uso y coste: dinero por agente
 
