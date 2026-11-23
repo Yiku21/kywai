@@ -8291,9 +8291,20 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   dibujos. La cotorra de formas está en `cotorraCharacter()` de `src/renderer/src/lib/figures.ts`. En el **espacio 2D**
   la cotorra también es esa forma (desde el 23 nov 2026, v1.6.3), en todas las escenas (Flujo, Mesa, Aldea, Tren y Tema).
 - **Elegir la de cada agente**: pulsa el agente en el espacio → **Forma animada: elige su forma y su color**. Vista
-  previa con las poses (pasan solas hasta que tocas una), 12 formas, 12 colores rápidos y «Otro color», **Sorpréndeme**
+  previa con las poses (pasan solas hasta que tocas una), **39 formas en 4 grupos** (desde el 23 nov 2026, v1.9.0; antes 12):
+  **Geométricas** (gota, bola, cápsula, cubo, diamante, flecha, huevo, cilindro, trapecio, pirámide, estrella, corazón,
+  cristal, engranaje, burbujas), **Animales** (osito, gato, conejo, rana, búho, pulpo, medusa, cangrejo, ballena,
+  murciélago, bicho, araña, erizo), **Criaturas** (fantasma, alien, monstruo) y **Objetos** (nube, flor, antena, sol, tele,
+  cascos, satélite, dron). Todas son propias de kywai (no copian personajes de nadie), siluetas sencillas de un solo
+  color (como mucho, piezas finas un poco más oscuras) y con los mismos movimientos en 3D y 2D. Yil eligió el estilo
+  sobre una primera lámina: fuera hocicos y mejillas claras, sombreros y piezas de otros colores. **Con volumen**: el
+  motor pinta colores planos, así que `src/renderer/src/lib/figureVolume.ts` les pone un filtro SVG de luz (relieve
+  desde la silueta, luz arriba a la izquierda y brillo, aspecto «inflado y brillante» elegido por Yil; uno por tamaño porque trabaja en píxeles) y otro a los ojos
+  para que sobresalgan (sombra debajo, abombados y con brillo). Lo usan `AgentFigure` (clase `kywai-forma`) y el lienzo
+  del 3D (`figureCard.ts` pinta plano en un lienzo aparte y lo pasa con el filtro). 12 colores rápidos y «Otro color», **Sorpréndeme**
   y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
-  color del agente. Al guardar, si el aspecto era otro, pasa a «Formas animadas» en ese dispositivo.
+  color del agente, siempre entre las 12 de siempre (las 12 primeras de `FIGURE_SHAPES`), para que las formas nuevas no
+  le cambien el aspecto a nadie. Los grupos del selector están en `FIGURE_GROUPS`. Al guardar, si el aspecto era otro, pasa a «Formas animadas» en ese dispositivo.
 - **Tu propio personaje**: diséñalo en Avatar Lab (avatars.bible-strong.app, gratis, en el navegador), descárgalo en
   «Export» (`<nombre>.avatar.json`) y tráelo con **Traer .avatar.json**: hace los mismos movimientos. Se guarda en la
   ficha del agente (como mucho 24 KB). El formato antiguo (versión 0) no se admite: hay que exportarlo de nuevo.
