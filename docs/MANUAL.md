@@ -5339,8 +5339,10 @@ developers.tiktok.com, ni esperar la auditoría de TikTok, y nunca se pide la co
 
 Qué cambia al publicar:
 - **Instagram (`/instagram`)**: el reel se sube a Zernio y se publica al momento, con la portada que prepara kywai. No
-  hace falta enlace público ni Tailscale Funnel. La cuenta tiene que ser profesional (empresa o creador). El reel de
-  prueba (`/instagram prueba`) y «/instagram resultados» siguen necesitando el token de Meta de las opciones avanzadas.
+  hace falta enlace público ni Tailscale Funnel. La cuenta tiene que ser profesional (empresa o creador). Desde la
+  1.15.4 el **reel de prueba** (`/instagram prueba`) también va por Zernio (`trialParams` con
+  `graduationStrategy: SS_PERFORMANCE`, y sin salir en el muro); antes se publicaba como reel normal si no había token.
+  «/instagram resultados» sigue necesitando el token de Meta de las opciones avanzadas.
 - **TikTok (`/tiktok`)**: «Enviar como borrador» lo deja en la bandeja de la app de TikTok; «Publicar» lo publica
   **en público** desde el primer día (con la app de TikTok for Business de Zernio, el vídeo directo solo puede ser
   público: para otro público, envíalo como borrador y elígelo en la app). TikTok a veces tarda unos minutos en
@@ -5456,6 +5458,15 @@ cuáles funcionaron mejor. Con **3 reels o más**, los guiones de `/video` y los
 copian la forma de los ganchos que funcionaron y evitan lo que tienen en común los que no. Vuelve a pedirlo de vez en
 cuando (o en una rutina: «/rutina cada lunes a las 9: /instagram resultados») para que aprendan de lo último.
 
+**Avisos de los resultados** (`resultAlerts` en `src/main/instagramLearn.ts`). Encima de todo, el archivo y el chat
+dicen dos cosas cuando las hay:
+- 🚀 **Ya funciona**: un reel que pasa de **100.000 vistas** (`PROVEN_VIEWS`) ya demostró que gusta a gente que no te
+  conoce. kywai sugiere promocionarlo desde Instagram (por ejemplo, unos 20 $ al día unos días). **Nunca pone dinero
+  solo**: lo decides tú.
+- ✂️ **Se van en el gancho**: con 100 vistas o más y menos de **3 s** de visionado medio (`HOOK_DROP_SECONDS`). Instagram
+  no da el segundo exacto en que se va cada persona, así que se mira la media. Los guiones de `/video` y el turno de
+  noche (`/crecer`) leen el aviso y cambian el tipo de gancho en el siguiente.
+
 Código: `src/main/instagram.ts` (la API), `src/main/instagramLearn.ts` (resultados) y
 `sendInstagram`/`sendInstagramResults`/`publishPost` en el orquestador.
 
@@ -5508,8 +5519,10 @@ Código: `unansweredComments`/`replyToComment` en `src/main/instagram.ts` y `com
 el orquestador; la tarjeta, `InstagramRepliesBlock` en `Messages.tsx`.
 
 **Turno de noche (`/turno-noche`).** La cadena entera del Instagram de kywai en una sola orden, pensada para dejarla
-en una rutina de madrugada («/rutina cada día a las 3:00: /turno-noche IA y productividad»). También vale `/maquina`,
-`/turno` o `/noche`. Detrás va el nicho, unas cuentas o enlaces que quieras que mire (si no pones nada, lo saca de la
+en una rutina de madrugada («/rutina cada día a las 3:00: /turno-noche IA y productividad»). También vale `/crecer`
+(desde la 1.15.4), `/maquina`, `/turno` o `/noche`. Es el bucle para que gente nueva descubra tu app sin salir en cámara:
+estudiar lo que funciona en tu nicho, rehacerlo con tu voz, probarlo con desconocidos (reel de prueba) y afinar con los
+números. Detrás va el nicho, unas cuentas o enlaces que quieras que mire (si no pones nada, lo saca de la
 voz de la cuenta). Lo que pasa:
 1. Un agente con terminal sigue la habilidad `ig-viral` y busca los vídeos cortos del nicho que han superado **3 veces
    o más** lo normal de su creador (la mediana de sus últimos vídeos). Mira YouTube Shorts y TikTok públicos (con
@@ -6529,7 +6542,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |
-| `/turno-noche nicho o cuentas` | Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba (ver «El Instagram de kywai»; también `/maquina`) |
+| `/turno-noche nicho o cuentas` | Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba (ver «El Instagram de kywai»; también `/crecer` y `/maquina`) |
 | `/cliente-ideal quién te compra` | Escribe la ficha de tu cliente ideal (`cliente-ideal.md`): qué le duele, qué quiere y cómo habla; los guiones y los textos la usan solos (ver «El Instagram de kywai») |
 | `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
 | `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
