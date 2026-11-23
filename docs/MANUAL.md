@@ -5668,6 +5668,24 @@ hecho se queda en la carpeta del proyecto. Escribir antes el guion en una tarea 
 `src/shared/videoByHand.ts` (qué tarea cuenta, el aviso a quien coordina y la orden rápida), `planRun` y
 `videoByHandGuard`/`videoByHandCut` en `orchestrator.ts`. Origen: el 23 nov un reel de lanzamiento llevaba 43 minutos
 así y sin vídeo.
+
+**Vídeo explicativo con los personajes de kywai (1.14.0).** Con los robots de kywai como personaje, los tipos
+«Dibujos con presentador» y «Mixto» ya no generan imágenes con IA: salen como un **vídeo de motion graphics**, el
+estilo de los buenos reels de producto. Fondo oscuro con foco, anillos finos y puntitos; arriba la sección de la escena
+(«01 — EL PROBLEMA»); un **titular grande que cambia con cada frase** y es exactamente lo que dice la voz, con la palabra
+clave en el color de quien habla (verde la cotorra **kywai**, naranja la gota **Claude**, verde esmeralda el cubo
+**Codex**); en el centro, los personajes con sus formas de la app, que **botan con cada palabra** y respiran cuando
+callan; y una **pieza de interfaz animada** por escena que ilustra lo que se dice: el cuadro de petición que se escribe
+solo (`prompt`), fichas que se amontonan (`chips`), tareas que se completan (`tasks`), una lista que se marca
+(`checklist`) o se tacha (`strike`), una cifra que sube (`counter`), antes y después (`compare`), una ventana «LIVE» con
+el equipo trabajando (`window`), el archivo terminado (`result`), el enlace final (`link`), el equipo junto (`team`) o
+nada (`none`). La pieza la elige el agente que escribe el guion, frase a frase (`explainerScriptPrompt` en
+`videoScript.ts`), y kywai la valida (`src/main/explainerProps.ts`). En pantalla nunca sale «Hermes»: la cotorra es
+kywai. Va en vertical y en horizontal, con o sin «Diálogo» (kywai y Claude). Código: estilo `explicador`
+(`VIDEO_STYLES`), `buildExplainerComposition` en `src/main/videoExplainer.ts`, `robotForms` en `videoCharacters.ts` y el
+cambio de estilo en `sendVideo` (`orchestrator.ts`). Origen: el 23 nov un vídeo de presentador con los robots salió con
+imágenes feas e inapropiadas que no casaban con lo que se decía, «HERMES» como nombre y la cotorra en una tarjeta que se
+balanceaba sin parar; Yil pidió el estilo de un reel de referencia (la medusa).
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
 - **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 73 en total): eligiéndolo en el selector con
