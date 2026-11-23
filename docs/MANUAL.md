@@ -2456,8 +2456,11 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
     tu clave de Gemini → en kywai cloud, la GPU de kywai **solo si apagas «preguntarme antes de gastar créditos»**
     (viene encendido) → el motor gratis de internet (borrador). Si se saltó la GPU para no gastar, el chat lo dice y
     ofrece «Rehacer con…».
-  - **Mis modelos locales**: Draw Things o ComfyUI en tu equipo, gratis (en la nube, el Draw Things de tu Mac por el
-    puente).
+  - **Mis modelos locales**: Draw Things o ComfyUI en tu equipo, gratis. En la nube, los del equipo conectado con
+    «Prestar los modelos de este equipo»: **Windows, Linux o Mac**. Por el puente (`deviceBridge.ts`) la nube solo
+    manda el texto y el formato (`POST /kywai/imagen`, motor `comfyui`); el equipo dibuja con su propio flujo y el
+    modelo elegido allí (`comfyLend` en `client.ts`) y devuelve la imagen. Nunca viaja un flujo de ComfyUI desde la
+    nube (ComfyUI ejecuta lo que le manden). Draw Things sigue igual (Mac).
   - **Mi ChatGPT**: Codex con tu suscripción de ChatGPT Plus o Pro y su herramienta de imágenes (gpt-image-2), **sin
     clave de API y sin créditos**; gasta tu cuota de Codex (de 3 a 5 veces lo que un mensaje). Hace falta haber
     iniciado sesión con ChatGPT en Codex (`~/.codex/auth.json` con tokens de ChatGPT; con solo una clave de API no
