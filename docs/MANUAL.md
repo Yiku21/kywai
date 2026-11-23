@@ -4331,6 +4331,21 @@ Paso a paso (si prefieres hacerlo tú):
 4. Si apagas el PC o cierras la app, el agente sale como **«Tu equipo no está conectado…»** y Hermes reparte su trabajo
    a los demás. Al volver, se pone disponible solo en unos segundos.
 
+**Varios equipos con la misma cuenta (PC y MacBook)** (1.9.1): si prestas tus modelos desde más de un equipo, la nube
+usa **el que tienes delante**: cada app dice cuántos segundos lleva el equipo sin tocar teclado ni ratón (`idleSec` en la
+consulta del puente) y gana el que se usó hace menos; con apps antiguas, el último que se conectó. Cada agente local
+**guarda su programa y su modelo por equipo** (`onDevices` en su configuración, `src/main/localByDevice.ts`): al pasar
+al MacBook usa lo que elegiste allí; si no elegiste nada, lo que ya usaba si también está, y si no, lo mejor que haya
+encendido en ese equipo (el modelo que le cabe). Lo del PC queda guardado y **vuelve solo al volver al PC**. Al cambiar
+sale el aviso **«Ahora usas <equipo>»** con lo que usa cada agente local y «Elegir otro modelo» (o «Prepararlo en este
+equipo» si allí no hay nada encendido). Las imágenes con «Mis modelos locales», los vídeos hechos en tu equipo y el
+`/demo` también van al equipo que tienes delante. Si abres la app en un equipo que aún no presta sus modelos mientras el
+agente local usa los de otro, **la primera vez se configura solo** (`adoptThisDevice`): enciende el préstamo en ese
+equipo y la nube pasa el agente a lo mejor que tenga para su hardware; si allí no hay ningún programa de modelos
+encendido, enciende LM Studio si está o propone el programa que mejor encaja (instalarlo pide permiso una vez). Si
+después apagas el préstamo en ese equipo, ya no se enciende solo: sale **«Estás en <equipo>»** con «Usar los de este
+equipo» (la «X» no lo vuelve a ofrecer allí).
+
 Seguridad y privacidad:
 
 - **No se abre ningún puerto en tu casa**: la conexión sale de tu PC hacia tu espacio, como una web normal, con la
