@@ -1232,6 +1232,16 @@ cuando habla, crece y mengua como si fuera su voz. Debajo, «Silenciar micro» y
   la línea «📄 lo que abrió».
 - **El trabajo se lo pasa al equipo**: si pides algo de verdad («hazme un vídeo de…», «revisa la web», «escribe el
   informe…»), te dice que se lo pasa y el encargo aparece en el chat como un mensaje tuyo. El coordinador lo planifica y lo reparte como siempre.
+- **Maneja todo kywai hablando (1.17.5)**: conoce todas las órdenes «/» del chat (sale de la misma lista que el «/»
+  del cuadro de texto, `commandLines` en `src/shared/liveVoice.ts`) y las usa al encargar: «crea una imagen de un
+  perro», «/video…», «/sonido…», «/instagram», «/uso», «/nuevo»… Nunca dice que no puede hacer una imagen o un vídeo:
+  lo pasa al equipo. Una orden nueva del «/» llega sola a la voz.
+- **Entiende tu idioma**: se le dice a Google el idioma de kywai (`speechConfig.languageCode`, por ejemplo `es-ES`) y
+  en las instrucciones que, si algo suena a portugués o italiano, lo entienda en tu idioma. Si el modelo no admite
+  fijar el idioma, la llamada se vuelve a abrir sola sin él (`isLanguageError`).
+- **En kywai Cloud igual que con tu clave (1.17.5)**: el permiso de un solo uso que pide «Mi cuenta» (`gemini_token`
+  en `portal/voz.py` de kywai-cloud) ya no lleva `bidiGenerateContentSetup`. Con él, Google bloqueaba la configuración
+  y tiraba la de la app (instrucciones, herramientas, voz elegida), y la voz contestaba «no puedo generar imágenes».
 - **Te cuenta las novedades**: lo que los agentes escriben en el chat mientras hablas (respuestas, el plan que
   espera tu visto bueno, preguntas, el resultado final) te lo resume en una o dos frases. Si el equipo pregunta algo,
   contéstale a ella («dile que sí, la opción dos») y lo manda al chat.
