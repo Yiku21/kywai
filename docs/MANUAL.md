@@ -2681,6 +2681,8 @@ cuadrada sale al tamaño que tengas puesto).
   ImageMagick.
 - **El estudio de vídeo** (/video) también lo usa primero para las ilustraciones, el presentador y «Probar con mi
   escena».
+  Desde la 1.13.2 lo vuelve a mirar antes de cada imagen (cada 30 s como mucho): si lo abres a mitad del vídeo, las
+  imágenes que faltan salen con él.
 - **kywai cloud**: con «Prestar los modelos de este equipo» encendido en la app de tu Mac, la nube pide las imágenes
   a tu Draw Things por el mismo puente que LM Studio y Ollama. Por el puente solo pasan `GET /` (sus ajustes) y
   `POST /sdapi/v1/txt2img` con texto, tamaño (256–2048) y una imagen; nunca otro modelo ni img2img.
@@ -2712,6 +2714,22 @@ cuadrada sale al tamaño que tengas puesto).
 Código: `src/main/drawThings.ts` (motor y puente), `src/main/imageMaker.ts` (orden de motores), `generar_imagen` en
 `src/main/coworkMcp.ts`, `generate_image` en `src/main/agents/localTools.ts` y `drawPlannedImages` en
 `src/main/orchestrator.ts`. No hace falta el puente MCP de LM Studio para Draw Things: kywai habla con él directamente.
+
+### Cuánto tardan las imágenes de un vídeo (1.13.2)
+
+Un vídeo con presentador y **diálogo** pide hasta 3 planos por escena (uno por cada vez que cambia quién habla): con
+7 partes, hasta 21 imágenes y el presentador. Con un motor que dibuja de una en una (Draw Things, ComfyUI o el motor
+gratis, que espera 46 s entre imágenes) eso pasaba de 20 minutos, y la barra seguía en «Poniendo la voz (7 de 7)»
+porque solo la movía la voz. Desde la 1.13.2 (`src/main/imagePlan.ts`, usado en `renderVideo`):
+
+- **Primero la imagen principal de cada escena**, después los planos de más.
+- **Los planos de más solo empiezan si hay tiempo**: 3 min desde que empiezan las imágenes con un motor de una en una,
+  6 min con Gemini (tres a la vez). A los 9 min no empieza ninguna imagen más.
+- **El plano que no se dibujó reencuadra la imagen principal** de su escena: la misma imagen, más cerca y hacia otra
+  zona (`reframeOrigin`), en vez de quedarse sin plano.
+- **La barra dice la verdad**: al acabar la voz pasa a «Haciendo las imágenes (n de N)». Con el motor gratis añade
+  qué encender: en un Mac, Draw Things con su API Server; en kywai cloud, «Prestar los modelos de este equipo» en la
+  app de escritorio (la nube no ve el Draw Things ni el ComfyUI de tu Mac sin él: su 127.0.0.1 es el servidor).
 
 ### Los agentes retoman su sesión en las continuaciones
 
@@ -5734,6 +5752,10 @@ equipo y lo dice **antes de enviar**, debajo de la barra del vídeo:
 - **Nota**: en charla y sketch el estilo de película no se usa; se avisa para que no sea una sorpresa.
 El motor lo vuelve a mirar al recibir la orden (vale igual escrita a mano, desde la web, Órbita o una rutina): si algo
 no se puede y no lleva `ligero:si`, **no empieza** y dice qué pasa y cómo seguir. En la nube el plató 3D no se usa nunca.
+Los avisos ocupan su propio sitio entre la barra del vídeo y el cuadro de escribir, uno debajo de otro (1.13.1, 23 nov):
+antes salían flotando encima del texto de la orden, de enviar y de «Hablar con kywai» porque su clase CSS se llamaba
+igual que la marca redonda de las tarjetas (`.check`, posición absoluta). Ahora es `.preflight` en
+`VideoPicker.module.css`; no reutilizar `.check` para otra cosa en ese archivo.
 
 **Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
 cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
@@ -5904,9 +5926,16 @@ en los reels que más enganchan, con réplicas cortas («¿Yo?», «¿En serio?�
 Hermes y Claude; con otro personaje, ese y uno que le dé la réplica; sin personaje, dos que invente el agente. El
 guion trae `"speakers": [{"name", "gender"}]` y cada frase dice quién habla: «[Claude, sorprendido] ¿Diez minutos?
 [Hermes, alegre] Ni uno más.».
-- **Cada uno con su voz** (`speakerVoices` en `src/shared/videoChoice.ts`): la elegida es para el primer personaje de su
-  género, y el otro lleva otra voz del idioma, de su género si la hay (en español en el Mac: Álvaro y Carmen; sin Mac,
-  Álvaro y Jorge). Con Chatterbox, cada uno con la muestra de su voz; con Gemini, la voz de varios hablantes de Gemini
+- **Eliges las dos voces** (1.13.0): con «Diálogo» marcado salen dos pestañas, «Voz del personaje 1» y «Voz del
+  personaje 2», con la voz que lleva cada uno. Al pulsar una voz va al personaje de la pestaña activa; tras elegir la del
+  primero pasa sola a la del segundo, y en la lista la voz del otro personaje lleva su número. La del segundo va en la
+  marca `voz2:<id>` (solo cuenta con `dialogo:si`); «Automática» en la segunda deja que kywai elija una que le pegue. En
+  el vídeo de siempre, en Chatterbox, en ElevenLabs (si las dos son de ElevenLabs) y en las películas con estilo (el
+  encargo lleva la regla de cada voz) cada personaje habla con la suya. Si las dos son de distinto género, cada una va
+  al personaje de su género; si no, la 1 para el primero. Una de Mac fuera de un Mac no vale y se elige otra.
+- **Cada uno con su voz** (`speakerVoices` en `src/shared/videoChoice.ts`): sin segunda voz elegida, la elegida es para
+  el primer personaje de su género, y el otro lleva otra voz del idioma, de su género si la hay (en español en el Mac:
+  Álvaro y Carmen; sin Mac, Álvaro y Jorge). Con Chatterbox, cada uno con la muestra de su voz; con Gemini, la voz de varios hablantes de Gemini
   (`multiSpeakerVoiceConfig`); con Kokoro, una voz de Kokoro de su género.
 - En los subtítulos sale **el nombre de quien habla** en una etiqueta de su color (`speakerChip`), y cada personaje
   tiene sus propios golpes de texto.
