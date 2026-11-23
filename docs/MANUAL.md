@@ -8233,7 +8233,8 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   con cresta de tres plumas, pico naranja y dos alas verde claro, tan sencilla como las demás formas y con los mismos
   movimientos que el resto; sus colores son siempre los de la cotorra. Con los demás aspectos la cotorra sigue siendo su personaje 3D de
   siempre. Solo los agentes con modelo 3D propio de «Crea tu agente» siguen siendo personajes 3D. Órbita sigue con sus
-  dibujos. La cotorra de formas está en `cotorraCharacter()` de `src/renderer/src/lib/figures.ts`.
+  dibujos. La cotorra de formas está en `cotorraCharacter()` de `src/renderer/src/lib/figures.ts`. En el **espacio 2D**
+  la cotorra también es esa forma (desde el 23 nov 2026, v1.6.3), en todas las escenas (Flujo, Mesa, Aldea, Tren y Tema).
 - **Elegir la de cada agente**: pulsa el agente en el espacio → **Forma animada: elige su forma y su color**. Vista
   previa con las poses (pasan solas hasta que tocas una), 12 formas, 12 colores rápidos y «Otro color», **Sorpréndeme**
   y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
@@ -8398,6 +8399,20 @@ está fuera, su puesto se queda vacío. Los agentes con aspecto propio caminan d
 portátil, pensando se lleva la mano a la barbilla, esperando o con un error duda, al terminar celebra, si te necesita
 saluda y al pasar el ratón por encima te saluda. Los agentes con aspecto propio de «Crea tu agente» siguen con su
 dibujo y su expresión para cada estado, animados con CSS. La cotorra usa el estilo elegido en Ajustes.
+
+**Con «Formas animadas» en el 2D** (arreglado el 23 nov 2026, v1.6.3):
+
+- La **cotorra** es la misma forma que en el 3D (bola verde con cresta, pico y alas; `cotorraCharacter()`), no el
+  dibujo detallado, y se mueve con su ánimo (coordina, te necesita, celebra, duerme).
+- **Sin copias al caminar**: mientras un agente visita a otro, su puesto queda vacío de verdad. Antes la forma marcaba la
+  cabeza como siempre visible y se quedaba una copia sin ojos en su sitio (se oculta con `opacity: 0` en
+  `.agent[data-away]`), y el que llega se para al lado del otro, sin montarse encima.
+- **Más pequeñas y con aire**: una forma llena todo su cuadro (los dibujos traen margen), así que se dibuja al 64 % del
+  alto de un dibujo (`FIGURE_K` en `Space2D.tsx` y `--s2-fig` en el CSS) y la cotorra al 80 % del suyo. El reparto
+  (`flow.ts` y `ring.ts` para la Mesa) cuenta con ese tamaño real y con el ancho de la cotorra: la primera columna
+  empieza bien separada de la cotorra (al menos 64 px o el 7 % del ancho del panel, y en la Mesa el 5 %), cada columna deja hueco a los lados y en la misma columna nadie se pisa.
+- Pensando, esperando o llamándote, la forma ya no se vuelve una ruedecita de puntos (no se sabía quién era): usa los
+  movimientos «curioso», «tararea» y «avisa», como en el 3D (`FIGURE_STATE_2D` en `Space2D.tsx`).
 
 **Cambiar los dibujos (sin modelos 3D).** Cada tema busca su ilustración en `assets/espacio2d/<tema>/` (`<tema>` es el
 id: `mundo-bosque`, `halloween`, `kywai`, `oficina`, `sede`…; la Ciudad digital usa `ciudad-<color>`):
