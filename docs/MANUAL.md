@@ -1799,6 +1799,31 @@ lleva `permission` con su estado.
   instalación (Homebrew en Mac o, sin él, la descarga oficial; winget en Windows; su instalador en Linux) y enseña la última línea de lo que va
   haciendo. LM Studio se abre una vez al terminar, porque su CLI `lms` aparece la primera vez que se abre; Ollama
   queda en marcha.
+- **Elegir el programa del agente «Modelo local»** (1.3.0, pedido por Yil el 23 nov 2026). Antes, al añadir «Modelo
+  local» sin ningún modelo en el equipo, kywai instalaba Ollama sin preguntar. Ahora, en «Configura Modelo local»
+  (paso 1, «Conéctalo») y en el aviso de la esquina de kywai cloud, salen cuatro tarjetas: **Ollama**, **LM Studio**,
+  **Colibri** y **AirLLM**, con lo que es cada uno, si está listo, instalado o no instalado, y un botón:
+  «Instalar en un clic», «Encender y usar» o «Usar este». Uno lleva **Recomendado** con el motivo
+  (`recommendLocalEngine` en `src/shared/localEngines.ts`): el que ya funciona con modelos; si no, el que ya está
+  instalado; si no hay ninguno, Ollama, porque es el único en el que kywai también baja el modelo que cabe en el
+  equipo. Colibri y AirLLM piden un segundo toque antes de instalar (descargas muy grandes). El botón llama a
+  `prepareLocalEngine` (`src/renderer/src/lib/localAutoSetup.ts`): instala (en kywai cloud en el PC que presta sus
+  modelos, con la pregunta nativa de la app `client:installEngine`; en la app de escritorio con `setupInstall`),
+  enciende el servidor y deja elegir el modelo de ese programa con el sugerido marcado. LM Studio sin modelos dice qué
+  tamaño buscar en su catálogo. Nada se quitó: el indicador Local y «Prepararlo todo» siguen igual. Componente:
+  `src/renderer/src/ui/quota/LocalEnginePicker.tsx`.
+  - **AirLLM** ([github.com/lyogavin/airllm](https://github.com/lyogavin/airllm), Apache-2.0) vuelve (se había
+    descartado el 9 nov por lento y sin servidor; Yil lo pidió de nuevo). Es una librería de Python: kywai la instala
+    en `~/airllm/.venv` (con `mlx` en Mac) y le pone un servidor pequeño compatible con OpenAI en
+    `127.0.0.1:8011`, solo para este equipo (`src/main/airllm.ts`). El agente local lo usa como «otro servidor» por
+    la dirección de Colibri (`colibriUrl`), así que en el indicador Local sale en la pestaña de Colibri con el nombre
+    «AirLLM». El modelo de fábrica es `Qwen/Qwen2.5-7B-Instruct` (se cambia en `~/airllm/model.txt`) y se descarga la
+    primera vez que se le pide algo. Es muy lento, no usa herramientas y necesita NVIDIA o un Mac con chip Apple.
+    Volver a pulsar AirLLM lo actualiza y lo enciende si está apagado.
+  - **SuperQwen 3.8 27B** (`hf.co/Jiunsong/SuperQwen3.8-27b-abliterated-GGUF:Q4_K_M`, 16,6 GB, Apache-2.0) es un
+    modelo, no un programa: sale como opción para descargar con Ollama («sin filtros») cuando cabe en el equipo, y en
+    «Ver los demás tamaños». Es un Qwen 3.8 27B sin la negativa de seguridad, así que kywai **nunca** lo recomienda ni
+    lo sugiere solo (`optIn` y `UNFILTERED_RE` en `src/shared/modelAdvisor.ts`): solo se usa si la persona lo elige.
 - **Colibri como motor local** (pestaña **Colibri** en el indicador Local → «Agente local», y en el paso Agentes del
   asistente). [Colibri](https://github.com/JustVugg/colibri) (licencia Apache-2.0) sirve modelos MoE grandes
   (Qwen3.6, GLM, DeepSeek…) dejando en la GPU lo que más se usa, en RAM lo templado y leyendo del disco el resto.
