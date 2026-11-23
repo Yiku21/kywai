@@ -6187,7 +6187,12 @@ alarga con el último fotograma o lo corta a lo que dura la voz de la escena y l
 `<video>` con su propio tiempo (HyperFrames no admite un vídeo dentro de algo con tiempo); los subtítulos bajan a una
 banda. Esas escenas no piden imagen; si la animación falla, van con fondo de diseño. Sin LaTeX en el equipo, el
 agente escribe las fórmulas con `Text`. **«Instalar lo que falta»** instala Manim con pip (en Linux necesita antes
-`libpango1.0-dev`, `libcairo2-dev` y `pkg-config`). El código y el registro de cada animación quedan en la carpeta
+`libpango1.0-dev`, `libcairo2-dev` y `pkg-config`). En **macOS** no se usa pip: pycairo no publica ruedas para Mac y
+pip lo compila, lo que pide `pkg-config` y la librería cairo, que un Mac no trae. kywai baja **micromamba** (un solo
+programa, comprobado con su SHA-256, en `~/.local/share/kywai/bin`) y con él el Manim **ya compilado de conda-forge**,
+con su Python 3.12, cairo y pango, en su propio entorno `estudio-video/manim` (`macManimInstall` en
+`src/main/macTools.ts`). Sin Homebrew, sin compilador y sin contraseña; si la descarga falla, se reintenta una vez y no
+queda un entorno a medias. Las escenas se renderizan con ese Python (`manimPython` en `videoStudio.ts`). El código y el registro de cada animación quedan en la carpeta
 de trabajo del vídeo (`manim/`).
 
 **Efectos de sonido.** Desde el 10 de noviembre de 2026 los efectos ya no son solo sintetizados. kywai prepara una
@@ -6256,8 +6261,16 @@ y Voicebox no entran: son opcionales y se instalan aparte (ComfyUI, con su propi
 **Python.** Kokoro y Manim piden Python 3.10 o más nuevo, y el `python3` que trae macOS es el 3.9. El estudio usa
 el Python más nuevo que encuentre (3.13 a 3.10, también los de Homebrew); si solo hay uno viejo, crea su entorno
 con **uv** y Python 3.12 (si uv no está, lo instala con el instalador oficial de Astral, sin administrador). Un
-entorno que ya estaba hecho con un Python viejo se rehace solo. Si Manim no se instala en macOS, kywai instala
-`cairo`, `pango` y `pkg-config` con Homebrew y lo prueba otra vez.
+entorno que ya estaba hecho con un Python viejo se rehace solo. En macOS, Manim va aparte, ya compilado de
+conda-forge (ver «Animaciones de fórmulas y diagramas»), sin pedir Homebrew.
+
+**Node.js.** HyperFrames, los estilos de película (Lemo-Opuscar) y el kit de animación pintada se instalan con `npm`.
+Si el equipo no tiene Node.js, el estudio lo instala antes que nada (`ensureNode` en `videoStudio.ts`): en macOS, el
+oficial de nodejs.org en `~/.local/share/kywai/node` (comprobado con su SHA-256, sin Homebrew; el mismo que usa el
+asistente de inicio) y lo pone delante en el PATH; en Windows, con winget. Si no se puede, lo dice una vez y salta lo
+que lo necesita en lugar de fallar con «npm not found». `npm install`, el instalador de los estilos y Manim se
+reintentan una vez si fallan (un corte de red). Al terminar, si algo quedó sin instalar, el registro acaba con
+**«Falta por instalar: …»** y la lista; «Instalar lo que falta» vuelve a probar solo eso.
 
 **Instalar a mano.** ⚙ → Ajustes → Multimedia → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
 imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
