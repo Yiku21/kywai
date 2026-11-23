@@ -4791,6 +4791,8 @@ encargo por el mismo puente (`deviceBridge.video`, JSON con las fotos y las voce
 monta con su ffmpeg (`runDemoJob` en `demoOnDevice.ts`, llamado desde `runVideoJob` en `videoWorker.ts`) y sube el MP4.
 Si el equipo no está, falla o su app es de antes, se monta en la nube como siempre y el registro de la tarea lo dice.
 
+**El guion se ve como progreso (1.8.4).** Mientras el agente escribe el guion de planos en JSON, el chat no enseña ese código: una sola línea dice «Escribiendo el guion de planos: plano 3 · «texto del plano»» y se actualiza sola. Igual con /video y las portadas («Escribiendo el guion»). Lo hace src/main/planStream.ts.
+
 1. kywai abre la web en una ventana oculta (sesión aparte, sin permisos ni ventanas nuevas, sin salir de esa web), baja
    hasta el final para que cargue todo y la fotografía entera en **ordenador** (1440 de ancho) y en **móvil** (390 de
    ancho a doble resolución). Lee el título, la descripción, las secciones y el **color de la marca** (el
@@ -5874,7 +5876,7 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    tarjetas «PASO n/N»**: el encargo pide una situación cómica con conflicto, giros, réplicas rápidas, personalidades
    distintas y un remate, y lo útil sale de pasada dentro de los chistes. Arriba solo sale un titular corto por
    escena. Aunque el agente escriba pasos, kywai los quita. Para cuando se quiere entretener más que enseñar.
-2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex. Los que hayas
+2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex con el aspecto de «Formas animadas» (desde la 1.8.4: la cotorra verde para Hermes, la gota naranja para Claude (la forma «Gota» se rehízo: cuerpo redondo con la punta ladeada, antes parecía una bala) y el cuadrado redondeado verde para Codex, los mismos que en la app, con el acabado inflado y brillante de las formas (relieve, brillo y ojos que sobresalen); referencias en assets/robots/forma-*.png y su descripción en ROBOTS_LOOK de src/main/videoCharacters.ts). El plató 3D de «Charla y tutorial» sigue con sus muñecos propios. Los que hayas
    creado. Y **«Agregar personaje»**: nombre y una descripción, imágenes (hasta 6) o las dos cosas; la interfaz reduce
    las imágenes (1024 px, WebP) y hace una miniatura. Se guardan en kywai **para todos los proyectos**, en
    `<workspace>/personajes/<id>/` (`personaje.json`, `imagen-N.*`, `miniatura.jpg`; `src/main/videoCharacters.ts`), y
