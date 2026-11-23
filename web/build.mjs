@@ -12,6 +12,7 @@ import { ESCAPARATE, renderEscaparate } from './escaparate.mjs'
 import { GUIAS, renderGuias } from './guias.mjs'
 import { COMPOSIO } from './composio.mjs'
 import { VISUALES, renderVisual } from './visuales.mjs'
+import { RECORRIDO, renderRecorrido } from './recorrido.mjs'
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const PREVIEW = process.argv.includes('--preview')
 const SALIDA = join(AQUI, PREVIEW ? 'preview' : 'dist')
@@ -54,8 +55,8 @@ for(const pagina of ['terminos','privacidad']) {
   mkdirSync(join(SALIDA,pagina),{recursive:true});writeFileSync(join(SALIDA,pagina,'index.html'),html)
 }
 for(const idioma of IDIOMAS) {
-  const t=TEXTOS[idioma.code],s=SECCIONES[idioma.code],pricing=PRECIOS[idioma.code],presentation=PRESENTACION[idioma.code],showcase=ESCAPARATE[idioma.code],guides=GUIAS[idioma.code],visual=VISUALES[idioma.code]
-  const faltan=[...Object.keys(TEXTOS.en).filter(k=>!(k in t)),...Object.keys(SECCIONES.en).filter(k=>!(k in s)),...Object.keys(PRECIOS.en).filter(k=>!(k in pricing)),...Object.keys(PRESENTACION.en).filter(k=>!(k in presentation)),...Object.keys(ESCAPARATE.en).filter(k=>!(k in showcase)),...Object.keys(GUIAS.en).filter(k=>!(k in guides)),...Object.keys(VISUALES.en).filter(k=>!(k in visual))]
+  const t=TEXTOS[idioma.code],s=SECCIONES[idioma.code],pricing=PRECIOS[idioma.code],presentation=PRESENTACION[idioma.code],showcase=ESCAPARATE[idioma.code],guides=GUIAS[idioma.code],visual=VISUALES[idioma.code],recorrido=RECORRIDO[idioma.code]
+  const faltan=[...Object.keys(TEXTOS.en).filter(k=>!(k in t)),...Object.keys(SECCIONES.en).filter(k=>!(k in s)),...Object.keys(PRECIOS.en).filter(k=>!(k in pricing)),...Object.keys(PRESENTACION.en).filter(k=>!(k in presentation)),...Object.keys(ESCAPARATE.en).filter(k=>!(k in showcase)),...Object.keys(GUIAS.en).filter(k=>!(k in guides)),...Object.keys(VISUALES.en).filter(k=>!(k in visual)),...Object.keys(RECORRIDO.en).filter(k=>!(k in recorrido))]
   if(faltan.length||s.labels.length!==PAGINAS.length)throw Error(`Faltan textos en ${idioma.code}: ${faltan}`)
   for(const [key,value] of Object.entries(ESCAPARATE.en)) {
     if(Array.isArray(value) && (!Array.isArray(showcase[key]) || showcase[key].length!==value.length))throw Error(`Lista incompleta en ${idioma.code}: ${key}`)
@@ -120,8 +121,10 @@ for(const idioma of IDIOMAS) {
     const ribbonAgent=([id,name],copy)=>{const mark=agentMarks.find(m=>m.id===id);if(!mark)throw Error('Falta logo oficial: '+id);return `<li><a href="${esc(mark.website)}" target="_blank" rel="noopener noreferrer"${copy?' tabindex="-1"':''}><img src="${base}${mark.path.replace(/^web\//,'')}" alt="" width="28" height="28" loading="lazy"><span>${esc(name)}</span></a></li>`}
     const ribbonRow=(list,cls)=>`<div class="agent-marquee-row ${cls}"><ul>${list.map(a=>ribbonAgent(a,false)).join('')}</ul><ul aria-hidden="true">${list.map(a=>ribbonAgent(a,true)).join('')}</ul></div>`
     const agentRibbon=`<section class="agent-ribbon" aria-label="${esc(presentation.stack)}"><div class="agent-ribbon-head"><p class="agent-ribbon-kicker">${esc(presentation.stack)}</p><p class="agent-ribbon-count"><strong>${RIBBON.length}</strong> ${esc(presentation.count)}</p><p class="agent-ribbon-note">${esc(presentation.countNote)}</p><a class="text-link" href="${url('agentes')}">${esc(presentation.allAgents)} →</a></div><div class="agent-marquee">${ribbonRow(RIBBON.filter((_,i)=>i%2===0),'agent-marquee-a')}${ribbonRow(RIBBON.filter((_,i)=>i%2===1),'agent-marquee-b')}</div></section>`
+    // Portada 1.0: recorrido por las pantallas, sello y franja «Lo nuevo en la 1.0» (recorrido.mjs).
+    const {tour,news,badge}=renderRecorrido({r:recorrido,lang:idioma.code,base,esc,releases:RELEASES})
     const values={...Object.fromEntries(Object.entries(presentation).map(([k,v])=>['home.'+k,esc(v)])),...Object.fromEntries(Object.entries(t).map(([k,v])=>[k,esc(v)])),...Object.fromEntries(Object.entries(s).filter(([,v])=>typeof v==='string').map(([k,v])=>['site.'+k,esc(v)])),
-      'site.features':esc(label('funciones')),'meta.title':esc(title),'meta.desc':esc(description),'nav.account':esc(s.account),accountUrl:cuenta,lang:idioma.hreflang,langLabel:idioma.label,ogLocale:idioma.og,base,home:url('inicio'),img:idioma.code,site:SITIO,canonical:SITIO+dir,releases:RELEASES,hreflangs,langLinks,logoDefs,logoViewBox,logoRatio:`${logoW} / ${logoH}`,pageId:pagina.id,downloadUrl:url('descargas'),pricingUrl:url('precios'),agentRibbon,navigation,footer,
+      'site.features':esc(label('funciones')),'meta.title':esc(title),'meta.desc':esc(description),'nav.account':esc(s.account),accountUrl:cuenta,lang:idioma.hreflang,langLabel:idioma.label,ogLocale:idioma.og,base,home:url('inicio'),img:idioma.code,site:SITIO,canonical:SITIO+dir,releases:RELEASES,hreflangs,langLinks,logoDefs,logoViewBox,logoRatio:`${logoW} / ${logoH}`,pageId:pagina.id,downloadUrl:url('descargas'),pricingUrl:url('precios'),agentRibbon,tour,whatsNew:news,releaseBadge:badge,navigation,footer,
       siteConfig:json({lang:idioma.code,translations:langs,hashLinks,downloadUrl:url('descargas'),forLabel:t['hero.ctaFor']}),
       jsonld:json({'@context':'https://schema.org','@type':pagina.id==='inicio'?'SoftwareApplication':'WebPage',name:title,url:SITIO+dir,description,inLanguage:idioma.hreflang,...(pagina.id==='inicio'?{applicationCategory:'DeveloperApplication',operatingSystem:'Windows, macOS, Linux, Android',license:'https://github.com/Yiku21/kywai/blob/master/LICENSE',isAccessibleForFree:true,downloadUrl:RELEASES,codeRepository:'https://github.com/Yiku21/kywai'}:{})})}
     let html=plantilla.replace('{{content}}',content)

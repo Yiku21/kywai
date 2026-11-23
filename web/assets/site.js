@@ -363,6 +363,47 @@
       if (next !== null) { event.preventDefault(); showStory(next, true); }
     });
   });
+  // Portada 1.0: recorrido por las pantallas. Avanza solo cada 7 s; se para al tocarlo, al pasar el ratón o con «Pausar».
+  var tour = document.querySelector('[data-tour]');
+  if (tour) {
+    var tourTabs = Array.from(tour.querySelectorAll('[role="tab"]'));
+    var tourToggle = tour.querySelector('[data-tour-toggle]');
+    var tourReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var tourIndex = 0, tourTimer = null, tourStopped = tourReduced, tourHover = false;
+    var showTour = function (index, focus) {
+      tourIndex = (index + tourTabs.length) % tourTabs.length;
+      tourTabs.forEach(function (tab, i) {
+        var selected = i === tourIndex;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        var panel = document.getElementById(tab.getAttribute('aria-controls'));
+        if (panel) panel.hidden = !selected;
+        if (selected) {
+          tab.style.animation = 'none'; void tab.offsetWidth; tab.style.animation = '';
+          if (focus) tab.focus();
+          var bar = tab.parentElement;
+          if (bar && bar.scrollWidth > bar.clientWidth) bar.scrollTo({ left: tab.offsetLeft - 18, behavior: tourReduced ? 'auto' : 'smooth' });
+        }
+      });
+    };
+    var tourRun = function () {
+      clearInterval(tourTimer);
+      tour.classList.toggle('is-paused', tourStopped || tourHover);
+      if (tourToggle) { var label = tourToggle.getAttribute(tourStopped ? 'data-label-play' : 'data-label-pause'); tourToggle.setAttribute('aria-label', label); tourToggle.title = label; }
+      if (!tourStopped && !tourHover) tourTimer = setInterval(function () { if (!document.hidden) showTour(tourIndex + 1, false); }, 7000);
+    };
+    tourTabs.forEach(function (tab, index) {
+      tab.addEventListener('click', function () { tourStopped = true; showTour(index, false); tourRun(); });
+      tab.addEventListener('keydown', function (event) {
+        var next = event.key === 'ArrowRight' ? tourIndex + 1 : event.key === 'ArrowLeft' ? tourIndex - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? tourTabs.length - 1 : null;
+        if (next !== null) { event.preventDefault(); tourStopped = true; showTour(next, true); tourRun(); }
+      });
+    });
+    if (tourToggle) tourToggle.addEventListener('click', function () { tourStopped = !tourStopped; tourRun(); });
+    tour.addEventListener('mouseenter', function () { tourHover = true; tourRun(); });
+    tour.addEventListener('mouseleave', function () { tourHover = false; tourRun(); });
+    tourRun();
+  }
   var videoDialog = document.getElementById('product-video');
   if (videoDialog && typeof videoDialog.showModal === 'function') {
     var opener;
