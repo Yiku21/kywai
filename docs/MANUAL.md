@@ -1362,8 +1362,27 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     (fallos `offline`, `auth`, `quota`), Hermes repite el encargo con `openrouter/free` y esa clave, y lo dice en la
     actividad («OmniRoute no responde: Hermes sigue con los modelos gratis de OpenRouter»). «Quitar cuenta o clave» y
     quitar el agente la borran. Sin reserva, avisa del motivo como antes.
-  - **Hermes con tu suscripción de ChatGPT o Claude en la nube** (`hermes-codex` y `hermes-claude` en
-    `cloudAccountSpecs`). Para que Hermes funcione 24/7 sin depender de tu ordenador, Mi cuenta lanza el inicio de
+  - **OmniRoute en tu espacio** (`omniRouteSpace.ts`, `omniroute.ts`). La imagen del espacio trae OmniRoute instalado
+    y cada espacio enciende el suyo en 127.0.0.1:20128 solo cuando Hermes lo necesita (`ensureOmniRouteForHermes`),
+    sin panel (`OMNIROUTE_HEADLESS=1`), solo dentro del contenedor (`OMNIROUTE_SERVER_HOST=127.0.0.1`), con 512 MB de
+    memoria como tope (`--max-old-space-size=512`) y se apaga tras 20 minutos sin uso (`withOmniRoute`). Así Hermes usa
+    tus suscripciones 24/7 aunque tu ordenador esté apagado. La imagen lo trae instalado (`omniroute@3.8.54` en el
+    Dockerfile de kywai-cloud) y sus datos viven en `~/.omniroute`, dentro del volumen del espacio. Las suscripciones
+    se conectan desde la bienvenida de Mi cuenta o desde la ficha de Hermes en Mis agentes: «Conectar mi Claude» o
+    «Conectar mi ChatGPT» (ids `omniroute-claude` y `omniroute-codex`, con la misma página y los mismos
+    `cloudAccountLogin*` que los demás inicios de sesión; `createSpaceLogin`) piden a OmniRoute el enlace para iniciar sesión
+    (`/api/oauth/<claude|codex>/authorize`), pegas el código que enseña Claude (o la dirección a la que vuelve ChatGPT,
+    aunque no cargue) y kywai lo canjea (`/exchange`). kywai maneja su API con la llave de la terminal de OmniRoute
+    (`x-omniroute-cli-token`, HMAC del id de la máquina con un secreto propio de cada espacio, `OMNIROUTE_CLI_SALT`) y
+    le pide una clave de API para Hermes (`/api/keys`, guardada como `cloud:omniroute-espacio`). El OmniRoute de tu
+    ordenador sigue llegando por el puente, ahora al relevo 127.0.0.1:20129; un Hermes que lo usaba con la dirección
+    de antes pasa solo al relevo al arrancar (`moveBridgedHermesToRelay`). Si el OmniRoute del espacio falla o se
+    queda sin cupo, Hermes sigue con la reserva de OpenRouter. En un espacio nuevo o formateado, el config.yaml de Hermes
+    no tiene sección `model:` y sin ella Hermes se cree sin configurar: al escribir el proveedor, kywai la añade con ese
+    proveedor y su modelo (`upsertHermesProvider`).
+  - **Hermes con tu suscripción de ChatGPT o Claude en la nube, con su propio inicio de sesión** (`hermes-codex` y
+    `hermes-claude` en `cloudAccountSpecs`). Desde el 22 nov Mi cuenta ya no lo ofrece: en su lugar conectas tus
+    suscripciones al OmniRoute de tu espacio (arriba). Sigue funcionando en los espacios que ya lo usaban. Para que Hermes funcione 24/7 sin depender de tu ordenador, Mi cuenta lanza el inicio de
     sesión oficial de Hermes: `hermes auth add openai-codex --type oauth --no-browser` (código de dispositivo en
     auth.openai.com/codex/device; Hermes guarda su propia sesión y no toca la de Codex) o `hermes auth add anthropic
     --type oauth --no-browser` (enlace de claude.ai y pegar el código que da la web). Al terminar,
@@ -2425,6 +2444,50 @@ un plano), dilo y se hará con código. Las piezas visuales (imágenes, póstere
 webs ni las apps) van con **esfuerzo medio**: ahí manda el ojo, no el razonamiento, y con esfuerzo alto Opus llegó
 a pasar más de 4 minutos pensando en silencio antes de empezar un mapa.
 
+### Elegir con qué se generan las imágenes y los vídeos
+
+**Ajustes → General → Imágenes y vídeos** (pedido por Yil el 22 nov 2026). Cada usuario elige con qué se hacen sus
+imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cuesta. Se guarda en el motor
+(`generar-con.json` en la carpeta de datos; en kywai cloud, en el espacio), así vale igual en la app, el navegador y
+Órbita.
+
+- **Generar imágenes con…**
+  - **Automático** (de fábrica): lo gratis primero. Tus modelos locales (Draw Things o ComfyUI) → **tu ChatGPT** →
+    tu clave de Gemini → en kywai cloud, la GPU de kywai **solo si apagas «preguntarme antes de gastar créditos»**
+    (viene encendido) → el motor gratis de internet (borrador). Si se saltó la GPU para no gastar, el chat lo dice y
+    ofrece «Rehacer con…».
+  - **Mis modelos locales**: Draw Things o ComfyUI en tu equipo, gratis (en la nube, el Draw Things de tu Mac por el
+    puente).
+  - **Mi ChatGPT**: Codex con tu suscripción de ChatGPT Plus o Pro y su herramienta de imágenes (gpt-image-2), **sin
+    clave de API y sin créditos**; gasta tu cuota de Codex (de 3 a 5 veces lo que un mensaje). Hace falta haber
+    iniciado sesión con ChatGPT en Codex (`~/.codex/auth.json` con tokens de ChatGPT; con solo una clave de API no
+    cuenta). Codex deja la imagen en la carpeta de trabajo o en `~/.codex/generated_images` y kywai la copia
+    (`src/main/codexImage.ts`).
+  - **Mi clave de Gemini**: la cobra Google, no kywai.
+  - **GPU de kywai** (solo kywai cloud): 2 créditos, 5 en HD.
+  - Las suscripciones de **Gemini y Claude no generan imágenes fuera de su app** (comprobado en su documentación el
+    22 nov 2026) y OmniRoute solo genera imágenes con claves de pago: por eso no salen.
+- **Generar vídeos con…**: **Automático**; **Estudio de contenido** (plantillas, rótulos y voz, sin clips de IA ni
+  créditos: se saltan los clips de Wan); **Mis modelos locales** (en la nube, el vídeo lo monta tu equipo conectado
+  sin pulsar «Hacerlo en {equipo}», si puede con él). «GPU de kywai» para vídeo sale como **Próximamente**. Ninguna
+  suscripción genera vídeo fuera de su app.
+- **Con un motor concreto, solo ese**: si no sale, el chat dice por qué y ofrece los demás. Lo que pidas en el
+  mensaje manda sobre el ajuste: «rehazla con mi ChatGPT», «hazla con créditos», «con mi equipo»
+  (`engineAskedIn` en `src/shared/mediaEngines.ts`).
+- **Bajo cada imagen**: «Hecha con tu ChatGPT · 0 créditos» (o lo que costó) y **«Rehacer con…»**, que manda en el
+  chat «Rehaz esta imagen con …» con la marca `(motor: …)` para que valga en cualquier idioma. Si no salió, «Probar
+  con…» (campo `madeWith` del mensaje).
+- **Modelos locales para este equipo** (solo en la app instalada): kywai mira la RAM, la gráfica y el disco y marca
+  el **«Recomendado para tu equipo»** (`adviseLocalModels`): **Qwen-Image** (NVIDIA de 24 GB), **FLUX.2 klein 4B**
+  (NVIDIA de 8 GB y 16 GB de RAM, o Mac de 24 GB), **DreamShaper 8** (equipos modestos) y **Wan 2.2 5B** para vídeo
+  (NVIDIA de 8 GB y 32 GB de RAM). Los que no caben no tienen botón. **«Instalar y dejar listo»** (un clic): instala
+  ComfyUI si falta, baja las piezas de Comfy-Org (sigue donde se quedó si se corta), lo enciende, **hace una imagen de
+  prueba** y deja ese modelo elegido. Desde ahí basta con pedírselo a kywai. Z-Image Turbo y LTX-2 aún no: ComfyUI
+  los usaría con otros flujos que kywai no tiene probados.
+- Código: `src/shared/mediaEngines.ts` (preferencias, orden y modelos), `src/main/mediaPrefs.ts`,
+  `src/main/mediaEngines.ts`, `src/main/codexImage.ts`, `installLocalModel` en `src/main/videoStudio.ts`,
+  `src/renderer/src/ui/settings/MediaEnginesSection.tsx` y `MadeWithBar` en `Messages.tsx`.
+
 ### Imágenes con Draw Things (gratis, en tu Mac)
 
 Si tienes **Draw Things** (drawthings.ai) abierto en tu Mac con su servidor encendido (**Draw Things → Ajustes →
@@ -2446,9 +2509,10 @@ cuadrada sale al tamaño que tengas puesto).
 - **kywai cloud**: con «Prestar los modelos de este equipo» encendido en la app de tu Mac, la nube pide las imágenes
   a tu Draw Things por el mismo puente que LM Studio y Ollama. Por el puente solo pasan `GET /` (sus ajustes) y
   `POST /sdapi/v1/txt2img` con texto, tamaño (256–2048) y una imagen; nunca otro modelo ni img2img.
-- **Orden de motores** (`src/main/imageMaker.ts`): Draw Things → ComfyUI (si ya está encendido) → Gemini con tu clave
-  → **en kywai cloud, las imágenes de kywai** → el motor gratis de internet (una cada 45 s). Si Draw Things está
-  cerrado, se pasa al siguiente sin fallar.
+- **Orden de motores** (`src/main/imageMaker.ts`): lo elige el usuario (ver «Elegir con qué se generan las imágenes y
+  los vídeos»). En «Automático»: Draw Things → ComfyUI (si ya está encendido) → tu ChatGPT → Gemini con tu clave
+  → **en kywai cloud, las imágenes de kywai** (si no hay que preguntar antes de gastar) → el motor gratis de internet
+  (una cada 45 s). Si Draw Things está cerrado, se pasa al siguiente sin fallar.
 - **Imágenes de kywai (solo kywai cloud, `src/main/kywaiImages.ts`)**: el portal Mi cuenta las dibuja con la **GPU de
   kywai** (desde el 21 nov 2026; `portal/gpu.py` en kywai-cloud): modelos abiertos que permiten uso comercial en una GPU
   alquilada por segundos en RunPod Serverless con ComfyUI. **Rápida** (Z-Image Turbo, ~1 MP) **2 créditos**; **HD**
@@ -6948,7 +7012,7 @@ acabado. Al pasar el ratón dice cómo va cada una; al pulsarla se abren todas l
 | GPT (Codex) | **Dato real**: se pregunta a Codex al abrir la app y cada 5 min (su `app-server`, no gasta uso), y tras cada tarea |
 | Claude | **Dato real**: se pregunta a Claude Code con `/usage` al abrir la app y cada 5 min (no llama al modelo ni gasta uso), y tras cada tarea |
 | Gemini | Con clave de API, Google no informa la cuota: se muestran los usos de hoy («3 hoy»), o una estimación si configuras un presupuesto (clic en el indicador) |
-| Hermes | Con **OmniRoute en este equipo**: **dato real** de OmniRoute. kywai entra en su panel con la contraseña que le puso al prepararlo y lee `/api/usage/quota` y `/api/usage/provider-limits` al abrir la app y cada 5 min (no gasta uso). Si el modelo de Hermes es de un proveedor concreto (`cc/…` = Claude, `cx/…` = Codex…) enseña esa suscripción; si es un combo o «auto», la cuenta conectada con más margen. El % es el de su ventana más justa y el detalle lista todas. Si la contraseña no entra, no insiste en 30 min (su panel bloquea tras varios fallos). Sin OmniRoute, o si está apagado o sin suscripciones, enseña los usos de hoy y de 7 días |
+| Hermes | Con **OmniRoute en este equipo**: **dato real** de OmniRoute. kywai entra en su panel con la contraseña que le puso al prepararlo y lee `/api/usage/quota` y `/api/usage/provider-limits` al abrir la app y cada 5 min (no gasta uso). Si el modelo de Hermes es de un proveedor concreto (`cc/…` = Claude, `cx/…` = Codex…) enseña esa suscripción; si es un combo o «auto», la cuenta conectada con más margen. El % es el de su ventana más justa y el detalle lista todas. Si la contraseña no entra, no insiste en 30 min (su panel bloquea tras varios fallos). En **kywai cloud** (OmniRoute del espacio) entra con la llave de su API (`x-omniroute-cli-token`) en vez de la contraseña. OmniRoute solo pregunta la cuota a cada proveedor cada 70 min: si hay una conexión sin dato (recién conectada o recién encendido), kywai le pide actualizarla (`POST /api/usage/provider-limits`), como mucho una vez cada 10 min. Sin OmniRoute, o si está apagado o sin suscripciones, enseña los usos de hoy y de 7 días |
 | Local | Sin cuota (ejecución en tu PC) |
 
 ⚙ → Ajustes → Agentes → Tu equipo → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
