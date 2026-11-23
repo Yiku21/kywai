@@ -2327,6 +2327,10 @@ llega cuando ya escribiste, no se pone. No sale con una tarea en marcha, con un 
 rutinas. Se apaga con `suggestNext: false`. Código: `src/main/nextRequest.ts`, `maybeSuggestNext` en
 `src/main/orchestrator.ts` y el cuadro en `src/renderer/src/ui/left/Composer.tsx`.
 
+La sugerencia se pinta en una capa encima del cuadro vacío (`.ghost`), con la etiqueta **⇥ Tab** como una pastilla que
+no se parte. El cuadro mide su altura con esa capa y vuelve a medirla cuando cambia de ancho (ventana, barra lateral o
+paneles), así que una sugerencia larga lo hace crecer y nunca se monta encima del clip, la imagen o el micrófono.
+
 ### Añadir a una tarea en marcha sin esperar
 
 Si mientras un agente trabaja escribes algo que completa ese mismo encargo («ah, y que el título sea azul», «no uses
