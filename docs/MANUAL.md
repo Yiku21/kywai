@@ -1530,8 +1530,11 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
 
 Cómo trabaja un agente de catálogo: kywai lo lanza en la carpeta del proyecto, con la sesión que ya tengas
 iniciada en su programa (tu suscripción), le entrega el encargo por stdin o por un archivo (el texto nunca va en la
-línea de órdenes) y recoge lo que responde. **DeepSeek** se puede conectar de dos formas, las dos con su clave de API (pago por uso; no tiene suscripción):
-«DeepSeek» va a través de Aider con el modelo de DeepSeek fijado, y **«DeepSeek Harness»** es el agente propio de DeepSeek
+línea de órdenes) y recoge lo que responde. **DeepSeek** se puede conectar de dos formas, las dos con su clave de API (pago por uso; no tiene suscripción).
+En el catálogo sale **una sola tarjeta «DeepSeek»** con un selector «Programa» dentro: **Claude Code** (el recomendado,
+sale elegido), **Aider** o **DeepSeek Harness**. Son los mismos modelos de DeepSeek con distinto programa; quien ya tenga
+alguno añadido no nota nada (cada uno sigue siendo su propio agente), y si ya tienes uno, la tarjeta solo ofrece los otros.
+«DeepSeek» (Aider) va a través de Aider con el modelo de DeepSeek fijado, y **«DeepSeek Harness»** es el agente propio de DeepSeek
 (orden `dsh`, se instala con `npm install -g @deepseek-ai/dsh@latest`: solo publica versiones de prueba, y sin «@latest» npm no encuentra ninguna y necesita Node.js 22.19 o más nuevo). kywai lo lanza con
 `dsh --profile headless --approval-policy never -` y le pasa el encargo por la entrada estándar; al planificar añade
 `--permission-mode read-only` y, con acceso total, `--permission-mode danger-full-access`. Está en versión de prueba. Los agentes que funcionan con una **clave de API**
