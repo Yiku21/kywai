@@ -2355,6 +2355,28 @@ añadido también queda en la **pizarra del equipo** como «El usuario («tarea�
 Solo se corta la tarea afectada; los compañeros que trabajan a la vez lo leen en la pizarra sin interrumpirse, y las
 tareas que empiezan después lo reciben en su encargo.
 
+### Lo que envías sale al momento en el chat (1.17.10)
+
+Al pulsar Intro el cuadro de escribir se vacía ya (`clearForSend` en `Composer.tsx`), sin esperar a que el motor
+conteste; si el envío falla, el texto y los adjuntos vuelven al cuadro (salvo que ya hayas escrito otra cosa). A los 2 s
+se mira que tu mensaje esté en el chat (`showWhenSent`, por su `runId`); si no ha llegado, se vuelve a pedir la
+conversación al motor (`resyncChat` del almacén `store/cowork.ts`: la abierta en el motor para el chat principal, la suya
+para el chat de al lado o una ventana suelta).
+
+Por qué: el 23 nov 2026 Yil escribía «todo bien ?» en la app de escritorio con kywai cloud y no pasaba nada; al cerrar y
+abrir la app estaba enviado y Hermes había contestado (dos veces, porque lo reenvió). La conexión de eventos de la
+versión web (`EventSource` de `/api/events`) se puede quedar abierta pero muda (proxy, red, despliegues que recargan
+Caddy) y entonces no llega ni tu mensaje ni la respuesta. Arreglo en tres partes:
+
+- El servidor late cada 20 s (`event: ping` en `openEvents` de `webServer.ts`), así los proxies no cortan una conexión
+  callada.
+- La página (`createWebApi` en `lib/api.ts`) vigila el latido: si lleva 50 s sin oír nada, abre otra conexión. Al
+  reconectar con la misma app, además de la configuración, avisa `cowork:resync` y el chat abierto se pone al día con lo
+  que se perdió. Con un servidor sin latido (versión anterior) el vigilante no hace nada.
+- La comprobación de los 2 s tras enviar, que también cubre la app de escritorio sin nube.
+
+Pruebas: `store/resyncChat.test.ts`.
+
 ### Selector de esfuerzo en el chat
 
 Junto a adjuntar y dictar, el botón del velocímetro elige cuánto esfuerzo pone el equipo en tus mensajes. Se recuerda en
