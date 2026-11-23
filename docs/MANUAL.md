@@ -2474,6 +2474,11 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
   créditos: se saltan los clips de Wan); **Mis modelos locales** (en la nube, el vídeo lo monta tu equipo conectado
   sin pulsar «Hacerlo en {equipo}», si puede con él). «GPU de kywai» para vídeo sale como **Próximamente**. Ninguna
   suscripción genera vídeo fuera de su app.
+- **Primero pregunta** (23 nov 2026, Yil: «ni me preguntó con cuál»): mientras el usuario no haya elegido nada
+  (`chosen` en `generar-con.json`), la primera imagen no se dibuja: sale «¿Con qué hago esta imagen?» con botones de lo
+  que tiene a mano (su ChatGPT, sus modelos locales, su clave de Gemini, la GPU de kywai con su precio y «Lo gratis que
+  haya (borrador)»). Lo que pulse se manda como «Hazme esta imagen con … (motor: …)», se dibuja y queda guardado.
+  Elegir en Ajustes también cuenta. Las rutinas no preguntan. Si solo hay una opción, no pregunta.
 - **Con un motor concreto, solo ese**: si no sale, el chat dice por qué y ofrece los demás. Lo que pidas en el
   mensaje manda sobre el ajuste: «rehazla con mi ChatGPT», «hazla con créditos», «con mi equipo»
   (`engineAskedIn` en `src/shared/mediaEngines.ts`).
@@ -6665,9 +6670,10 @@ conversación abierta. En Órbita el chat con trabajo lleva el punto y «Nuevo c
 ### La rueda ⚙ y los Ajustes
 
 La **rueda ⚙** (abajo en la barra lateral) abre un menú corto, como en Claude. Arriba dice dónde estás (en una
-línea; la explicación sale al pasar el ratón). Debajo van los **Ajustes rápidos**, lo que más se toca, para cambiarlo
-sin abrir nada: **Tema**, **Idioma**, **Sonido** (un interruptor que silencia o devuelve la música, los efectos y las
-voces a la vez), **Permisos** de los agentes y **Visto bueno a cada plan**. Después, **Uso y coste…**, la versión
+línea; la explicación sale al pasar el ratón). Debajo van los interruptores que más se tocan, para cambiarlos sin
+abrir nada: **Sonido** (silencia o devuelve la música, los efectos y las voces a la vez), **Permisos** de los agentes y
+**Visto bueno a cada plan**. **Tema**, **Interfaz** e **Idioma** ya no están en este menú (23 nov 2026, pedido por
+Yil): se cambian solo en **Todos los ajustes…** → General → Apariencia. Después, **Uso y coste…**, la versión
 nueva cuando la hay (**Actualizar kywai…** o **Actualizar este equipo…**, en amarillo), **Todos los ajustes…**
 (también **Ctrl+,**; ⌘, en el Mac) y, al final, **Reportar un problema…** y **Apoyar kywai**.
 
@@ -7598,7 +7604,7 @@ mapas; entre paréntesis, cómo se llamaban cuando eran temas sueltos:
   (violeta, verde agua y rosa). Con la Interfaz en Normal, sus paneles son un esmerilado gris neutro.
 
 **Interfaz: Normal o Vidrio líquido** (20 nov 2026, pedido por Yil: «que la interfaz vidrio líquido sea una opción en
-sí misma»). En ⚙ → Ajustes → General → Apariencia, debajo de «Tema», y en el menú ⚙ (Ajustes rápidos). El tema elige
+sí misma»). En ⚙ → Ajustes → General → Apariencia, debajo de «Tema» (desde el 23 nov 2026 ya no está en el menú ⚙). El tema elige
 el fondo del espacio y los colores; la Interfaz elige si el chat, los Ajustes, los paneles y la barra lateral son los
 de siempre o cristal líquido, y se combina con cualquier tema (mapas, decorados, Oficina, Ciudad digital). Se guarda en
 cada dispositivo (`aicowork.uiStyle`; no va al servidor porque Órbita no tiene el cristal 3D). Quien tenía el antiguo
