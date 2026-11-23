@@ -8305,6 +8305,38 @@ coordinar, cara de preocupación en «te necesita» y ojos cerrados al dormir. L
 respiración en reposo, miradas a los lados y la cresta y la cola que siguen el movimiento. «Vuela» está listo pero aún no se usa. El esqueleto y los movimientos se hicieron con Blender (script en la carpeta
 del proyecto «mascota-kywai/modelo-3d»).
 
+### Ver a los agentes trabajar en el espacio 3D
+
+El espacio 3D sirve para ver trabajar al equipo, así que cada agente ocupado se nota a simple vista, con cualquier
+aspecto (Formas animadas, Personajes, Píxel, Clásico, Refugio) y en cualquier tema (también en «kywai», donde la
+plataforma no tiene consola ni pantallas):
+
+- **Pantalla holográfica a su lado** con lo que hace: código que corre mientras trabaja y barras mientras piensa. Mira a
+  la cámara y se pone a un lado para no taparle la cara.
+- **Aro de luz que gira a sus pies**, de su color (más rápido al trabajar que al pensar).
+- **Hilo de luz hasta el núcleo del Proyecto** con chispas que suben: se ve en qué está metido cada uno. El coordinador
+  no lo lleva (integra en el propio núcleo).
+- **Su etiqueta** dice lo último que hace («Leyendo el proyecto», «Montando los planos»…), con el tiempo y la barra de
+  progreso, y al recibir la tarea suelta su bocadillo.
+- Al terminar, todo se apaga en un segundo y vuelve a estar libre en su plataforma.
+
+Detalles que antes fallaban (23 nov 2026):
+
+- **Con «Formas animadas» la forma ya no desaparece**: al pensar, esperar o llamarte, el motor de las formas convierte
+  el cuerpo en un indicador de carga (puntos, órbita, «!»), que en la ficha y el chat se lee bien pero en el 3D dejaba
+  al agente reducido a unos puntitos. En el 3D el cuerpo se queda siempre (`figureStateFor` en `scene/figureCard.ts`:
+  piensa examinando, espera tarareando y te llama sorprendido).
+- **Tarea en marcha = se le ve trabajando**: en algunos tramos el servidor deja al agente «libre» aunque su tarea siga
+  (kywai monta el vídeo, graba las voces, espera a que repases el guion, reintenta tras un error pasajero). El chat la
+  enseñaba «Trabajando» y el 3D/2D en reposo. Ahora, si el agente figura libre y tiene una tarea en marcha, se le ve
+  trabajando en ella con lo último que hace (`lib/agentBusy.ts`, en el 3D, su etiqueta y el 2D). Vale igual para las
+  tareas que reparte Hermes y para los mensajes directos sin coordinador.
+- **Ninguna etiqueta tapa a otro agente**: el cuerpo de cada agente cuenta como ocupado y las etiquetas se apartan un
+  poco a un lado o suben (`freeSpot` en `scene/LabelProjector.tsx`). Si una etiqueta queda lejos de su agente, un hilo
+  fino la une con su cabeza. Las etiquetas van ahora más pegadas a la cabeza.
+
+Código: `scene/WorkFx.tsx` (pantalla, aro, hilo y chispas, dentro del grupo del robot: si se mueve, va con él).
+
 ### Espacio 2D
 
 En la cabecera del espacio hay un interruptor **3D / 2D**. En 2D el tema que tengas puesto se ve dibujado, como un
