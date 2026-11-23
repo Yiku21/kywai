@@ -1846,6 +1846,9 @@ lleva `permission` con su estado.
   enciende el servidor y deja elegir el modelo de ese programa con el sugerido marcado. LM Studio sin modelos dice qué
   tamaño buscar en su catálogo. Nada se quitó: el indicador Local y «Prepararlo todo» siguen igual. Componente:
   `src/renderer/src/ui/quota/LocalEnginePicker.tsx`.
+  Arreglo 1.5.2: el agente añadido guarda como proveedor su motor (`ollama`, `lmstudio`…), no `qwen`, así que
+  «Configura» lo reconoce también por `isLocalEngine(agent.provider)`; antes salía «Usa la sesión de su programa» sin
+  selector. Si el equipo ya tiene modelos, el aviso de la esquina ofrece además «Usar otro programa…» (paso `engine`).
   - **AirLLM** ([github.com/lyogavin/airllm](https://github.com/lyogavin/airllm), Apache-2.0) vuelve (se había
     descartado el 9 nov por lento y sin servidor; Yil lo pidió de nuevo). Es una librería de Python: kywai la instala
     en `~/airllm/.venv` (con `mlx` en Mac) y le pone un servidor pequeño compatible con OpenAI en
