@@ -5088,6 +5088,38 @@ película («/serie estilo acuarela una bruja novata»), «personajes fijos» co
 
 Código: `src/main/series.ts` y `sendSeries` en el orquestador.
 
+### Instagram y TikTok con un clic (Zernio)
+
+La forma fácil de conectar las redes de kywai, en ⚙ → Ajustes → Extensiones → Estudio de vídeo → **«Redes de kywai:
+Instagram y TikTok»**. kywai publica a través de **Zernio** ([zernio.com](https://zernio.com), antes Late), un servicio
+de publicación con las apps oficiales de Meta y TikTok ya aprobadas. Así no hace falta token de Meta, ni app en
+developers.tiktok.com, ni esperar la auditoría de TikTok, y nunca se pide la contraseña de ninguna red.
+
+1. Crea una cuenta gratis en [zernio.com/signup](https://zernio.com/signup). No pide tarjeta: las **2 primeras cuentas
+   conectadas son gratis** (después, entre 1 $ y 6 $ por cuenta y mes).
+2. En el panel de Zernio, Settings → **API Keys**: crea una clave y pégala en kywai → **Guardar**. kywai la guarda
+   cifrada en el llavero; nunca la enseña ni la manda a los agentes.
+3. Pulsa **Conectar Instagram** y **Conectar TikTok**: se abre la página oficial de cada red, entras con tu cuenta y
+   vuelves. kywai mira cada pocos segundos y lo detecta solo. Si ya conectaste las cuentas en el panel de Zernio, kywai
+   las encuentra al guardar la clave (o con **Comprobar**).
+
+Qué cambia al publicar:
+- **Instagram (`/instagram`)**: el reel se sube a Zernio y se publica al momento, con la portada que prepara kywai. No
+  hace falta enlace público ni Tailscale Funnel. La cuenta tiene que ser profesional (empresa o creador). El reel de
+  prueba (`/instagram prueba`) y «/instagram resultados» siguen necesitando el token de Meta de las opciones avanzadas.
+- **TikTok (`/tiktok`)**: «Enviar como borrador» lo deja en la bandeja de la app de TikTok; «Publicar» lo publica
+  **en público** desde el primer día (con la app de TikTok for Business de Zernio, el vídeo directo solo puede ser
+  público: para otro público, envíalo como borrador y elígelo en la app). TikTok a veces tarda unos minutos en
+  procesarlo; la tarjeta lo dice.
+- «Publicar sin preguntar» (Instagram) y «Enviar borradores sin preguntar» (TikTok) están en la misma tarjeta.
+- **Desconectar** quita la cuenta de Zernio; **Quitar la clave de Zernio** vuelve a lo de antes.
+
+Si la clave está puesta y la red conectada, Zernio tiene preferencia. Lo de antes (token de Meta, Apps conectadas y la
+app propia de TikTok) sigue en **«Opciones avanzadas»**, plegado debajo, y se abre solo si ya lo usabas.
+
+Código: `src/main/zernio.ts` (cliente), la tarjeta `ZernioPanel` en `ExtensionsTab.tsx` y los backends de Instagram y
+TikTok del orquestador (`zernio()`).
+
 ### El Instagram de kywai (`/instagram`)
 
 kywai puede llevar **su propia cuenta de Instagram** (la de kywai, no la tuya) y publicar ahí los reels que hace.
