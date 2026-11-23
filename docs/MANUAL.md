@@ -1531,6 +1531,40 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     con lo último que escribió (`RunAgentResult.stderrTail` → `timeoutHint`): proveedor saturado (`busy`), pide esperar
     (`quota`) o el espacio no llega a su red (`network`). Comprobado con las APIs reales (claves falsas) y con Gemini CLI
     real contra un Google simulado que da 503 en 3.8 Flash: se queda con 3.5 Flash-Lite y responde en 2 s.
+  - **«Probar» dice la verdad con todos los agentes del catálogo** (1.9.3, 23 nov 2026). Se probaron uno a uno los
+    agentes de «Configura kywai» con su programa real (sin cuenta, con clave buena, con clave rechazada y sin saldo,
+    contra un proveedor simulado), en la app y en la nube. Lo que fallaba y cómo quedó:
+    - **Esperas de inicio de sesión** (`LOGIN_WAIT_RE` en `agents/generic.ts`): Aider (OAuth de OpenRouter) y Amp
+      (código de dispositivo) se quedaban esperando al navegador hasta agotar el tiempo. Ahora, si el programa escribe
+      que espera un inicio de sesión, se corta al momento y dice «falta iniciar sesión o poner su clave».
+    - **Falsos «Activado»** (`exitZeroFailure`): Aider y Junie terminan con código 0 aunque la clave no valga
+      (`litellm.AuthenticationError`, «Please authenticate…») o no haya saldo (`RateLimitError`, «Insufficient
+      Balance»); se miran las últimas líneas y ya no se toman como respuesta. Goose «add more credits» = sin saldo.
+    - **Motivo correcto** (`NOT_CONNECTED_RE`, `NO_BALANCE_RE`): frases de no conectado de Goose, Grok, Cursor, Kimi,
+      Qwen, Kilo, Qoder, Crush y dsh (HTTP 401) cuentan como «falta conectar» aunque el agente tenga su propio
+      `authPattern`; 402, «Insufficient credits», «payment required» y «credit balance is too low» cuentan como «sin
+      saldo» (antes salía la traza de Python con «api_key» y se confundía con clave rechazada). Aider sin saldo reintentaba
+      sin fin (`RETRYING_NO_BALANCE_RE`): se corta en segundos.
+    - **Programas que cambiaron**: Crush y Cline ya no leen la orden por la entrada (Crush decía «No prompt provided»,
+      Cline 3 pide una terminal): va como argumento. Auggie usa `--print --no-session` y en modo plan solo herramientas
+      de lectura. Mistral Vibe 3 quitó el agente «plan»: se usa `--agent ask`. Cursor se lanza como `cursor-agent` (el
+      instalador de Grok crea `~/.local/bin/agent` y pisaba el de Cursor; las fichas guardadas se corrigen solas al abrir).
+      Forge y OpenClaw se instalan con npm (`forgecode`, `openclaw`): su instalador web ya no existe.
+    - **Claves que se perdían al reiniciar** (`freshCliSpec` en `config.ts`): al abrir la app o reiniciar el espacio, la
+      ficha de un agente del catálogo se rehacía y borraba las variables de su clave (Goose `GOOSE_PROVIDER`, Qwen Code
+      `OPENAI_BASE_URL`/`OPENAI_MODEL`…) y las de «Otra dirección». Ahora se conservan las de su tabla de claves
+      (`AGENT_KEYS.extra`) y las de la dirección elegida (`ENDPOINT_ENV`).
+    - **Claude y Claude con DeepSeek/Kimi/GLM** (`agents/claude.ts`): con la clave rechazada Claude Code reintentaba 10
+      veces (minutos). Tras 3 reintentos seguidos con 401 se para y dice «falta conectar»; las pasarelas usan
+      `CLAUDE_CODE_MAX_RETRIES=4`. Sin saldo ya no sale el aviso «doesn't recognize the model» en vez del motivo real.
+    - **Inicio de sesión de Amp en la nube** (`index.ts`, `cloudAccountLogin.ts`): su código pasó a tener tres partes
+      («6QH-JCS-JS7») y kywai no lo encontraba. Además, si un programa da el enlace pero no un código reconocible, a los
+      4 s se muestra el enlace solo en vez de esperar sin fin.
+    No se pudieron probar aquí con cuenta real: Copilot (el proxy de pruebas bloquea github.com), Open Interpreter (su
+    instalador da 403) y los que solo van con la cuenta de su empresa (Cursor, Amp, Junie, Kiro, Qoder, Droid, Kimi,
+    Antigravity, Letta, MiniMax, Auggie, Rovo Dev, Muse): con ellos se comprobó hasta el enlace de inicio de sesión y el
+    motivo sin cuenta. Pruebas: `generic.test.ts`, `claudeRetry.test.ts`, `config.test.ts`, `cloudAccountLogin.test.ts`,
+    `agentCatalogData.test.ts`, con las salidas reales de cada programa.
   - **«Pruébame» enseña solo la respuesta final** (`probeReply.ts`): sin la cabecera del programa (Aider: versión,
     modelo, «Repo-map», separadores) ni el razonamiento («► **THINKING**», `<think>`). Si dijo la frase pedida, sale solo
     «Estoy activo y funcionando.».
