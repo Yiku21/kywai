@@ -2,6 +2,7 @@
   <div class="wrap">
     <div class="hero-grid">
       <div class="hero-copy">
+        {{releaseBadge}}
         <p class="eyebrow hero-eyebrow"><span class="signal-dot" aria-hidden="true"></span>{{home.eyebrow}}</p>
         <h1>{{home.title}}<span class="hero-gradient">{{home.titleEnd}}</span></h1>
         <p class="lede">{{home.intro}}</p>
@@ -31,11 +32,7 @@
       </div>
     </div>
     {{agentRibbon}}
-    <figure class="product-stage" id="video">
-      <div class="product-stage-bar"><span class="stage-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>{{home.product}}</span><a data-video-open href="{{base}}assets/video/presentacion.mp4">{{home.demo}} <span aria-hidden="true">→</span></a></div>
-      <img src="{{base}}assets/img/{{img}}/escritorio.jpg" alt="{{hero.shotAlt}}" width="1600" height="900" fetchpriority="high">
-      <figcaption>{{home.productNote}}</figcaption>
-    </figure>
+    {{tour}}
     <div class="proof-strip">
       <div><span class="proof-icon" aria-hidden="true">→</span><h2>{{home.proofOne}}</h2><p>{{home.proofOneBody}}</p></div>
       <div><span class="proof-icon" aria-hidden="true">◎</span><h2>{{home.proofTwo}}</h2><p>{{home.proofTwoBody}}</p></div>
@@ -44,6 +41,7 @@
     <a class="inception-strip" href="https://www.nvidia.com/en-us/startups/" rel="noopener"><img src="{{base}}assets/marcas/nvidia-inception.svg" alt="NVIDIA Inception Program" width="93" height="40" loading="lazy"><span>{{home.inception}}</span></a>
   </div>
 </section>
+{{whatsNew}}
 <section class="section advantage-section">
   <div class="wrap">
     <div class="section-head"><p class="eyebrow">{{home.advantage}}</p><h2>{{home.advantageTitle}}</h2><p class="lede">{{home.advantageIntro}}</p></div>
