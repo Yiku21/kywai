@@ -4420,7 +4420,7 @@ lo deja listo para descargar. El cálculo está en `src/shared/modelAdvisor.ts` 
 
 ### Conectar kywai cloud con este PC (1.17)
 
-Un solo interruptor en la **app de escritorio**: **⚙ → Ajustes → General → «Conectar kywai cloud con este PC»**. Con él
+Un solo interruptor en la **app de escritorio**: **⚙ → Ajustes → Este PC → «Conectar kywai cloud con este PC»**. Con él
 encendido, lo pesado que pidas en la web o en el móvil lo hace tu equipo, gratis y con su potencia: los **modelos de IA**
 (Ollama, LM Studio, Colibri), las **imágenes** (Draw Things, ComfyUI), los **vídeos** (el estudio de vídeo del equipo) y
 la **instalación de programas**. Junta los dos ajustes de antes («Prestar los modelos de este equipo» y «Hacer aquí los
@@ -4470,7 +4470,7 @@ que da la app. Si algo falla, el botón
 
 Paso a paso (si prefieres hacerlo tú):
 
-1. En la app de escritorio, **⚙ → Ajustes → General → «Conectar kywai cloud con este PC»** (apagado de serie; ver la sección
+1. En la app de escritorio, **⚙ → Ajustes → Este PC → «Conectar kywai cloud con este PC»** (apagado de serie; ver la sección
    siguiente). Los chips de debajo dicen qué motores están abiertos.
 2. **Añadir un agente → «Modelo local»** (tarjeta «En tu equipo · Gratis»).
 3. En su indicador de cuota (agente local), el motor dice **«corre en tu equipo «<nombre>»»**. Debajo, la tarjeta
