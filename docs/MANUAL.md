@@ -2242,6 +2242,20 @@ En «Uso y coste» cada petición guarda su vía (`lane`: direct, agent o full) 
   abrir kywai en el navegador (cada conexión de `/api/events`), `omniRouteViewerOpened` (`src/main/omniroute.ts`)
   lo enciende en segundo plano y no lo deja dormirse mientras haya alguna pantalla abierta; al cerrar la última,
   vuelve a contar los 20 min sin uso. Solo en kywai cloud y solo si algún Hermes del equipo usa ese OmniRoute.
+- **El gateway de Hermes, despierto (v1.15.8).** Tras la 1.15.6 Hermes seguía tardando un minuto («¿merece la pena tener
+  tantos agentes?», 23 nov). Medido con 2 CPU: `hermes chat` habla con un «gateway» de Hermes que él mismo enciende si
+  no hay ninguno y que se apaga solo tras 10 min sin uso (`gateway.unmanaged_idle_exit_seconds`). Volver a encenderlo
+  (comprobaciones, plugins, herramientas) lleva de 13 a 35 s; con él encendido, Hermes tarda ~3 s en llegar al modelo.
+  Ese arranque se comía los 25 s de la respuesta al momento y el mensaje pasaba al plan completo. Ahora `warmHermes`
+  (`src/main/agents/hermes.ts`) despierta el gateway con `hermes gateway attach --recover` a la vez que OmniRoute y
+  ANTES de poner el tope, solo si Hermes lleva 5 min sin usarse (`src/main/agents/hermesGateway.ts`). En kywai cloud,
+  `hermesViewerOpened` (llamado en `/api/events`) lo enciende al abrir kywai y lo toca cada 5 min mientras haya una
+  pantalla abierta; al cerrar, Hermes lo apaga él solo a los 10 min (y no si tiene rutinas o tareas suyas).
+- **Un enlace lo abre un agente (v1.15.8).** «este https://orkas.ai/…» iba a la respuesta al momento, que no tiene
+  herramientas, y Hermes contestó «no tengo acceso a URLs». Ahora un mensaje con un enlace va por la vía «lo mira un
+  agente» (`routeMessage` → `look`, en `src/main/plan.ts`): lo abre quien coordina si puede leer la web, o Claude,
+  Codex o Gemini; si no hay ninguno, el plan completo. Y si la respuesta al momento dice que no puede entrar en la web
+  (`claimsNoWeb`), lo mira un agente en vez de enviar eso.
 - **Tiempos por paso.** Bajo cada respuesta, la línea de consumo dice cuánto duró cada paso cuando hubo más de uno
   («2 min (coordinar 8 s, trabajar 1 min, revisar 40 s)») y qué parte de los tokens se leyó de caché, que cuesta mucho
   menos («185 k tokens (92 % de caché)»).
@@ -8327,7 +8341,12 @@ web (kywai.app) y del README del escaparate ya usan Formas animadas o Clásico. 
 no elijas «Personajes».
 Con «Formas animadas», la cara del coordinador en la ficha, el chat y las listas (`CoordinatorBird` en
 `ui/common/AgentBits.tsx`) es la cotorra forma de `cotorraCharacter()`, la misma del 3D; con los demás aspectos sigue
-la pegatina de la cotorra con el estilo de mascota elegido.
+la pegatina de la cotorra con el estilo de mascota elegido. Desde la 1.15.9 también la pegatina de los mensajes del
+coordinador (`MascotSticker`, que usan el chat, «kywai prepara el plan», el chat vacío y el resumen del día) es esa
+cotorra forma con «Formas animadas»: cada emoción pasa a un estado del motor (piensa → pensando, coordina y revisa →
+working, pulgar → humming, te-necesita → notifying, celebra y entrega → celebrate, duerme → sleeping, lo-siento →
+drowsy, el resto → idle) y se queda quieta a los 8 s de cada cambio para no gastar con muchos mensajes. Antes el chat
+seguía con la cotorra dibujada aunque el 3D, el 2D y la ficha ya enseñaran la forma.
 
 Los personajes se apoyan en el suelo de verdad: cuando el agente está quieto se mira hacia abajo qué hay bajo sus pies
 (rayo contra la escena, sin contar luces, partículas ni cosas transparentes) y se le sube o baja hasta pisar la
