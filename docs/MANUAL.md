@@ -4418,6 +4418,38 @@ con soltura** (familia Qwen3, de 1,7B a 32B):
 lo deja listo para descargar. El cálculo está en `src/shared/modelAdvisor.ts` y la detección en `src/main/hardware.ts`
 (`nvidia-smi`, el chip del Mac y el disco de la carpeta personal; se mira como mucho cada 10 minutos).
 
+### Conectar kywai cloud con este PC (1.17)
+
+Un solo interruptor en la **app de escritorio**: **⚙ → Ajustes → General → «Conectar kywai cloud con este PC»**. Con él
+encendido, lo pesado que pidas en la web o en el móvil lo hace tu equipo, gratis y con su potencia: los **modelos de IA**
+(Ollama, LM Studio, Colibri), las **imágenes** (Draw Things, ComfyUI), los **vídeos** (el estudio de vídeo del equipo) y
+la **instalación de programas**. Junta los dos ajustes de antes («Prestar los modelos de este equipo» y «Hacer aquí los
+vídeos de kywai cloud»); con **«Elegir qué hace»** puedes dejar solo una de las dos partes. Debajo sale **«Tu PC: …»** con
+lo que tiene (procesador, memoria y tarjeta gráfica) y una frase de lo que da de sí. **No hay reglas de «este equipo no
+sirve»**: cualquier equipo con la app puede ayudar; lo que cambia es cuánto tarda, y la nube queda siempre de respaldo.
+
+- **Si el equipo se apaga a mitad** o falla un vídeo, kywai lo sigue en la nube («Tu equipo no pudo terminarlo (…): lo
+  sigo en la nube»). Los vídeos se mandan solos al equipo conectado salvo que en Multimedia elijas «Estudio» de la nube.
+- **Varios equipos a la vez** (1.17.2): con el Mac mini, el MacBook y el PC conectados, cada parte del pedido (cada
+  imagen, cada vídeo) va al que **antes la terminaría**: lo que se espera que tarde por su potencia (al principio por la
+  tarjeta gráfica, la memoria y los núcleos; después, lo que tardó de verdad en sus últimos trabajos) multiplicado por lo
+  que ya tiene en cola, y un poco más si la persona lo está usando (`src/shared/pcPower.ts`, `deviceBridge.best`). Las
+  imágenes de un vídeo se reparten entre todos los equipos que pueden dibujar. Escribe **`/equipos`** para ver cuáles hay,
+  qué hace cada uno, sus programas y lo que tarda de verdad.
+- **Instalar programas** (1.17.1): si una tarea sale mejor con un programa, Hermes te pregunta con botones y, si dices que
+  sí, lo instala en el equipo con **`/instalar <programa> [en <equipo>]`** (también lo puedes escribir tú). Hay un
+  catálogo de más de 50 programas (Blender, Krita, GIMP, Inkscape, ComfyUI, Audacity, OBS, FFmpeg, Ollama, LM Studio…,
+  `src/shared/programCatalog.ts`) y, fuera de él, paquetes de los gestores oficiales: `winget:Id` (Windows),
+  `cask:nombre` / `brew:nombre` (Mac; sin Homebrew, kywai se pone uno propio en `~/.kywai/homebrew` sin contraseña para
+  las aplicaciones), `flatpak:id` (Linux, `--user`). Lo de fuera del catálogo se comprueba en su gestor antes de
+  instalar; nunca se ejecuta un enlace ni una orden que venga de la nube. Una instalación a la vez por equipo.
+- **kywai se adelanta** (1.17.3): tras una imagen o un vídeo, si había una forma mejor (encender el interruptor, usar «Mis
+  modelos locales» en vez de créditos, o instalar ComfyUI en un equipo con tarjeta gráfica fuerte), lo propone una vez,
+  con la orden lista (`src/shared/workflowTips.ts`; la misma propuesta no vuelve en 3 días por proyecto).
+- Por dentro: la app manda en cada consulta del puente sus programas (`programs`) y los segundos sin uso (`idleSec`); una
+  app antigua que recibe un 400 repite sin esos campos. El trabajo nuevo `install` del puente solo acepta un id del
+  catálogo o un paquete con formato válido, y la app lo vuelve a comprobar (`validProgramRef`).
+
 ### Modelos de tu equipo en kywai Cloud (agente local)
 
 kywai Cloud no tiene tarjeta gráfica ni disco para modelos, pero tu PC sí. Desde la **app de escritorio** conectada con
@@ -4438,8 +4470,8 @@ que da la app. Si algo falla, el botón
 
 Paso a paso (si prefieres hacerlo tú):
 
-1. En la app de escritorio, **⚙ → Ajustes → Conexión → Este equipo → «Prestar los modelos de este equipo»** (apagado de serie). La fila
-   dice qué motores están abiertos y cuántos modelos tienen («Prestando: Ollama (3 modelos)»).
+1. En la app de escritorio, **⚙ → Ajustes → General → «Conectar kywai cloud con este PC»** (apagado de serie; ver la sección
+   siguiente). Los chips de debajo dicen qué motores están abiertos.
 2. **Añadir un agente → «Modelo local»** (tarjeta «En tu equipo · Gratis»).
 3. En su indicador de cuota (agente local), el motor dice **«corre en tu equipo «<nombre>»»**. Debajo, la tarjeta
    **«Lo que le va a «<nombre>»»** enseña la memoria, la tarjeta gráfica y el disco libre de tu PC y **recomienda el
@@ -8979,6 +9011,13 @@ Si fallan, las capturas quedan en los artefactos del flujo. En local:
 `npx electron-vite build && npm i --no-save playwright@1.63.0 && node --test scripts/e2e/app.e2e.mjs` (y lo mismo con
 `scripts/e2e/vistas.e2e.mjs` y `scripts/e2e/estudio.e2e.mjs`; en Linux sin pantalla, con `xvfb-run -a` delante). Lo
 común de las tres está en `scripts/e2e/comun.mjs`.
+Las pruebas **no dejan ventanas abiertas**: `comun.mjs` cierra siempre la app (y la corta si en 20 s no se cierra),
+también si falla al arrancar, y al salir la prueba por lo que sea (acaba, falla, GitHub la cancela o se pasa de tiempo)
+corta las que queden. Además la app de la prueba recibe `KYWAI_PRUEBA_PADRE` (el proceso de la prueba) y, si ese
+proceso muere sin cerrarla, se cierra sola en unos segundos (`src/main/modoPrueba.ts`). Su ventana se llama
+**«kywai (prueba automática)»**: si en el Mac mini ves una ventana con ese nombre, es de una prueba y no tu kywai
+instalado (ese busca sus actualizaciones en la carpeta que guarda `source-dir.txt`, en el Mac mini `~/ai-cowork-original`).
+Los avisos de macOS «runsvc.sh puede ejecutarse en segundo plano» son los ejecutores de pruebas: son normales.
 
 **Prueba de cada noche en el Mac mini («Noche en el Mac mini»).** Cada noche (9:30 UTC) el Mac mini compila master,
 abre la app con las mismas pruebas de pantalla (también las de las vistas del equipo y la del estudio, que aquí es
