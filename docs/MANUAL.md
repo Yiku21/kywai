@@ -7910,8 +7910,8 @@ saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se recono
 los demás agentes y los becarios siguen siendo robots.
 
 Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
-tema (foto de tres agentes y nombre): **Personajes** (por defecto), **Píxel** (los personajes como sprites de pixel
-art), **Formas animadas** (cada agente con su forma y su color, ver «Formas animadas»), **Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
+tema (foto de tres agentes y nombre): **Formas animadas** (por defecto desde el 23 nov 2026; cada agente con su forma y su
+color, ver «Formas animadas»), **Personajes** (los personajes 3D), **Píxel** (los personajes como sprites de pixel art), **Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
 (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía sus robots y los demás temas los
 clásicos. El icono del agente en el chat y en los paneles cambia con la skin (`lib/RobotAvatar.tsx`: dibujos en
 `assets/robots/` para Personajes, `assets/robots/clasico/` y `assets/robots/refugio/`). Mientras carga el modelo se ve
@@ -8083,7 +8083,9 @@ vez y son los mismos para todos: parpadea y mira en reposo, se pone a trabajar, 
 giran), espera, te llama cuando te necesita, celebra al terminar, se marea con un error y se duerme. Como no hay que
 dibujar nada por agente, vale para los que se añadan en el futuro.
 
-- **Activarlo**: Ajustes → Agentes → «Aspecto de los agentes» → **Formas animadas**. Se ven igual en el chat, las
+- **Activarlo**: es el aspecto por defecto (`DEFAULT_SKIN` en `scene/characters.ts`): lo tiene todo el que no haya elegido
+  otro a mano, en el escritorio y en la nube; quien ya eligió otro lo conserva. Para volver a él: Ajustes → Agentes →
+  «Aspecto de los agentes» → **Formas animadas**. Se ven igual en el chat, las
   fichas, las listas, el espacio 2D y el **espacio 3D**: en el 3D cada agente es su forma, de pie en su puesto y mirando
   siempre a la cámara, con las mismas caras y movimientos que en su ficha (también los becarios). Solo la cotorra
   coordinadora y los agentes con modelo 3D propio de «Crea tu agente» siguen siendo personajes 3D. Órbita sigue con sus
