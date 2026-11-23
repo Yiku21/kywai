@@ -1486,6 +1486,21 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     delante del id de NVIDIA, que ya empieza por «nvidia/», así que el doble prefijo es correcto); si no responde a
     tiempo, por cuota o por modelo, prueba Nemotron 3.5 Lightning (`nvidia/nvidia/nemotron-3.5-lightning-30b-a3b`) y se
     queda con él. Ids comprobados en `integrate.api.nvidia.com/v1/models` y OpenCode real (23 nov 2026).
+    **Gemini con clave se prueba primero con Google** (`checkGeminiKey`, 1.8.3): antes de lanzar Gemini CLI, kywai
+    pregunta a la API de Google (`generateContent`, 20 s por modelo) con la clave, modelo a modelo. Así dice al momento
+    si la clave no vale, si no hay cuota, si el modelo no existe para esa clave, si Google está saturado (503) o si el
+    espacio no llega a Google, y se queda con el primer modelo que responda. Motivo: Gemini CLI, cuando Google contesta
+    «saturado» o «espera» (503, 429 por minuto) o la red falla, reintenta en silencio hasta 10 veces con esperas de 5
+    a 30 s, y la prueba acababa en «No respondió a tiempo» (reproducido con un servidor falso que devuelve 503: 95 s
+    sin respuesta). Si Google ya respondió y solo el programa se pasa de tiempo, la clave se guarda igual.
+    **Lo mismo para los demás agentes con clave** (`checkProviderKey`): antes de lanzar su programa se lee la API del
+    proveedor con la clave (Anthropic `/v1/models`, OpenRouter `/api/v1/key`, xAI y Mistral `/v1/models`, DeepSeek
+    `/user/balance`, OpenAI `/v1/models` para Codex). Si la rechaza (401/403, o 400 «Incorrect API key» de xAI) o dice
+    que no hay saldo (402, DeepSeek `is_available: false`), se sabe en segundos con su mensaje; ante red caída, 429 o 5xx
+    no se decide nada y sigue la prueba con el programa. **Si un programa se pasa de tiempo**, la ventana dice por qué
+    con lo último que escribió (`RunAgentResult.stderrTail` → `timeoutHint`): proveedor saturado (`busy`), pide esperar
+    (`quota`) o el espacio no llega a su red (`network`). Comprobado con las APIs reales (claves falsas) y con Gemini CLI
+    real contra un Google simulado que da 503 en 3.8 Flash: se queda con 3.5 Flash-Lite y responde en 2 s.
   - **«Pruébame» enseña solo la respuesta final** (`probeReply.ts`): sin la cabecera del programa (Aider: versión,
     modelo, «Repo-map», separadores) ni el razonamiento («► **THINKING**», `<think>`). Si dijo la frase pedida, sale solo
     «Estoy activo y funcionando.».
