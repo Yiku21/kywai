@@ -1048,6 +1048,18 @@ Google prohíben usar su cuenta desde programas de terceros.
 sola (`answers` en `AccountLoginSpec`); antes nadie contestaba, el inicio de sesión se quedaba esperando y el portal
 acababa diciendo que no se había conectado aunque la persona sí lo hubiera autorizado.
 
+**OpenHands (1.4.2):** se lanza con `openhands --headless --json -f <encargo>`: el encargo entra entero por archivo y su
+salida es un evento JSON por línea. La respuesta es el mensaje de su herramienta `finish` o su último mensaje
+(`openHandsReply` en `src/main/agents/generic.ts`, activado con `output: 'openhands'` en su ficha del catálogo). Antes
+se lanzaba con `-t` sin `--json` y la respuesta solo salía dentro del recuadro de su resumen («│ KYWAI_… │» o
+«finish: {…}»), así que la prueba nunca la encontraba y decía «Entraste, pero no respondió a la prueba» aunque hubiera
+contestado. `openhands login` baja de la cuenta de OpenHands Cloud el modelo y la clave de su servicio de modelos (sus
+créditos); si ya había una configuración de un intento anterior, la receta contesta «y» a «overwrite your existing
+configuration?». OpenHands no deja elegir el modelo al lanzarlo: la ficha «Configura» dice que usa el de tu cuenta en
+vez de pedir uno. Si su modelo devuelve un error (`ConversationErrorEvent`), se distingue: sin saldo o cupo
+(«Budget has been exceeded») sale el motivo `quota` y sin modelo configurado (`rejected` de `probeFailure`) el motivo `auth` del inicio de sesión, con su propio aviso en la
+app y en Mi cuenta, en vez del genérico de la prueba.
+
 ### Dictado por voz
 
 El botón del micrófono, junto a los de adjuntar, graba una nota de voz. Al pulsarlo otra vez (o a los 5 minutos)
@@ -1455,6 +1467,19 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     app y de Mi cuenta: Google ya no deja usar Gemini CLI con cuentas personales, y ese inicio de sesión borraba la clave
     y dejaba Gemini «Con fallos». Sin clave propia, Gemini usa la de Gemini Live (`gemini-live`, la misma de AI Studio),
     y cada ejecución con clave deja sus ajustes en «gemini-api-key».
+  - **«Guardar y probar» dice por qué no va una clave** (`main/keyProbe.ts`, 1.4.1): la prueba de la clave en la nube
+    (`cloudTestAgent`) ya no se queda en «No respondió». Cuenta si el proveedor no acepta la clave (`rejected`), si no
+    tiene saldo o su nivel gratuito no incluye el modelo (`quota`), si el modelo no existe para esa clave (`model`) o si
+    no contestó a tiempo, con lo que dijo el programa debajo (`CloudAgentJob.detail`). Con **Gemini**, si el modelo
+    elegido falla por modelo o por cuota, prueba los de reserva (3.8 Flash, 3.5 Flash-Lite, 3.1 Flash-Lite, 2.5 Flash)
+    y se queda con el primero que responda, avisando del cambio. Su prueba espera hasta 90 s (Gemini CLI tarda en
+    arrancar en el espacio) y acepta la palabra de la prueba aunque venga en negrita o dentro de una frase corta.
+    **También vale para todos los agentes con clave** que se conectan en la nube con su programa (`cloudAnswers`:
+    NVIDIA, Mistral Vibe, Continue…): la ventana dice el motivo real y lo que contestó el programa. **NVIDIA (gratis)**
+    sigue en Nemotron 3 Ultra (`nvidia/nvidia/nemotron-3-ultra-550b-a55b`: en OpenCode el proveedor «nvidia/» va
+    delante del id de NVIDIA, que ya empieza por «nvidia/», así que el doble prefijo es correcto); si no responde a
+    tiempo, por cuota o por modelo, prueba Nemotron 3.5 Lightning (`nvidia/nvidia/nemotron-3.5-lightning-30b-a3b`) y se
+    queda con él. Ids comprobados en `integrate.api.nvidia.com/v1/models` y OpenCode real (23 nov 2026).
   - **«Pruébame» enseña solo la respuesta final** (`probeReply.ts`): sin la cabecera del programa (Aider: versión,
     modelo, «Repo-map», separadores) ni el razonamiento («► **THINKING**», `<think>`). Si dijo la frase pedida, sale solo
     «Estoy activo y funcionando.».
