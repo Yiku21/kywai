@@ -6768,6 +6768,20 @@ un poco antes de quedarse quieto. Al abrirla, el líquido baja, se estrecha y se
 y su sitio. Con «Reducir
 movimiento» del sistema cambia sin animación.
 
+**Sin saltos al abrir y plegar** (23 nov 2026, v1.6.6, pedido por Yil: «se separa y luego en otro cuadro aparece
+junto, no es fluido»). La barra, el logo y el líquido van ahora a la par en un solo movimiento:
+- **Al plegar**, la gota empieza a caer mientras la barra se estrecha (antes esperaba y el logo se quedaba suelto
+  encima), el recuadro del logo se desvanece justo cuando el líquido llega a él y la columna sube **suave**, sin
+  saltar a la mitad en un solo cuadro (el muelle de antes se cambió por una subida que arranca suave y se pasa un poco).
+- **Al abrir**, el líquido se recoge en la barra en un cuarto de segundo y **después** la barra se ensancha (espera
+  200 ms); los nombres de los accesos aparecen con un fundido según se ensancha. Así ya no se ve un cuello del líquido
+  pegado a una esquina de la barra ancha.
+- Las esquinas de arriba de la barra solo se cuadran cuando la barra ya tiene el ancho de la plegada.
+- Los **iconos no se mueven**: plegada, cada acceso mide lo mismo que la columna (44 px), así que mientras la barra
+  cambia de ancho los iconos se quedan quietos en su sitio, y la rueda ⚙ de abajo va a la derecha y se desliza con el
+  borde. Por dentro: `ui/sidebar/LogoBridge.tsx` (JOIN_MS 760, SPLIT_MS 240), `Sidebar.module.css` (.bar con
+  retraso al abrir, `data-opening`) y `Header.module.css` (tiempos del logo y del nombre).
+
 **En Órbita (Android)** va igual: el logo de la barra la abre y la pliega (ya no hay un botón aparte) y da una vuelta
 al tocarlo; plegada, la columna enseña debajo de los accesos **tus proyectos con su inicial** (resaltado el abierto,
 punto azul si el equipo trabaja en él, verde si tiene algo terminado sin ver) y tocar uno abre su último chat. En la
@@ -8052,11 +8066,22 @@ los demás agentes y los becarios siguen siendo robots.
 
 Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
 tema (foto de tres agentes y nombre): **Formas animadas** (por defecto desde el 23 nov 2026; cada agente con su forma y su
-color, ver «Formas animadas»), **Personajes** (los personajes 3D), **Píxel** (los personajes como sprites de pixel art), **Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
+color, ver «Formas animadas»), **Clásico** (los robots de siempre, que gastan menos), **Píxel** (los personajes como sprites de pixel art), **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema) o, la última, **Personajes** (los personajes 3D de Meshy). Se guarda en el dispositivo
 (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía sus robots y los demás temas los
 clásicos. El icono del agente en el chat y en los paneles cambia con la skin (`lib/RobotAvatar.tsx`: dibujos en
 `assets/robots/` para Personajes, `assets/robots/clasico/` y `assets/robots/refugio/`). Mientras carga el modelo se ve
 el robot clásico, y los agentes sin personaje también. Con personaje, los disfraces de Navidad y Halloween no se ponen.
+
+**«Personajes» solo en Ajustes (Yil, 23 nov 2026, v1.6.7).** kywai ya no usa el estilo «Personajes» para enseñarse: se
+puede seguir eligiendo (va el último del selector, `SKINS` en `scene/characters.ts`) y quien ya lo tenía lo conserva,
+pero no sale en ningún otro sitio. Lo que se ve por defecto es «Formas animadas» o, donde hace falta un dibujo
+fijo, los robots «Clásico». La copia de las imágenes de los «Robots de kywai» de «/video» en
+`<workspace>/personajes/robots-kywai/` se rehace sola si la imagen de la app cambió (por tamaño). Las capturas de la
+web (kywai.app) y del README del escaparate ya usan Formas animadas o Clásico. Para nuevas capturas, vídeos o guías,
+no elijas «Personajes».
+Con «Formas animadas», la cara del coordinador en la ficha, el chat y las listas (`CoordinatorBird` en
+`ui/common/AgentBits.tsx`) es la cotorra forma de `cotorraCharacter()`, la misma del 3D; con los demás aspectos sigue
+la pegatina de la cotorra con el estilo de mascota elegido.
 
 Los personajes se apoyan en el suelo de verdad: cuando el agente está quieto se mira hacia abajo qué hay bajo sus pies
 (rayo contra la escena, sin contar luces, partículas ni cosas transparentes) y se le sube o baja hasta pisar la
