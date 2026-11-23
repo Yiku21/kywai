@@ -999,6 +999,12 @@ enseña el código para compararlo y, cuando lo confirmas, empareja el móvil co
 Seguridad lo lista y lo quita). La dirección que dé el portal solo se acepta si es `https://<id>.nube.kywai.app`. Código:
 `data/net/CloudLogin.kt` y `startCloud()` en `ui/onboarding/OnboardingViewModel.kt`.
 
+**Mientras el espacio se actualiza** (despliegue de una versión nueva), el servidor responde 502, 503 o 504 durante
+unos segundos. La app ya no enseña «Error 502»: lo que solo lee (estados y listas, p. ej. Ajustes → Multimedia) espera
+y lo intenta otra vez solo (a los 3, 6 y 10 s), y si sigue sin responder dice «El servidor se está actualizando a una
+versión nueva. Espera un minuto y vuelve a intentarlo». Lo demás no se repite (para no hacer dos veces una acción) y
+da ese mismo aviso. Pedido por Yil el 23 nov 2026. Código: `call()` en `src/renderer/src/lib/api.ts`.
+
 ### kywai sin pantalla (servidor sin monitor o en la nube)
 
 kywai puede arrancar **sin abrir ninguna ventana**, solo como servidor: para un equipo sin monitor o para un
