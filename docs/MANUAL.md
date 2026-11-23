@@ -1858,6 +1858,11 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
+- **Aviso de atasco** (23 nov 2026; idea de LocalCode, Apache 2.0, reimplementada). Con LM Studio, Colibri, Gall u otro
+  servidor local, si el modelo repite 3 veces la misma llamada a una herramienta (mismos argumentos) o choca 3 veces
+  seguidas con el mismo error, kywai le pide que cambie de enfoque («Atascado: probando otro enfoque» en la tarea). Si
+  vuelve a atascarse, le quita las herramientas y le pide que cuente lo que hizo, lo que falta y dónde se atascó, en
+  vez de gastar los 24 pasos y acabar sin nada. Está en `src/main/agents/stuckWatch.ts`.
 - **Turbo local** (21 nov 2026, decodificación especulativa; idea de HyperQwen y DFlash). Con LM Studio, si tienes
   descargado un modelo **pequeño de la misma familia** que el del agente (por ejemplo `qwen3-0.6b` para un Qwen3 de
   14B, `llama-3.2-1b-instruct` para un Llama 3.1 de 8B o `gemma-3-1b-it` para un Gemma 3 de 12B), kywai lo manda en
@@ -1976,7 +1981,7 @@ lleva `permission` con su estado.
   - **Otros servidores encontrados**: cada vez que se abre la tarjeta (o con ⟳), kywai mira en este equipo
     (127.0.0.1) los puertos de fábrica de **llama.cpp** (8080, también llamafile, LocalAI y MLX), **KoboldCpp** (5001),
     **Jan** (1337), **text-generation-webui** (5000), **GPT4All** (4891), **vLLM** (8000), **SGLang** (30000) y
-    **LiteLLM** (4000). Solo pregunta `GET /v1/models`, todos a la vez y con 1,5 s de espera como mucho, así que no
+    **LiteLLM** (4000) y **Gall** (9940). Solo pregunta `GET /v1/models`, todos a la vez y con 1,5 s de espera como mucho, así que no
     cambia nada ni frena. Los que responden salen en **«Encontrados en este equipo»** con su nombre (por el
     `owned_by` de sus modelos o, si no lo dice, por el puerto), su dirección y sus modelos, y un botón **Usar** que
     guarda esa dirección: después se elige el modelo como siempre. La pestaña pasa a llamarse como el servidor
@@ -2224,6 +2229,12 @@ En «Uso y coste» cada petición guarda su vía (`lane`: direct, agent o full) 
   a todos a la vez (tope 60 s cada uno). Sale una tabla con quién responde, con qué modelo, cuánto tarda y, si falla,
   por qué en palabras sencillas (sin sesión, sin cuota, no instalado, no responde). Código: `src/main/agentProbe.ts` y
   `probeTeam` en `src/main/orchestrator.ts`.
+- **Hermes con OmniRoute apagado (v1.11.1).** En kywai cloud el OmniRoute del espacio se apaga tras 20 min sin Hermes
+  y volver a encenderlo lleva hasta un minuto. Antes ese arranque contaba dentro del tope: la prueba decía «Hermes no
+  responde (más de 60 s)» y la primera pregunta tras un rato sin uso se pasaba de los 25 s de la respuesta al momento.
+  Ahora `warmHermes` (`src/main/agents/hermes.ts`) lo enciende ANTES de poner el reloj, en la prueba y en el triaje;
+  la columna «Tarda» es solo lo que tarda su modelo, y si OmniRoute no enciende, la tabla dice eso y no «no responde».
+  La prueba pide la palabra en modo rápido (`quick`: sin razonar y con una sola herramienta en Hermes).
 - **Tiempos por paso.** Bajo cada respuesta, la línea de consumo dice cuánto duró cada paso cuando hubo más de uno
   («2 min (coordinar 8 s, trabajar 1 min, revisar 40 s)») y qué parte de los tokens se leyó de caché, que cuesta mucho
   menos («185 k tokens (92 % de caché)»).
@@ -4355,6 +4366,10 @@ con soltura** (familia Qwen3, de 1,7B a 32B):
 - **Inkling 2 Mini** (Thinking Machines, Apache 2.0, 20 nov 2026): 26B con 3,4B activos, 1M de contexto y el mejor en
   código de los modelos abiertos de menos de 100B. Ollama lo sirve con MLX, así que kywai solo lo ofrece en un Mac con
   32 GB o más (unos 20 GB de descarga); en Windows, Linux o NVIDIA no sale en la lista.
+- **Gall en un Mac de 24 a 31 GB** (23 nov 2026): ahí Inkling 2 Mini no cabe con Ollama, pero sí con la app gratuita
+  [Gall](https://github.com/ltrgoddard/gall) (MIT), que lo sirve comprimido (unos 13 GB) y suelta la memoria un segundo
+  después de cada respuesta. La recomendación lo dice con un enlace; al abrir Gall, kywai la encuentra sola en la
+  tarjeta de Colibri («Encontrados en este equipo», puerto 9940) y con «Usar» el agente local trabaja con ella.
 - **Sin tarjeta compatible** (o AMD/Intel): corre en el procesador; evita los modelos densos grandes, que irían lentos,
   y con mucha RAM prefiere `qwen3:30b` (mezcla de expertos, rápido sin tarjeta).
 - Si el disco no tiene sitio para la descarga, ese tamaño sale «Sin espacio». Con menos de ~5 GB útiles avisa de que
@@ -5218,6 +5233,22 @@ en el cuadro del chat, lista para enviarla o cambiarla, pero no se envía sola. 
 del «/» (`isKywaiCommand` en `src/shared/chatCommands.ts`).
 
 Para que vigile solo: «/rutina cada 4 horas: /radar agentes de IA». Órbita tiene la orden en su lista del «/».
+
+### Explorar: varios intentos y gana el que pasa las pruebas (`/explorar`, 23 nov 2026)
+
+**«/explorar [2-3] encargo»** (también `/explora` y `/explore`) da el mismo encargo de código a 2 o 3 agentes de
+programas distintos a la vez (Claude, Codex, Gemini…; por defecto 3). Cada uno trabaja en **su propia copia aislada**
+de la carpeta, así que ni se pisan entre ellos ni tocan la carpeta del proyecto. Al terminar, cada intento pasa las
+pruebas del proyecto en su copia y la verificación de siempre. kywai elige al **ganador**: pruebas en verde y «cumple»
+por delante; a igualdad, el cambio más pequeño; un intento que no terminó o no cambió nada no gana. **Solo los cambios
+del ganador pasan a la carpeta del proyecto** (se ven y se deshacen desde su tarea, como cualquier otra) y las demás
+copias se borran. En el chat sale una línea por intento: «🏆 Claude: pruebas en verde, cumple, 12 líneas».
+
+- Va sin plan del coordinador y cuesta 2-3 veces el trabajo: para arreglos difíciles o que ya fallaron una vez.
+  Hermes no lo lanza solo (cambia código); como mucho te lo propone.
+- Necesita git en el equipo (para las copias) y al menos 2 agentes con terminal disponibles.
+- Idea de agent-mcts (natsu0529/agent-mcts, MIT), reimplementada con las copias aisladas y la verificación de kywai:
+  `src/main/explore.ts` (orden, elección del ganador) y `sendExplore`/`settleExplore` en `src/main/orchestrator.ts`.
 
 ### Consejo de agentes (`/consejo`)
 
@@ -8388,6 +8419,17 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   «Export» (`<nombre>.avatar.json`) y tráelo con **Traer .avatar.json**: hace los mismos movimientos. Se guarda en la
   ficha del agente (como mucho 24 KB). El formato antiguo (versión 0) no se admite: hay que exportarlo de nuevo.
 - Un aspecto propio de «Crea tu agente» (Meshy) va por delante de la forma.
+- **Trabajar y pensar concentrado** (desde el 23 nov 2026, v1.11.2, pedido de Yil: «parece drogado»): los movimientos de
+  trabajar del motor cambiaban de cara cada 1–2 s (sorpresa, cara rara, un ojo entornado) y cada cambio pasaba por los
+  ojos cerrados; además daban volteretas enteras y encogían el cuerpo. Ahora son propios de kywai
+  (`src/renderer/src/lib/figureLibrary.ts`): **trabaja** con la cabeza algo agachada y va alternando *lee* (barre la
+  vista línea a línea), *teclea* (asiente corto y seguido y levanta la vista para comprobar) y *repasa* (se inclina,
+  mira de cerca y asiente); **piensa** mira arriba a un lado, se queda quieto y luego al otro lado. Ojos abiertos y
+  quietos (cara `neutral`; los ojos entornados parecían de sueño), un parpadeo normal cada pocos segundos, sin
+  volteretas ni cambios de tamaño. Se pasan como biblioteca al motor en el 3D (`figureCard.ts`, estados `working` y
+  `pensando`) y a `<Avatar library>` en la ficha, el chat (`AgentFigure.tsx`) y el 2D (`Space2D.tsx`, «piensa» →
+  `pensando`). En la ficha y el chat «piensa» sigue siendo los tres puntitos. Vídeo antes/después en
+  /mnt/project-files/animacion-pensar-trabajar/.
 
 Cómo está hecho: el motor es `@bible-strong/avatar-react` / `avatar-core` (licencia MIT; el estudio Avatar Lab es AGPL
 y no se usa su código ni sus personajes de ejemplo). Las formas están en `src/renderer/src/lib/figures.ts` (cuerpo y
@@ -8807,7 +8849,16 @@ mini: GitHub solo avisa y el Mac hace el trabajo, así que no gasta minutos. En 
 GitHub, el repositorio → Settings → Actions → Runners → New self-hosted runner → macOS, copiar el token (caduca en una
 hora) y ejecutar `bash scripts/instalar-pruebas-mac.sh <token>` (kywai-original) o
 `bash scripts/instalar-pruebas-mac.sh <token> kywai-cloud`. Quedan como servicios en `~/kywai-pruebas` y
-`~/kywai-pruebas-cloud` y arrancan solos al iniciar sesión. Java, Node y el SDK de Android los bajan los flujos la
+`~/kywai-pruebas-cloud` y arrancan solos al iniciar sesión.
+**Varias a la vez, sin cola (23 nov 2026).** Las pruebas de un PR tardan unos 3 minutos, pero con una sola máquina se
+hacían de una en una y, con varios hilos fusionando, cada PR esperaba 15 o 25 minutos en cola. Por eso: el Mac mini
+tiene **3 máquinas de pruebas** de kywai-original (`bash scripts/instalar-pruebas-mac.sh <token> kywai-original 3`;
+un token vale para las tres y las ya instaladas se dejan como están; quedan en `~/kywai-pruebas`, `~/kywai-pruebas-2` y
+`~/kywai-pruebas-3`); cada PR ocupa **un solo turno** (las pruebas de Órbita van dentro del mismo trabajo y se saltan en
+un segundo si no cambia `android/`); cada rama tiene **una sola prueba viva** (la nueva cancela la vieja, también la
+lanzada a mano: grupo `probar-<rama>`), y sin la caché de npm de GitHub, que en el Mac no servía (ahorra ~30 s). Como
+pueden correr varias pruebas a la vez, ninguna prueba debe escuchar en un puerto fijo: usar el puerto 0 o uno al azar
+(como `lmstudioDirect.test.ts`). Java, Node y el SDK de Android los bajan los flujos la
 primera vez; el portal usa el `python3.12` de Homebrew. Nunca se usa en el repositorio público. La web, los
 instaladores y las Releases siguen en el escaparate público, donde los minutos son gratis.
 Las pruebas abren la app con su propia carpeta de datos (`KYWAI_APPDATA_PRUEBAS`), sin tocar la del kywai instalado.
