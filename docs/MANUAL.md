@@ -7109,8 +7109,8 @@ La barra sigue al equipo activo: al añadir, quitar, activar o desactivar un age
 al momento en el escritorio, el navegador y los clientes. Los agentes ya añadidos también reciben un indicador
 al actualizar la app. Los que comparten una cuota mantienen un único indicador y aparecen juntos en su detalle.
 Los agentes del catálogo, los personalizados y Hermes tienen un grupo propio si no estaban vinculados a otro.
-Si su programa no informa del límite, se muestran los usos registrados de hoy («0 hoy», «3 hoy»; ya no sale **N/D**)
-y, al abrirlo, también los de los últimos 7 días; puedes configurar un presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito.
+Si su programa no informa del límite, se muestran los usos registrados de hoy («Sin uso hoy», «3 usos hoy»; ya no sale
+**N/D** ni el «?», desde la 1.5.0) y, al abrirlo, el porqué, también los de los últimos 7 días; puedes configurar un presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito.
 
 **Una sola ficha en la cabecera** (desde el 22 nov 2026; antes, una por suscripción): un anillo con el % que le queda
 a la primera suscripción con dato («Cuota 62 %») y un **punto** ámbar o rojo si alguna se está acabando o se ha
@@ -7122,6 +7122,8 @@ acabado. Al pasar el ratón dice cómo va cada una; al pulsarla se abren todas l
 | Claude | **Dato real**: se pregunta a Claude Code con `/usage` al abrir la app y cada 5 min (no llama al modelo ni gasta uso), y tras cada tarea |
 | Gemini | Con clave de API, Google no informa la cuota: se muestran los usos de hoy («3 hoy»), o una estimación si configuras un presupuesto (clic en el indicador) |
 | Hermes | Con **OmniRoute en este equipo**: **dato real** de OmniRoute. kywai entra en su panel con la contraseña que le puso al prepararlo y lee `/api/usage/quota` y `/api/usage/provider-limits` al abrir la app y cada 5 min (no gasta uso). Si el modelo de Hermes es de un proveedor concreto (`cc/…` = Claude, `cx/…` = Codex…) enseña esa suscripción; si es un combo o «auto», la cuenta conectada con más margen. El % es el de su ventana más justa y el detalle lista todas. Si la contraseña no entra, no insiste en 30 min (su panel bloquea tras varios fallos). En **kywai cloud** (OmniRoute del espacio) entra con la llave de su API (`x-omniroute-cli-token`) en vez de la contraseña. OmniRoute solo pregunta la cuota a cada proveedor cada 70 min: si hay una conexión sin dato (recién conectada o recién encendido), kywai le pide actualizarla (`POST /api/usage/provider-limits`), como mucho una vez cada 10 min. Sin OmniRoute, o si está apagado o sin suscripciones, enseña los usos de hoy y de 7 días |
+| Antigravity CLI | **Dato real** (desde la 1.5.0): se pregunta a `agy -p /usage --output-format json` al abrir la app y cada 5 min (se resuelve sin llamar al modelo; hace falta agy 1.3 o más nueva y la sesión de Google iniciada). Google da un límite de 5 h y otro semanal por grupo de modelos («Gemini» y «Claude y GPT»): el % es el más justo del grupo con el que trabaja el agente (Gemini salvo que le elijas Claude o GPT) y el detalle lista todos. Si agy no está, no tiene sesión o es una versión vieja, el detalle dice cuál de las tres pasa y enseña los usos de hoy |
+| Codewhale | Paga **por uso**, no tiene %: con tu clave de DeepSeek (la que le pusiste al conectarlo, o `DEEPSEEK_API_KEY`) enseña el **saldo de tu cuenta de DeepSeek** («4,20 $», `GET api.deepseek.com/user/balance`, no gasta nada) al abrir la app y cada 5 min; en ámbar por debajo de 1 $ (7 ¥) y en rojo sin saldo. Con otro proveedor o sin clave en kywai, los usos de hoy y la explicación |
 | Local | Sin cuota (ejecución en tu PC) |
 
 ⚙ → Ajustes → Agentes → Tu equipo → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
