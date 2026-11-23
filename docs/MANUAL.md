@@ -310,6 +310,10 @@ Desde ⚙ → Ajustes → «Configurar agentes…» (y en una configuración vie
 configuración** de siempre:
 
 1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio, Ollama o Colibri).
+   Cada tarjeta lleva el **logo oficial** del agente (el mismo de «Añadir un agente» y kywai.app, de
+   `src/renderer/src/assets/agentes`) sobre una placa blanca; también en «Iniciar sesión» y «Listo». Un agente a
+   medida sin logo sigue con su personaje. Los personajes del 3D y de las fichas no cambian
+   (`src/renderer/src/lib/AgentLogoFace.tsx`).
    Debajo, el recuadro plegable **«¿No pagas ninguna suscripción? Así puedes usar kywai gratis»** explica cómo
    montar un equipo sin pagar: «Ver los agentes gratis» abre el catálogo con «Solo gratis» (Kilo CLI primero, que ni
    siquiera pide cuenta), «Conseguir la clave» abre la página de la clave gratis de Google AI Studio (para Gemini) o
@@ -867,7 +871,9 @@ modo servidor. Con una versión anterior que no tenga el botón: cierra kywai, b
 vuelve a enseñar la primera pantalla: servidor, cliente de otro kywai o kywai Cloud. Los proyectos de este equipo no se
 borran; si era cliente, olvida la conexión (en kywai Cloud, además, el equipo se quita de Mi cuenta → Seguridad). Solo
 sale en la app de escritorio, nunca en el navegador, para que nadie lo cambie desde fuera. Código: `chooseModeAgain()`
-en `src/main/client.ts`. En Órbita no hay modo servidor: **Desvincular este móvil** (Ajustes → Conexión) vuelve a la
+en `src/main/client.ts`: borra `client.json` y deja la marca `elegir-modo` en la carpeta de datos de la app; mientras
+exista, el arranque pregunta aunque el equipo tenga datos de servidor (`startMode()` en `src/main/clientConfig.ts`), y
+se quita al elegir. Sin la marca, un servidor volvía a arrancar como servidor sin preguntar (arreglado el 23 nov 2026). En Órbita no hay modo servidor: **Desvincular este móvil** (Ajustes → Conexión) vuelve a la
 bienvenida, donde se elige otra vez «Conectar con mi ordenador» o «Entrar con kywai cloud» (desde la pantalla de la
 dirección, la flecha atrás también lleva allí).
 
