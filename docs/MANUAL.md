@@ -5686,6 +5686,20 @@ kywai. Va en vertical y en horizontal, con o sin «Diálogo» (kywai y Claude). 
 cambio de estilo en `sendVideo` (`orchestrator.ts`). Origen: el 23 nov un vídeo de presentador con los robots salió con
 imágenes feas e inapropiadas que no casaban con lo que se decía, «HERMES» como nombre y la cotorra en una tarjeta que se
 balanceaba sin parar; Yil pidió el estilo de un reel de referencia (la medusa).
+
+**«Sorpréndeme» (1.15.0).** Un tipo más de vídeo en el selector de «/video» (marca `tipo:sorprendeme`, o escribirlo:
+«/video sorpréndeme …», «/video surprise me …»): el usuario solo da el guion o el tema y **la IA decide cómo hacer el
+vídeo**. La tarea tiene dos pasos con el mismo agente: primero lee el texto y elige (`surprisePrompt` en
+`src/main/videoSurprise.ts`) el **tipo** —vídeo explicativo con los personajes de kywai, texto animado con imágenes,
+charla y tutorial o sketch de humor; en kywai cloud no se ofrecen los dos últimos (plató 3D)—, el **formato** (si el
+usuario no dijo vertical u horizontal), si va en **diálogo**, las **voces** (de las del idioma del vídeo), la
+**música** (`calma`, `normal` o `energia`: cambia el tempo y el bombo de `synthMusic`) y el **ritmo** y el tono, con una
+frase de por qué. kywai lo valida (`parseSurprisePlan`: lo que no vale queda por defecto, nunca falla), lo pasa por la
+comprobación del equipo (`preflightVideo` en versión ligera), lo cuenta en el chat («Sorpréndeme: lo hago como…») y la
+tarea vuelve a la cola para escribir el guion de ese tipo con la dirección elegida (`completeSurprise` en
+`orchestrator.ts`). Lo que el usuario sí eligió (la voz, el formato) no se cambia. En el selector, con «Sorpréndeme» se
+ocultan personaje, estilo y estructura; la voz se puede elegir igual. Órbita (Android) aún no lo tiene en su selector.
+Origen: Yil, 23 nov: «una plantilla que se adapte al guion… solo le damos el guion y ya».
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
 - **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 73 en total): eligiéndolo en el selector con
