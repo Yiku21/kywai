@@ -1066,6 +1066,36 @@ vez de pedir uno. Si su modelo devuelve un error (`ConversationErrorEvent`), se 
 («Budget has been exceeded») sale el motivo `quota` y sin modelo configurado (`rejected` de `probeFailure`) el motivo `auth` del inicio de sesión, con su propio aviso en la
 app y en Mi cuenta, en vez del genérico de la prueba.
 
+**Revisión de los inicios de sesión y de la prueba (1.9.2):** probado con los programas reales de 21 agentes en un
+HOME vacío, y OpenHands de punta a punta (entrar, probar y volver a entrar) contra una nube falsa con las mismas rutas
+que la suya. Lo que se arregló:
+
+- **Volver a darle a «Iniciar sesión» cuando ya se había entrado.** Muchos programas, con la sesión ya guardada en el
+  espacio, terminan bien sin enseñar ningún enlace (OpenHands dice «You are already logged in»; Qoder, Crush y Auggie,
+  parecido). Antes eso acababa en «No se pudo iniciar sesión». Ahora (`createAccountLogin` en
+  `src/main/cloudAccountLogin.ts`), si el programa sale con 0 sin enlace, se prueba el agente con la sesión que ya
+  tiene: si responde, queda conectado; si no, sale el aviso de siempre (no «Entraste…», porque no llegó a entrar aquí).
+  Los que en vez de salir abren su pantalla (Letta, Droid, Qwen Code, Antigravity) se prueban también mientras no
+  enseñan el enlace, y el minuto de espera del enlace no corta una prueba que esté en marcha.
+- **OpenHands 1.14.** Su instalador oficial (`install.openhands.dev`, el que usa el espacio) instala la 1.14, que con
+  `--json` da cada evento en varias líneas con sangría tras «--JSON Event--» (la 1.16 da uno por línea). `jsonObjects`
+  en `generic.ts` lee las dos formas. Sin esto la prueba seguía diciendo que no respondía.
+- **Amp** cambió su código a tres grupos («VC8-33X-DZS») y nunca se llegaba a enseñar el enlace. Además, si el código
+  de un proveedor no coincide con su patrón, vale el que va dentro de su propio enlace (`linkCode`).
+- **Menús en espacios lentos.** Las teclas que eligen «entrar con tu cuenta» (Letta, Kilo, Cline, Droid, Crush, Qwen
+  Code, Antigravity, Forge, OpenCode) esperan además a que su pantalla salga (`keys` con un patrón); si no sale en 20 s,
+  se pulsan igual. Antes, con el espacio cargado, la tecla se perdía y no aparecía el enlace.
+- **Crush y Cline no recibían el encargo.** Leen stdin solo si es un archivo o una tubería de verdad; la de Node es un
+  socket, y decían «No prompt provided» o «interactive mode requires a TTY». Ahora (`stdinFile` en `spawn.ts`) el
+  encargo entra desde un archivo temporal (solo legible por el usuario y borrado al arrancar el programa).
+- **Auggie 1.x** ya no tiene `--quiet`: con él salía «Unknown option» y nunca respondía. Se lanza con `--print`.
+- **«Sin entrar» bien explicado.** Cursor («Authentication required»), Grok («Not signed in»), Qwen Code («No auth type
+  is selected»), Kimi («No model configured… /login») y Copilot salían como fallo genérico de la prueba; ahora dicen que
+  falta iniciar sesión (`NOT_SIGNED_IN_RE`).
+
+Sin poder comprobar aquí: Copilot y Crush con GitHub (el entorno de pruebas bloquea su web de códigos), Muse, Hermes y
+Open Interpreter. Amp, sin haber entrado, se queda callado en vez de decir que falta entrar.
+
 ### Dictado por voz
 
 El botón del micrófono, junto a los de adjuntar, graba una nota de voz. Al pulsarlo otra vez (o a los 5 minutos)
