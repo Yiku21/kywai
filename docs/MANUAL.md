@@ -2235,6 +2235,13 @@ En «Uso y coste» cada petición guarda su vía (`lane`: direct, agent o full) 
   Ahora `warmHermes` (`src/main/agents/hermes.ts`) lo enciende ANTES de poner el reloj, en la prueba y en el triaje;
   la columna «Tarda» es solo lo que tarda su modelo, y si OmniRoute no enciende, la tabla dice eso y no «no responde».
   La prueba pide la palabra en modo rápido (`quick`: sin razonar y con una sola herramienta en Hermes).
+- **OmniRoute despierto con kywai abierto (v1.15.6).** Medido el 23 nov con 2 CPU, como un espacio: arrancar OmniRoute
+  en frío tras un rato apagado lleva de 5 a 48 s (su carpeta pesa ~650 MB y, tras 20 min sin uso, el disco ya no la
+  tiene en memoria); Hermes en sí solo añade ~2 s por consulta. Por eso «¿merece la pena tener tantos agentes?» tardó
+  un minuto: el arranque se comía los 25 s de la respuesta al momento y la petición pasaba al plan completo. Ahora, al
+  abrir kywai en el navegador (cada conexión de `/api/events`), `omniRouteViewerOpened` (`src/main/omniroute.ts`)
+  lo enciende en segundo plano y no lo deja dormirse mientras haya alguna pantalla abierta; al cerrar la última,
+  vuelve a contar los 20 min sin uso. Solo en kywai cloud y solo si algún Hermes del equipo usa ese OmniRoute.
 - **Tiempos por paso.** Bajo cada respuesta, la línea de consumo dice cuánto duró cada paso cuando hubo más de uno
   («2 min (coordinar 8 s, trabajar 1 min, revisar 40 s)») y qué parte de los tokens se leyó de caché, que cuesta mucho
   menos («185 k tokens (92 % de caché)»).
@@ -8527,6 +8534,13 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   un filtro SVG por acabado, tinta y tamaño (en las fichas pequeñas el grano se agranda) que se pone en las piezas del
   cuerpo (`[data-part="head"]`, `back-N`, `front-N`) con una clase en el <svg>, y en el 3D `figureCard.ts` usa el mismo
   filtro pasado a los píxeles de su lienzo. «Sorpréndeme» elige textura la mitad de las veces.
+- **Ojos que se ven con cualquier acabado** (desde el 23 nov 2026, v1.15.7, Yil: «en modo galaxia los ojos no se ven»):
+  el color de los ojos (blancos u oscuros) se elegía con el color del agente, no con el cuerpo que se ve con el acabado.
+  Galaxia pinta siempre un cielo de noche, así que con un color claro salían ojos negros sobre negro (igual con Neón);
+  y Perla y Holográfico, que aclaran el cuerpo, dejaban ojos blancos sobre claro con un color oscuro. Ahora
+  `figureEyeColor(color, acabado)` en `src/renderer/src/lib/figures.ts` mira el color que de verdad queda con cada
+  acabado (`TEXTURE_BODY`, copia la base de cada receta de `figureTexture.ts`: si cambias la base de un acabado,
+  cámbiala también ahí). Vale para la ficha, el espacio 2D y el 3D, que sacan el personaje de `figureCharacter`.
 - **Tu propio personaje**: diséñalo en Avatar Lab (avatars.bible-strong.app, gratis, en el navegador), descárgalo en
   «Export» (`<nombre>.avatar.json`) y tráelo con **Traer .avatar.json**: hace los mismos movimientos. Se guarda en la
   ficha del agente (como mucho 24 KB). El formato antiguo (versión 0) no se admite: hay que exportarlo de nuevo.
