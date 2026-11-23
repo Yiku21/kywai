@@ -1849,6 +1849,15 @@ lleva `permission` con su estado.
   Arreglo 1.5.2: el agente añadido guarda como proveedor su motor (`ollama`, `lmstudio`…), no `qwen`, así que
   «Configura» lo reconoce también por `isLocalEngine(agent.provider)`; antes salía «Usa la sesión de su programa» sin
   selector. Si el equipo ya tiene modelos, el aviso de la esquina ofrece además «Usar otro programa…» (paso `engine`).
+  Arreglo 1.6.2: en kywai cloud, tras «Añadir», la ventana «Configura» se quedaba en «Preparando el agente…» si el
+  aviso `config.updated` llegaba tarde (por ejemplo mientras la nube se actualiza). Ahora `AddAgent` mete la
+  configuración devuelta al momento (`applyConfig` en `store/cowork.ts`) y `ConfigureAgent` vuelve a pedirla cada 3 s
+  mientras no ve el agente. La espera a que la nube vea el equipo pasa de 30 s a 60 s (`DEVICE_TRIES`) y el aviso de
+  error tiene «Volver a probar».
+  Arreglo 1.6.2: pulsar «Usar este» en otro programa ya listo (por ejemplo Colibri con LM Studio en uso) solo abría
+  la lista de modelos y el agente seguía en el programa de antes. Ahora `prepareLocalEngine` pasa el agente al
+  programa elegido al momento (modelo sugerido o el primero, con `applyLocal`) y deja la lista abierta para cambiar de
+  modelo. La tarjeta del programa que usa el agente sale con «En uso».
   - **AirLLM** ([github.com/lyogavin/airllm](https://github.com/lyogavin/airllm), Apache-2.0) vuelve (se había
     descartado el 9 nov por lento y sin servidor; Yil lo pidió de nuevo). Es una librería de Python: kywai la instala
     en `~/airllm/.venv` (con `mlx` en Mac) y le pone un servidor pequeño compatible con OpenAI en
