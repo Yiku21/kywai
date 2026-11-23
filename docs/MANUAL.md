@@ -5097,8 +5097,11 @@ developers.tiktok.com, ni esperar la auditoría de TikTok, y nunca se pide la co
 
 1. Crea una cuenta gratis en [zernio.com/signup](https://zernio.com/signup). No pide tarjeta: las **2 primeras cuentas
    conectadas son gratis** (después, entre 1 $ y 6 $ por cuenta y mes).
-2. En el panel de Zernio, Settings → **API Keys**: crea una clave y pégala en kywai → **Guardar**. kywai la guarda
-   cifrada en el llavero; nunca la enseña ni la manda a los agentes.
+2. En el panel de Zernio, **API keys** → **Create API key**, y copia la clave **entera en ese momento** (empieza por
+   `sk_` y tiene 67 caracteres; Zernio no la vuelve a enseñar y la lista solo muestra una vista previa, que no sirve).
+   Pégala en kywai → **Guardar**. kywai quita solo los espacios, saltos de línea, comillas o «Bearer» que se cuelen al
+   copiar, y si pegas la vista previa o algo que no es una clave te lo dice antes de probarla. La guarda cifrada en el
+   llavero; nunca la enseña ni la manda a los agentes.
 3. Pulsa **Conectar Instagram** y **Conectar TikTok**: se abre la página oficial de cada red, entras con tu cuenta y
    vuelves. kywai mira cada pocos segundos y lo detecta solo. Si ya conectaste las cuentas en el panel de Zernio, kywai
    las encuentra al guardar la clave (o con **Comprobar**).
