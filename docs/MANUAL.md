@@ -2452,7 +2452,7 @@ a pasar más de 4 minutos pensando en silencio antes de empezar un mapa.
 
 ### Elegir con qué se generan las imágenes y los vídeos
 
-**Ajustes → General → Imágenes y vídeos** (pedido por Yil el 22 nov 2026). Cada usuario elige con qué se hacen sus
+**Ajustes → Multimedia → Imágenes y vídeos** (pedido por Yil el 22 nov 2026). Cada usuario elige con qué se hacen sus
 imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cuesta. Se guarda en el motor
 (`generar-con.json` en la carpeta de datos; en kywai cloud, en el espacio), así vale igual en la app, el navegador y
 Órbita.
@@ -2545,7 +2545,7 @@ cuadrada sale al tamaño que tengas puesto).
   momento, que solo escribe texto, y el coordinador decía «aquí tienes otra versión» sin adjuntar nada. Por si acaso,
   una respuesta al momento que dice entregar algo («aquí tienes la imagen», «te dejo el archivo») se descarta y pasa
   al plan (`claimsDelivery`).
-- **Ajustes → Extensiones → Estudio de vídeo** dice si está conectado y con qué modelo («Imágenes en tu Mac (Draw
+- **Ajustes → Multimedia → Estudio de vídeo** dice si está conectado y con qué modelo («Imágenes en tu Mac (Draw
   Things)»). `KYWAI_DRAWTHINGS_URL` cambia la dirección; `KYWAI_NO_DRAWTHINGS=1` lo apaga.
 
 Código: `src/main/drawThings.ts` (motor y puente), `src/main/imageMaker.ts` (orden de motores), `generar_imagen` en
@@ -4826,7 +4826,7 @@ añadía efectos de sonido a una app con una frase.
 Lo hace kywai directamente, sin gastar ningún agente ni pasar por el plan (`sendSound` en el orquestador y
 `elevenSound` en `src/main/elevenlabs.ts`): guarda el MP3 en `sonidos/<primeras-palabras>.mp3` del proyecto y quien
 coordina lo deja en el chat para escucharlo. Usa la misma clave de ElevenLabs que las voces del vídeo (Ajustes →
-Extensiones → Estudio de vídeo); sin ella, la orden lo dice. La clave nunca va a ningún agente. Gasta créditos de tu
+Multimedia → Estudio de vídeo); sin ella, la orden lo dice. La clave nunca va a ningún agente. Gasta créditos de tu
 cuenta de ElevenLabs. Código del análisis de la orden: `src/main/soundEffects.ts`.
 
 ### Mascota animada (`/mascota`)
@@ -5090,7 +5090,7 @@ Código: `src/main/series.ts` y `sendSeries` en el orquestador.
 
 ### Instagram y TikTok con un clic (Zernio)
 
-La forma fácil de conectar las redes de kywai, en ⚙ → Ajustes → Extensiones → Estudio de vídeo → **«Redes de kywai:
+La forma fácil de conectar las redes de kywai, en ⚙ → Ajustes → Multimedia → Estudio de vídeo → **«Redes de kywai:
 Instagram y TikTok»**. kywai publica a través de **Zernio** ([zernio.com](https://zernio.com), antes Late), un servicio
 de publicación con las apps oficiales de Meta y TikTok ya aprobadas. Así no hace falta token de Meta, ni app en
 developers.tiktok.com, ni esperar la auditoría de TikTok, y nunca se pide la contraseña de ninguna red.
@@ -5128,7 +5128,7 @@ TikTok del orquestador (`zernio()`).
 kywai puede llevar **su propia cuenta de Instagram** (la de kywai, no la tuya) y publicar ahí los reels que hace.
 Se conecta con la **API oficial de Instagram**: nunca se pide ni se guarda la contraseña.
 
-**Conectar la cuenta** (una vez, en ⚙ → Ajustes → Extensiones → Estudio de vídeo → «El Instagram de kywai»). El botón
+**Conectar la cuenta** (una vez, en ⚙ → Ajustes → Multimedia → Estudio de vídeo → «El Instagram de kywai»). El botón
 **«¿Cómo lo hago?»**, junto al título, despliega estos pasos con un botón que abre la web de Meta:
 1. La cuenta de Instagram tiene que ser **profesional** (de empresa o de creador; se cambia gratis en la app de
    Instagram → Configuración → Tipo de cuenta).
@@ -5336,7 +5336,7 @@ oficial de TikTok** (Content Posting API): nunca se pide ni se guarda la contras
    añade la cuenta de kywai en «Target users»). Cuando la aprueben, pulsa **Desconectar** → **Cambiar la app**, pega la
    clave y el secreto de producción y vuelve a iniciar sesión. «Cambiar la app» sirve también si te equivocaste al pegar.
 
-**Conectar la cuenta** (⚙ → Ajustes → Extensiones → Estudio de vídeo → «El TikTok de kywai»): pega la clave y el
+**Conectar la cuenta** (⚙ → Ajustes → Multimedia → Estudio de vídeo → «El TikTok de kywai»): pega la clave y el
 secreto y pulsa **Guardar**; luego **Iniciar sesión en TikTok**, autoriza la cuenta de kywai y, cuando el navegador
 llegue a la página de localhost (que no carga, es normal), **copia esa dirección entera** y pégala en kywai →
 **Conectar**. Funciona aunque kywai corra en el servidor y tú estés en otro equipo. El acceso dura 24 horas y kywai lo
@@ -5443,7 +5443,7 @@ una cuenta (`/opt/kywai-video/prueba-video.sh`) y no despliega si no sale. Lo pe
 app de escritorio del equipo de cada uno (abajo).
 
 **El estudio Pro: kywai mira tu equipo y le instala lo que aguanta** (21 nov 2026, `src/shared/studioAdvisor.ts`).
-⚙ → Ajustes → Extensiones → Estudio de vídeo tiene la tarjeta **«Tu equipo»**: la memoria, la tarjeta gráfica y el
+⚙ → Ajustes → Multimedia → Estudio de vídeo tiene la tarjeta **«Tu equipo»**: la memoria, la tarjeta gráfica y el
 disco libre del equipo (`hardware.ts`), el nivel que le toca (**ligero**, **completo** o **Pro**) y, pieza a pieza, si le
 va bien o por qué no. El botón **«Instalar el estudio Pro (N GB)»** lo instala todo de un clic (`installVideoStudioPro`
 en `videoStudio.ts`). Reglas de `adviseStudio`:
@@ -5469,8 +5469,7 @@ el estudio que le va bien y lo que falta, con el botón **«Instalarlo solo»** 
 cloud pregunta antes). Para un vídeo cuenta todo lo que le cabe; para una imagen, solo dibujar con la gráfica (ComfyUI;
 no sale si ya dibuja con ComfyUI o Draw Things, ni si el equipo no tiene gráfica que aguante). Solo sale si falta algo;
 una vez que sale se queda aunque envíes el mensaje (para no cortar la instalación) hasta cerrarlo. **«Ahora no»** lo
-esconde para ese tipo de petición (se guarda en el navegador o la app); la tarjeta entera sigue en Ajustes → Extensiones
-→ Estudio de vídeo. En kywai cloud desde el navegador no sale: el navegador no puede mirar el equipo.
+esconde para ese tipo de petición (se guarda en el navegador o la app); la tarjeta entera sigue en Ajustes → Multimedia → Estudio de vídeo. En kywai cloud desde el navegador no sale: el navegador no puede mirar el equipo.
 Mientras instala, el aviso y la tarjeta de Ajustes enseñan una **barra con el %** (`src/shared/studioProgress.ts`):
 cada paso de la instalación tiene su peso (lo que suele tardar), los de piezas que no caben no cuentan, el «45%» de
 una descarga mueve la barra dentro del paso, y debajo salen el paso en curso, cuánto lleva y la última línea, para ver
@@ -5556,7 +5555,7 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
    `KYWAI_NO_FREE_IMAGES=1` (entonces, sin ComfyUI ni Gemini, cada escena lleva un fondo de diseño animado). Los
    robots dibujados de «Charla y tutorial» no usan el motor gratis (no sabe mantenerlos iguales): sin ComfyUI ni
    Gemini siguen en el plató 3D.
-   **Botón «Instalar ComfyUI»** (Ajustes → Extensiones → Estudio de vídeo, sale mientras las imágenes no van por
+   **Botón «Instalar ComfyUI»** (Ajustes → Multimedia → Estudio de vídeo, sale mientras las imágenes no van por
    ComfyUI; «Encender ComfyUI» si ya está instalado): `installComfyUI` en `videoStudio.ts` lo instala en
    `~/ComfyUI` (con git, o el `.tar.gz` de GitHub si no hay git), con su Python 3.12 aparte en `~/ComfyUI/venv`
    (uv), PyTorch (en Mac, con la gráfica de Apple; en Windows con NVIDIA, la versión CUDA; sin NVIDIA en Windows o
@@ -5693,7 +5692,7 @@ guion trae `"speakers": [{"name", "gender"}]` y cada frase dice quién habla: «
 de Gemini**, cada grupo solo si hay su clave. Así se puede pedir el mismo guion con una y con otra y quedarse con la
 que suene mejor.
 - **ElevenLabs** (`src/main/elevenlabs.ts`, modelo `eleven_v3`, el que más actúa): la clave se pega en Ajustes →
-  Extensiones → «Voz de ElevenLabs (de pago)» (con «¿Cómo lo hago?»), se comprueba y se guarda cifrada en el llavero
+  Multimedia → Estudio de vídeo → «Voz de ElevenLabs (de pago)» (con «¿Cómo lo hago?»), se comprueba y se guarda cifrada en el llavero
   (`keys().set('elevenlabs')`); el panel dice cuántos caracteres quedan este mes. El plan gratis trae 10.000 al mes y
   un reel de un minuto gasta unos 1.000. La marca es `voz:eleven-<id de la voz>`. Cada escena va de una vez con la
   etiqueta de emoción de v3 delante de cada frase (`[excited]`, `[sad]`, `[whispers]`…, tabla `ELEVEN_TAG`), y un
@@ -5801,7 +5800,7 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    las escenas que no encuentran clip llevan su imagen de siempre con un aspecto fotográfico, y con clips ComfyUI no se
    enciende solo. Para que encuentre buenos clips, el guion escribe cada `image` como algo que una cámara filmaría en la
    vida real, en inglés y corto («woman typing on laptop in cafe»). No necesita tarjeta gráfica ni gasta créditos de
-   imágenes: va igual en la nube. Pide una **clave gratis de Pexels**: ⚙ → Ajustes → Extensiones → Estudio de vídeo →
+   imágenes: va igual en la nube. Pide una **clave gratis de Pexels**: ⚙ → Ajustes → Multimedia → Estudio de vídeo →
    «Clips de archivo (Pexels, gratis)», con los pasos para sacarla (se guarda cifrada en el llavero; quien instala kywai
    en su servidor puede ponerla para todos en `KYWAI_PEXELS_KEY`). Sin clave, el vídeo sale igual con imágenes y la
    tarjeta lo dice. Al lado del MP4 queda `<título>-creditos.txt` con el autor y el enlace de cada clip (Pexels pide
@@ -6005,7 +6004,7 @@ los personajes, las marcas ni la música de nadie. Puedes retocar `ESTILO.md` a 
 estilos ni en Órbita: se piden por su nombre. Código: `src/main/userStyles.ts` (+ test) y la lista de estilos del
 usuario en `src/shared/filmStyles.ts` (`setUserFilmStyles`).
 
-**Instalación.** «Instalar lo que falta» (Ajustes → Extensiones → Estudio de vídeo, fila «Estilos de película») o, si
+**Instalación.** «Instalar lo que falta» (Ajustes → Multimedia → Estudio de vídeo, fila «Estilos de película») o, si
 no, el primer vídeo con estilo, descarga con git a `estudio-video/lemo-opuscar` una **versión fija** de la biblioteca
 (sin las películas de ejemplo ni las imágenes grandes, ~30 MB) y lanza su instalador (`setup.sh deps voice`: paquetes
 de Node, el navegador del render, un Python propio y la voz Kokoro); y descarga a `estudio-video/animacion-pintada`
@@ -6068,7 +6067,7 @@ en lugar de la imagen fija (`assets/freevideo-N.mp4`, ajustado a lo que dura la 
 ligera (0,5 MP); cada clip tarda varios minutos (en un Mac M5 de 24 GB, unos 20 min por 10 s). Si FreeVideo está
 cerrado, falla o se pasa de 45 min, la escena se queda con su imagen y el vídeo sale igual. kywai habla con su API para
 agentes (`/freevideo/agent/v1`) con el token de su instalación (`agent/token`), solo en una dirección de este equipo;
-no copia su código. La fila «Escenas con movimiento (FreeVideo o Wan)» de Ajustes → Extensiones → Estudio de vídeo dice si
+no copia su código. La fila «Escenas con movimiento (FreeVideo o Wan)» de Ajustes → Multimedia → Estudio de vídeo dice si
 está listo. Licencias: el código de FreeVideo es Apache-2.0; los pesos de MiniMax H3 van con su propia licencia
 (MiniMax H3 Community License, con límites de uso y de países), que acepta quien instala FreeVideo. Código:
 `src/main/freevideo.ts`; las variables `FREEVIDEO_HOME` y `FREEVIDEO_URL` cambian dónde lo busca.
@@ -6107,7 +6106,7 @@ reutiliza en todos los vídeos:
 El banco se prepara con «Instalar lo que falta» (y solo, al arrancar) o con el primer vídeo, mientras se hacen la voz y
 las imágenes (como mucho espera 90 s; lo que no esté listo sale sintetizado). Un tipo que no consigue nada no se
 vuelve a intentar hasta el día siguiente. Las películas con estilo también lo usan: el encargo le dice al agente
-dónde están los WAV y cómo pedirle más a earshot. Ajustes → Extensiones → Estudio de vídeo → **Efectos de sonido**
+dónde están los WAV y cómo pedirle más a earshot. Ajustes → Multimedia → Estudio de vídeo → **Efectos de sonido**
 dice cuántos hay de cada fuente. Código: `src/main/sfxBank.ts` y `mixSfx` en `src/main/videoScript.ts`.
 
 Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de
@@ -6162,7 +6161,7 @@ con **uv** y Python 3.12 (si uv no está, lo instala con el instalador oficial d
 entorno que ya estaba hecho con un Python viejo se rehace solo. Si Manim no se instala en macOS, kywai instala
 `cairo`, `pango` y `pkg-config` con Homebrew y lo prueba otra vez.
 
-**Instalar a mano.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
+**Instalar a mano.** ⚙ → Ajustes → Multimedia → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
 imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
 la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de trabajo (versiones fijas, para que un guion
 se monte igual dentro de meses), ffmpeg (en macOS, ffmpeg y ffprobe ya compilados para el procesador del Mac en `~/.local/bin`;
@@ -6182,13 +6181,13 @@ Homebrew.** Lo hace en tres sitios:
   ellos. Si no hay red, sale sin subtítulos y lo dice, como antes.
 - **Al arrancar el servidor**, con la instalación automática del estudio: un ffmpeg que no los quema cuenta como que
   falta algo.
-- Con **«Instalar lo que falta»**. La fila «ffmpeg» de Ajustes → Extensiones → Estudio de vídeo dice «Instalado, pero
+- Con **«Instalar lo que falta»**. La fila «ffmpeg» de Ajustes → Multimedia → Estudio de vídeo dice «Instalado, pero
   no puede quemar subtítulos» mientras no se arregle.
 
 En Windows (winget) y en Linux (el ffmpeg de la distribución) ffmpeg trae libass; si alguno no lo trajera, kywai no lo
 cambia: la fila lo dice y el vídeo sale sin subtítulos, con el aviso.
 
-**Cómo se ve la pestaña.** Cada bloque va en su propia tarjeta, separada de las demás: lo que tiene el equipo con
+**Cómo se ve la sección.** Cada bloque va en su propia tarjeta, separada de las demás: lo que tiene el equipo con
 «Instalar lo que falta», «El Instagram de kywai», «El TikTok de kywai» y «Extensiones de vídeo». Dentro de cada
 tarjeta hay aire entre el título, el texto, los cuadros y los botones, y los cuadros bajan de línea si la ventana es
 estrecha (estilo `.block` de `ExtensionsTab.module.css`).
@@ -6744,7 +6743,14 @@ sección ya abierta.
 - **Agentes**: *Tu equipo* (configurar agentes, cómo rinde cada agente, actualizar cuotas), *Permisos y planes*
   (permisos, visto bueno a cada plan, revisar con ojos nuevos) y *Aspecto en el 3D* (aspecto, tamaño del píxel y el
   coordinador que te avisa en el 3D).
-- **Extensiones**: servidores MCP, apps conectadas, habilidades, plugins, mods y estudio de vídeo.
+- **Extensiones**: servidores MCP, apps conectadas, habilidades, plugins y mods.
+- **Multimedia** (sección propia desde el 23 nov 2026, pedido por Yil): junta todo lo de imagen y vídeo. Arriba,
+  *Imágenes y vídeos* (con qué se generan, antes en General; ver «Elegir con qué se generan las imágenes y los
+  vídeos»). Debajo, el *Estudio de vídeo* (antes una pestaña de Extensiones): lo que tiene el equipo para montar
+  vídeos con «Instalar lo que falta» e «Instalar ComfyUI», *Tu equipo* (estudio Pro), Pexels, la voz de ElevenLabs,
+  **Redes de kywai** (Instagram y TikTok con Zernio, y las conexiones avanzadas) y las extensiones de vídeo. Lo pinta
+  `MultimediaTab` de `ui/settings/ExtensionsTab.tsx`; el aviso «Instalar el estudio» del chat, las notas de parche
+  y los mensajes que dicen «Ajustes → Multimedia → …» llevan aquí (`settingsTab: 'media'`).
 - **Conexión**: *Este equipo* (dónde estás, cómo se usa este equipo, prestar los modelos), *Otros dispositivos*
   (acceso desde otros dispositivos, archivos del servidor, sincronizar carpetas) y, en un cliente de escritorio,
   *Cambiar de servidor* (cambiar, olvidar este dispositivo, usar este equipo como servidor).
