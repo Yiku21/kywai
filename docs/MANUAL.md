@@ -4272,22 +4272,48 @@ no puede usarlas.
 pueden usar en las tareas: hace falta un token. Los agentes de catálogo todavía no reciben estos servidores; Hermes sí, con las condiciones de la tabla anterior.
 Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
 
+### Conectores: tus apps con su estado y conectar o desconectar con un clic (v1.18.0)
+
+Desde el 23 de noviembre de 2026 (v1.18.0) las apps conectadas tienen su propia pestaña, **⚙ → Ajustes →
+Conectores** (entre Agentes y Extensiones). Antes estaban en Extensiones → Apps conectadas, que ahora solo lleva aquí.
+
+- **Arriba**, si este equipo está enlazado con tu cuenta kywai (en kywai Cloud ya lo está) y cuántas acciones con
+  apps llevas hoy, con **Comprobar** (vuelve a preguntar a cada app cómo está) y **Desenlazar** (solo en la
+  instalación propia).
+- **Conectadas**: cada app con su logo y su estado: **Conectada** (verde), **Hay que volver a conectarla** (amarillo,
+  con su botón) o **A medias**. El interruptor **Puede actuar** deja que los agentes también creen y envíen (borrar
+  sigue bloqueado) y **Desconectar** la quita (pide confirmación).
+- **Conecta una app**: las más usadas y un buscador entre las más de 1.700 apps de Composio. **Conectar** abre la
+  página segura del servicio en el navegador; al autorizar, la tarjeta se pone en verde sola en unos segundos (la
+  pestaña mira cada 4 segundos, hasta 5 minutos).
+- **Integraciones propias de kywai**: Instagram y TikTok (Zernio), Slack, Microsoft Teams, Telegram, WhatsApp y Mi
+  YouTube, cada una con su estado. **Abrir** lleva a donde se configuran (Multimedia o Conexión), que no cambia.
+
+**Cómo funciona por dentro.** La app habla con el portal de Mi cuenta (`src/main/connectors.ts`):
+`GET /api/apps/conectores?q=&comprobar=1`, `POST /api/apps/conectar` (devuelve el enlace de Composio; solo se abren
+enlaces `https://…composio.dev`), `POST /api/apps/desconectar` y `POST /api/apps/permiso`. En la instalación propia
+va con el token del equipo enlazado (`kyl_…`); en kywai Cloud, con el secreto del espacio (`KYWAI_VOZ_SECRETO`), así
+funciona aunque aún no haya ninguna app. Composio devuelve a la persona a `/api/apps/vuelta`, una página que solo dice
+«vuelve a kywai»: la app comprueba ella misma con su token. Tras cada cambio, en la instalación propia se pone al día la
+extensión `composio`; en la nube la avisa el portal. Los logos son solo los de `kywai.app/assets/composio/` (sin logo,
+la inicial). La interfaz está en `src/renderer/src/ui/settings/ConnectorsTab.tsx`.
+
 ### Apps conectadas: Gmail, Drive, YouTube y más de mil apps con tu cuenta kywai
 
-En **⚙ → Ajustes → Extensiones → Apps conectadas** tus agentes pueden trabajar con tus propias cuentas (Gmail, Google
+En **⚙ → Ajustes → Conectores** (antes Extensiones → Apps conectadas) tus agentes pueden trabajar con tus propias cuentas (Gmail, Google
 Drive, YouTube, Instagram, TikTok, Google Calendar, Notion, GitHub y más de mil apps). No hace falta ninguna clave:
 se hace a través de tu cuenta kywai (cuenta.kywai.app), que es gratis.
 
 1. Pulsa **Enlazar con mi cuenta kywai**. Se abre Mi cuenta en el navegador con un código: comprueba que es el mismo
    que sale en kywai y pulsa **Enlazar este equipo**.
-2. Pulsa **Conectar apps** (abre Mi cuenta → Apps conectadas), elige una app y autoriza tu cuenta en su página segura.
-   kywai nunca ve tu contraseña.
-3. Vuelve a kywai y pulsa **Comprobar** (también se comprueba solo cada 15 minutos). Tus apps salen en la lista y
+2. Pulsa **Conectar** en la app que quieras (o búscala), y autoriza tu cuenta en su página segura. kywai nunca ve tu
+   contraseña. También se puede hacer en Mi cuenta → Apps conectadas.
+3. La tarjeta se pone en verde sola (o pulsa **Comprobar**; también se comprueba cada 15 minutos). Tus apps
    llegan a Claude, Codex, Gemini y Hermes como la extensión **Apps conectadas** de «Servidores MCP». Hermes sabe qué
    apps tienes y, si pides algo de una que no está, te dice que la conectes.
 
-- Por defecto los agentes **solo leen**. En Mi cuenta, **Permitir que actúe** deja también crear y enviar (mandar un
-  correo, publicar, subir un archivo). **Borrar está siempre bloqueado.**
+- Por defecto los agentes **solo leen**. El interruptor **Puede actuar** (o **Permitir que actúe** en Mi cuenta) deja
+  también crear y enviar (mandar un correo, publicar, subir un archivo). **Borrar está siempre bloqueado.**
 - **50 acciones gratis al día** con kywai instalado en tu equipo, para probarlo y usarlo de vez en cuando. Vuelven a cero
   a las 00:00 UTC. Si se acaban, tus agentes te lo dicen. Para usarlo a diario: kywai Cloud (300 al día; Pro 1.000 y Max
   3.000) o créditos kywai: pasado el límite del día, cada crédito compra 3 acciones más, solo.
@@ -4299,12 +4325,12 @@ portal de Mi cuenta: nunca llega a tu equipo. El enlace usa el mismo sistema de 
 (`/api/conectar`, tipo `apps`) y deja en este equipo un token propio, cifrado con las claves de los agentes, que solo
 vale para el intermediario `https://cuenta.kywai.app/mcp/apps` y para leer tu lista de apps (`/api/apps`). Con él se
 registra la extensión MCP `composio` (la misma que usa kywai Cloud). El código está en `src/main/kywaiApps.ts`. En
-kywai Cloud (`KYWAI_CLOUD=1`) esta pestaña solo lleva a Mi cuenta, porque allí las apps las pone el portal.
+kywai Cloud (`KYWAI_CLOUD=1`) no hace falta enlazar: la pestaña Conectores usa el secreto del espacio.
 
 ### Apps conectadas en kywai Cloud (Composio)
 
 En kywai Cloud conectas tus propias cuentas (Gmail, Google Drive, YouTube, Instagram, TikTok, Google Calendar,
-Notion, GitHub y más de mil apps) en **Mi cuenta → Apps conectadas** (cuenta.kywai.app). Pulsas **Conectar**, se
+Notion, GitHub y más de mil apps) en **⚙ → Ajustes → Conectores** o en **Mi cuenta → Apps conectadas** (cuenta.kywai.app). Pulsas **Conectar**, se
 abre la página segura del servicio, autorizas tu cuenta y vuelves a Mi cuenta. kywai nunca ve tu contraseña.
 
 - Las apps llegan a tus agentes como la extensión **Apps conectadas** de ⚙ → Ajustes → Extensiones, encendida para
