@@ -8192,9 +8192,12 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   otro a mano, en el escritorio y en la nube; quien ya eligió otro lo conserva. Para volver a él: Ajustes → Agentes →
   «Aspecto de los agentes» → **Formas animadas**. Se ven igual en el chat, las
   fichas, las listas, el espacio 2D y el **espacio 3D**: en el 3D cada agente es su forma, de pie en su puesto y mirando
-  siempre a la cámara, con las mismas caras y movimientos que en su ficha (también los becarios). Solo la cotorra
-  coordinadora y los agentes con modelo 3D propio de «Crea tu agente» siguen siendo personajes 3D. Órbita sigue con sus
-  dibujos.
+  siempre a la cámara, con las mismas caras y movimientos que en su ficha (también los becarios). La **cotorra
+  coordinadora** (kywai / Hermes) también es una forma en el 3D (desde el 23 nov 2026, v1.5.3): bola verde
+  con cresta de tres plumas, pico naranja y dos alas verde claro, tan sencilla como las demás formas y con los mismos
+  movimientos que el resto; sus colores son siempre los de la cotorra. Con los demás aspectos la cotorra sigue siendo su personaje 3D de
+  siempre. Solo los agentes con modelo 3D propio de «Crea tu agente» siguen siendo personajes 3D. Órbita sigue con sus
+  dibujos. La cotorra de formas está en `cotorraCharacter()` de `src/renderer/src/lib/figures.ts`.
 - **Elegir la de cada agente**: pulsa el agente en el espacio → **Forma animada: elige su forma y su color**. Vista
   previa con las poses (pasan solas hasta que tocas una), 12 formas, 12 colores rápidos y «Otro color», **Sorpréndeme**
   y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
