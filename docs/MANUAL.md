@@ -8405,7 +8405,8 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   **Geométricas** (gota, bola, cápsula, cubo, diamante, flecha, huevo, cilindro, trapecio, pirámide, estrella, corazón,
   cristal, engranaje, burbujas), **Animales** (osito, gato, conejo, rana, búho, pulpo, medusa, cangrejo, ballena,
   murciélago, bicho, araña, erizo), **Criaturas** (fantasma, alien, monstruo) y **Objetos** (nube, flor, antena, sol, tele,
-  cascos, satélite, dron). Todas son propias de kywai (no copian personajes de nadie), siluetas sencillas de un solo
+  cascos, satélite, dron). En el selector van todas seguidas en ese orden, sin títulos de grupo, para no dejar huecos
+  (Yil, 23 nov). Todas son propias de kywai (no copian personajes de nadie), siluetas sencillas de un solo
   color (como mucho, piezas finas un poco más oscuras) y con los mismos movimientos en 3D y 2D. Yil eligió el estilo
   sobre una primera lámina: fuera hocicos y mejillas claras, sombreros y piezas de otros colores. **Con volumen**: el
   motor pinta colores planos, así que `src/renderer/src/lib/figureVolume.ts` les pone un filtro SVG de luz (relieve
@@ -8415,6 +8416,18 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
   color del agente, siempre entre las 12 de siempre (las 12 primeras de `FIGURE_SHAPES`), para que las formas nuevas no
   le cambien el aspecto a nadie. Los grupos del selector están en `FIGURE_GROUPS`. Al guardar, si el aspecto era otro, pasa a «Formas animadas» en ese dispositivo.
+- **Textura** (desde el 23 nov 2026): además del color, el cuerpo de cada forma puede llevar un acabado en el estilo
+  de «Crea tu agente» (gominola y caramelo, con color, brillo y cosas dentro), casi todos con movimiento: gominola (la
+  luz de dentro respira), lunares, rayas, corazones, burbujas, purpurina, estrellitas, confeti, espiral (de piruleta,
+  gira), desenfoque (manchas de tonos vecinos muy difuminadas que se mueven), degradado, holográfico, perla, galaxia,
+  neón, metalizado, cristal y terciopelo (18, más «Liso»). Antes no gustaron ni los dibujos planos («son solo líneas») ni
+  los materiales realistas en gris («están feas»). Cada acabado mezcla el color del agente con tonos vecinos (girando el
+  tono), lo aclara u oscurece por zonas y, en algunos, mete dibujos dentro que se curvan con el cuerpo (`wrap()`, un
+  desplazamiento sacado de la silueta). El movimiento es SMIL dentro del filtro y se apaga con «reducir movimiento».
+  Se guarda en `AgentConfig.figure.texture` (`FIGURE_TEXTURES`); la receta está en `src/renderer/src/lib/figureTexture.ts`:
+  un filtro SVG por acabado, tinta y tamaño (en las fichas pequeñas el grano se agranda) que se pone en las piezas del
+  cuerpo (`[data-part="head"]`, `back-N`, `front-N`) con una clase en el <svg>, y en el 3D `figureCard.ts` usa el mismo
+  filtro pasado a los píxeles de su lienzo. «Sorpréndeme» elige textura la mitad de las veces.
 - **Tu propio personaje**: diséñalo en Avatar Lab (avatars.bible-strong.app, gratis, en el navegador), descárgalo en
   «Export» (`<nombre>.avatar.json`) y tráelo con **Traer .avatar.json**: hace los mismos movimientos. Se guarda en la
   ficha del agente (como mucho 24 KB). El formato antiguo (versión 0) no se admite: hay que exportarlo de nuevo.
