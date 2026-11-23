@@ -4752,6 +4752,21 @@ reales de la página**, no con imágenes inventadas: se ve la web de verdad, ní
 horizontal (1920×1080); con «vertical» (o «reel», «tiktok», «9:16») sale para Reels y TikTok (1080×1920). Ejemplo:
 «/demo kywai.app vertical que se vea el espacio 3D».
 
+**Con poca memoria (1.5.5).** Cada plano se monta con ffmpeg con los hilos contados (`X264_LEAN`: x264 con 2 hilos y
+10 fotogramas de antelación; `FILTER_LEAN` y `LOOP`: filtros y fotos repetidas con 2 hilos). Sin tope, x264 y el
+descodificador de PNG abrían un hilo por núcleo de la máquina (no del contenedor) y un plano vertical llegaba a 1 GB;
+en kywai Cloud (2 GB por cuenta) el sistema cerraba ffmpeg sin decir nada y salía «No se pudo montar el plano 3». Ahora
+el peor plano gasta unos 550 MB y el resto unos 300 MB, con el mismo tiempo. Si aun así el sistema lo cierra sin motivo,
+el plano se repite una vez y, si vuelve a pasar, el fallo dice qué hacer (`ffmpegFailure`): cerrar lo que no se use y
+lanzar la misma orden, probar sin presentador o en horizontal, o hacerlo desde la app de escritorio.
+
+**En tu equipo desde kywai cloud (1.5.6).** Con la app de escritorio conectada y «Hacer aquí los vídeos de kywai
+cloud» encendido (Ajustes → Multimedia → Estudio de vídeo), el «/demo» pedido en la nube se monta en tu equipo, como
+los vídeos de `/video`: la nube hace las fotos de la web, el guion de planos y la voz del presentador, y manda el
+encargo por el mismo puente (`deviceBridge.video`, JSON con las fotos y las voces, como mucho 16 MB). El equipo lo
+monta con su ffmpeg (`runDemoJob` en `demoOnDevice.ts`, llamado desde `runVideoJob` en `videoWorker.ts`) y sube el MP4.
+Si el equipo no está, falla o su app es de antes, se monta en la nube como siempre y el registro de la tarea lo dice.
+
 1. kywai abre la web en una ventana oculta (sesión aparte, sin permisos ni ventanas nuevas, sin salir de esa web), baja
    hasta el final para que cargue todo y la fotografía entera en **ordenador** (1440 de ancho) y en **móvil** (390 de
    ancho a doble resolución). Lee el título, la descripción, las secciones y el **color de la marca** (el
@@ -5487,6 +5502,18 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **De un mensaje**: el botón **«Crear vídeo de esto»** bajo cualquier respuesta con texto, o escribir «créame un vídeo
   de esto» (usa la última respuesta del chat).
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
+
+**Reels y vídeos siempre por el estudio, nunca como tarea a mano (1.5.4).** Un vídeo o un reel lo monta el Estudio de
+vídeo en minutos. Si quien coordina lo encarga como una tarea normal («Producir vídeo de lanzamiento…»: un agente que
+abre un navegador para grabar la app, instala programas y monta el vídeo de cero), kywai se lo devuelve una vez para
+que use la orden del estudio: `/video vertical … usa el guion de <archivo>` para un tema, o
+`/demo <web> vertical [presentador] [qué destacar]` para un reel de una app o una web con sus pantallas reales
+(`kywai.app` para la propia kywai). Si aun así sale como tarea, lleva tiempo tasado: aviso en el chat a los 10 min sin
+novedades y a los 15 min de trabajo, y a los 30 min kywai la corta con la orden rápida lista para pulsar; lo que llevaba
+hecho se queda en la carpeta del proyecto. Escribir antes el guion en una tarea sí vale. Código:
+`src/shared/videoByHand.ts` (qué tarea cuenta, el aviso a quien coordina y la orden rápida), `planRun` y
+`videoByHandGuard`/`videoByHandCut` en `orchestrator.ts`. Origen: el 23 nov un reel de lanzamiento llevaba 43 minutos
+así y sin vídeo.
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
 - **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 73 en total): eligiéndolo en el selector con
