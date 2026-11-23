@@ -7,7 +7,8 @@
 #   2. Si cambió algo de la app (no solo Órbita o documentos), añade un commit vacío por cada título de commit nuevo
 #      del código: así la ventana «Novedades» de las apps ya instaladas, que compara dos versiones de este
 #      repositorio, sigue enseñando las mejoras.
-#   3. Compila Windows, macOS y Linux desde el código privado y crea la Release v0.1.<commits del código>, con los
+#   3. Compila Windows, macOS y Linux desde el código privado y crea la Release v<versión de package.json> (1.1.0,
+#      1.1.1…; ver el paso «¿Hay versión nueva?»), con los
 #      mismos nombres de archivo y los latest*.yml de siempre: las apps instaladas se actualizan solas igual que antes.
 #      El instalador de Windows se firma con Azure Artifact Signing cuando están los secretos AZURE_* (ver
 #      «Firma del instalador de Windows» en docs/MANUAL.md); sin ellos sale sin firmar, como antes.
@@ -69,22 +70,51 @@ jobs:
         run: |
           C="$RUNNER_TEMP/codigo"
           sha=$(git -C "$C" rev-parse HEAD)
-          version="0.1.$(git -C "$C" rev-list --count HEAD)"
           antes=$(cat publicado/codigo.txt 2>/dev/null || true)
           echo "codigo=$sha" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          nueva=0
-          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-            echo "La versión v$version ya está publicada."
-          elif [ "$FORZAR" = "true" ]; then
-            nueva=1
+          # ¿Cambió algo de la app? Lo mismo que paths-ignore del flujo antiguo: Órbita, documentos y textos no
+          # sacan versión de escritorio.
+          cambios=0
+          if [ "$FORZAR" = "true" ]; then
+            cambios=1
           elif [ -n "$antes" ] && [ "$antes" != "$sha" ]; then
-            # Lo mismo que paths-ignore del flujo antiguo: Órbita, documentos y textos no sacan versión de escritorio.
             if git -C "$C" diff --name-only "$antes" "$sha" \
                 | grep -vE '^android/|^docs/|\.md$|^\.github/FUNDING\.yml$|^\.github/workflows/publicar-orbita\.yml$' | grep -q .; then
-              nueva=1
+              cambios=1
             fi
           fi
+          # El número de versión (desde el 23 nov 2026) es el de package.json del código: 1.1, 1.2… para cada cambio
+          # y 1.1.1, 1.1.2… para los más pequeños; la 2.0 solo cuando Yil lo diga. Si ese número ya está publicado y
+          # hay cambios nuevos sin subirlo, se publica el siguiente último número libre (1.1.0 → 1.1.1 → 1.1.2…).
+          # Un package.json con 0.x vuelve al número de antes (0.1.<commits del código>).
+          base=$(node -p "require(process.argv[1]).version" "$C/package.json" 2>/dev/null || true)
+          nueva=0
+          if printf '%s' "$base" | grep -qE '^[1-9][0-9]*\.[0-9]+\.[0-9]+$'; then
+            version="$base"
+            if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+              if [ "$cambios" = 1 ]; then
+                mayor=${base%.*}
+                n=${base##*.}
+                while git rev-parse -q --verify "refs/tags/v$mayor.$n" >/dev/null; do n=$((n + 1)); done
+                version="$mayor.$n"
+                nueva=1
+              else
+                echo "La versión v$version ya está publicada."
+              fi
+            else
+              # Un número nuevo en package.json: se publica aunque solo cambie eso.
+              [ -n "$antes" ] && [ "$antes" != "$sha" ] && nueva=1
+              [ "$FORZAR" = "true" ] && nueva=1
+            fi
+          else
+            version="0.1.$(git -C "$C" rev-list --count HEAD)"
+            if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+              echo "La versión v$version ya está publicada."
+            else
+              nueva=$cambios
+            fi
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "nueva=$nueva" >> "$GITHUB_OUTPUT"
           echo "Código $sha, versión $version, nueva=$nueva"
       - name: Copiar lo público del código
