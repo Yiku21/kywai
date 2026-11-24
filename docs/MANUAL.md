@@ -6090,6 +6090,20 @@ cambio de estilo en `sendVideo` (`orchestrator.ts`). Origen: el 23 nov un vídeo
 imágenes feas e inapropiadas que no casaban con lo que se decía, «HERMES» como nombre y la cotorra en una tarjeta que se
 balanceaba sin parar; Yil pidió el estilo de un reel de referencia (la medusa).
 
+**Siempre con peluches y atrezo (1.30.2).** El 24 nov un reel «What is kywai?» salió sin ningún personaje y sin ninguna
+pieza animada: un titular arriba y la pantalla vacía 67 s. Dos causas: (1) las imágenes de los peluches las ponía en
+marcha solo `index.ts`, y el **modo cliente** (el equipo que monta los vídeos de kywai cloud, `videoWorker.ts`) arranca
+por `bootClient` y nunca llegaba ahí, así que `robotForms()` volvía vacío; ahora lo hace `src/main/videoAssets.ts`
+(`initVideoAssets`, también el decorado del Escenario 3D) desde los dos caminos, y si aun así faltan, `renderVideo` para
+con el motivo en vez de entregar un fondo vacío. (2) El guion llegó sin `prop`: ahora `completeVideo` devuelve una vez
+al agente el guion explicativo con atrezo en menos de 3 de cada 4 escenas (`explainerPropsProblem`, «team» y «none» no
+cuentan) y, si vuelve igual, rellena lo que falta (`fillExplainerProps`: la primera escena presenta al equipo y el resto
+saca a los personajes en grande).
+
+**Titular al centro (1.30.3).** El titular va arriba porque debajo están los personajes y el atrezo. Si en una escena no
+hay ni lo uno ni lo otro, `buildExplainerComposition` lo baja al centro de la pantalla y lo hace un 45 % más grande, en
+vez de dejar un fondo vacío.
+
 **«Sorpréndeme» (1.15.0).** Un tipo más de vídeo en el selector de «/video» (marca `tipo:sorprendeme`, o escribirlo:
 «/video sorpréndeme …», «/video surprise me …»): el usuario solo da el guion o el tema y **la IA decide cómo hacer el
 vídeo**. La tarea tiene dos pasos con el mismo agente: primero lee el texto y elige (`surprisePrompt` en
@@ -6298,8 +6312,9 @@ tutorial, sale un **tutorial visual**: lo que se ve manda. Cada paso ocupa **tod
 ilustrados por ComfyUI o Gemini (general, primer plano de la acción y detalle; siempre en el mismo estilo de dibujo plano con
 contorno y con lo importante en el centro), que entran con un golpe de zoom, se acercan despacio y el último lleva un
 **círculo de «mira aquí»** que late. Arriba, la insignia «PASO n» y la instrucción; abajo, subtítulos con la palabra
-que suena resaltada. En una esquina, un **presentador dibujado por kywai** (siempre el mismo: estilo chibi con gafas y
-sudadera del color del tema; `src/main/videoCartoon.ts`) que mueve la boca con la voz, parpadea, respira, brinca en
+que suena resaltada. En una esquina, **el peluche de kywai** (desde la 1.30.15, `plushHost`: el mismo peluche de la app,
+de pie y sin tarjeta, que rebota con la voz, respira y saluda; antes era un chico chibi dibujado, que solo queda si
+faltan las imágenes de los peluches; `src/main/videoCartoon.ts`) que mueve la boca con la voz, parpadea, respira, brinca en
 cada cambio y hace el gesto de la escena (explica, señala al centro, se sorprende, se ríe, se encoge de hombros, pulgar
 arriba, piensa, saluda); en las bromas, «¡JA, JA!» y un «boing». El agente escribe de 6 a 10 escenas: gancho, los
 pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Sin ComfyUI ni clave de Gemini no hay ilustraciones:
@@ -6336,6 +6351,17 @@ emoción** entre corchetes: `[neutral]`, `[alegre]`, `[emocionado]`, `[sorprendi
 guion las pone (regla `EMOTION_RULE` de `src/main/videoScript.ts`); kywai las quita de los subtítulos y guarda la
 narración frase a frase (`scene.lines`, lo lee `narrationLines` de `src/shared/voiceEmotion.ts`, que también entiende
 las emociones en inglés y otras palabras como «feliz» o «excited»).
+- **Que no balbucee (1.30.1).** Con frases muy cortas («You get more work.») Chatterbox a veces no para y sigue
+  varios segundos con sílabas sin sentido; como la escena dura lo que dura la voz, el titular se quedaba quieto 8 a 11 s
+  (reel «What is kywai?» del 24 nov). Ahora kywai mide cada frase al salir (`chatterboxRunaway` en
+  `src/main/chatterbox.ts`: más de 0,7 s por palabra + 1,6 s de margen, o 3,2 s como poco): las que se pasan se repiten
+  una vez y, si vuelven a pasarse, el vídeo entero va con la voz normal (Kokoro, Edge…), sin mezclar dos voces.
+- **El oído (1.30.4).** La duración no lo pilla todo: Chatterbox también repite palabras («We split the work. We split
+  the work.») o se come el principio. Ahora Whisper (`faster-whisper`, modelo «base», en el procesador; se instala solo
+  en el entorno de Chatterbox, `ensureChatterboxEar`) escucha cada frase en `voz.py` y la compara con el texto
+  (palabras sin acentos, `difflib`): por debajo de 0,8 la dice otra vez, hasta 3 veces, y se queda con la que más se
+  parece; si ni así llega a 0,6 avisa («dudosa») y kywai la trata como una frase que se alargó (se repite una vez y, si
+  no, voz normal). Probado con el guion del reel malo: el balbuceo y las repeticiones desaparecen.
 - Quien la interpreta es **Chatterbox Multilingual** (Resemble AI, licencia MIT, `src/main/chatterbox.ts`): en el propio
   equipo, gratis, 23 idiomas. No cambia la velocidad ni el tono del audio (eso suena robótico: Yil lo probó con Edge y
   lo descartó); el modelo actúa la frase con más o menos emoción (`exaggeration` y `cfg_weight`, tabla
@@ -6452,7 +6478,13 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    quién habla** (`shotCuts`). La composición es `src/main/videoCharla.ts`; el encargo del guion,
    `charlaScriptPrompt` en `src/main/videoScript.ts`. Este tipo no usa la biblioteca de películas (si se elige un
    estilo, se ignora) y el agente inventa su propia maqueta: nunca copia la de otro vídeo.
-   **Con los robots de kywai, los personajes se mueven de verdad** (`src/main/charlaStage.ts`): Hermes, Claude y
+   **Con los robots de kywai, los personajes se mueven de verdad** (`src/main/charlaStage.ts`; el personaje «kywai»
+   lleva el robot de Hermes, que es su nombre de cara al usuario). **Desde la 1.30.15 son los peluches de la app**
+   (`StageData.plush`, las imágenes assets/forma-*.png) **con volumen**: una cabeza de fieltro redondeada en three.js
+   con el dibujo proyectado de frente (visor, ojos y mofletes), los lados y la espalda del color del fieltro, las orejas
+   como almohadillas y el adorno de arriba recortado del dibujo. Giran de verdad para mirarse, proyectan sombra y hablan
+   rebotando y estirándose con cada sílaba (no tienen boca ni manos). Primero fueron carteles planos y Yil dijo que se
+   veían como una imagen 2D. Los robots de antes (Hermes, Claude y
    Codex están hechos en three.js dentro de un plató de juguete (salita con alfombra, papel pintado de rayas,
    estantería, planta, lámpara, sofá, cuadros, una ventana con cielo de atardecer y cortinas, una guirnalda de
    bombillas y una **pantalla gigante** que muestra la imagen de cada escena o, si no hay imagen, una tele
