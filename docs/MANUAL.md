@@ -8643,6 +8643,30 @@ alrededor), explica y habla (al trabajar, se van alternando), celebra (tarea ter
 saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se reconocen por el nombre o el id del agente;
 los demás agentes y los becarios siguen siendo robots.
 
+**El peluche, único aspecto de kywai (24 nov 2026, v1.26.4; pedido por Yil: «que sea el nuevo estilo de kywai, todo
+usará esos agentes, quita los otros y elimina la opción de personalizar»).** Desde esta versión todos los agentes son
+su peluche en todas partes (chat, fichas, listas, espacio 2D, espacio 3D y vídeos) y lo que se cuenta abajo sobre
+elegir aspecto queda como historia:
+
+- **Ya no hay selector de aspecto.** Ajustes → Agentes ya no tiene «Aspecto de los agentes» ni «Tamaño del píxel»; la
+  sección se llama **Avisos en el 3D** (el coordinador te avisa en el 3D y el silencio de noche). `SKINS` es solo
+  `['peluche']` y lo guardado antes en `aicowork.agentes.skin` (formas, clásico, píxel, refugio, personajes) se lee como
+  peluche (`parseSkin`).
+- **Ya no se personaliza.** La ficha del agente ya no tiene «Crea tu agente» ni «Forma animada»
+  (`AgentLookDialog` y `AgentFigureDialog` quitados). Los aspectos hechos antes con «Crea tu agente» se quedan guardados
+  pero no se enseñan (`LOOKS_SHOWN = false` en `lib/agentLook.ts`).
+- **Lo único que se elige es el acabado.** En su ficha, **«Acabado de su peluche»** abre `PlushFinishDialog`: los 19
+  acabados de siempre (liso, gominola, lunares, rayas, corazones, burbujas, purpurina, estrellitas, confeti, espiral,
+  desenfoque, degradado, holográfico, perla, galaxia, neón, metalizado, cristal, terciopelo) con vista previa y
+  «Sorpréndeme». Se guarda en `AgentFigure.texture` como antes. El acabado va en el pelo del peluche y el visor queda
+  limpio encima, para que la cara se vea: en `PlushAvatar` con `figureTextureBoxFilter` (el filtro SVG de los acabados a
+  la escala de la caja) y en el 3D (`scene/plushCard.ts`) pintado una vez en el lienzo. La cotorra coordinadora va
+  siempre sin acabado.
+- **Vídeos.** Los «robots de kywai» de `/video` y `/demo` son sus peluches: `assets/robots/forma-*.png` (mismo nombre
+  de siempre) son ahora Hermes, Claude y Codex de peluche con los ojos encendidos, y `ROBOTS_LOOK` los describe así
+  para las imágenes con IA. La carpeta de personajes del usuario se actualiza sola (se vuelve a copiar si la imagen
+  cambia).
+
 Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
 tema (foto de tres agentes y nombre): **Formas animadas** (por defecto desde el 23 nov 2026; cada agente con su forma y su
 color, ver «Formas animadas»), **Peluche** (desde la 1.19.0, un robot de fieltro distinto para cada agente, ver «Aspecto «Peluche»»), **Clásico** (los robots de siempre, que gastan menos), **Píxel** (los personajes como sprites de pixel art), **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema) o, la última, **Personajes** (los personajes 3D de Meshy). Se guarda en el dispositivo
