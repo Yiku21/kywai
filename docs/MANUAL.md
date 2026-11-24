@@ -2662,6 +2662,14 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 - **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo, y la petición que se pausó al llegar a su
   **tope por petición** (con «Darle 1 $ más», «Seguir sin tope» o «Quitar»).
 
+**Solo lo importante (v1.30.37).** Una **pregunta** sale aquí solo cuando el agente te deja una **tarjeta de preguntas**
+sin contestar (una decisión sin la que no puede seguir) o la hace con su herramienta `preguntar_usuario`. Una pregunta
+suelta al final de su texto **no cuenta**: un saludo («¿En qué te ayudo?»), una cortesía («¿Algo más?») o un
+ofrecimiento («¿Quieres que te deje preparado un mensaje…?») ya están en el chat y la petición ha terminado, así que va
+a Resultados como cualquier otra. Antes cualquier respuesta acabada en «?» saltaba como pregunta; al arrancar, kywai
+cierra esos avisos viejos (`dropTextQuestions` en `src/main/orchestrator.ts`). El texto que deja un botón al pulsarlo
+(«Contéstale en el chat del proyecto…») se va solo a los 6 segundos o al cerrar la bandeja: no es otra tarjeta.
+
 Solo cuenta lo que espera algo de ti. **Lo terminado no va aquí**: la última petición acabada de cada proyecto sale
 arriba en **Resultados**, en «Recién terminado», con su número en la barra lateral, «Visto» y «Marcar todo como visto»
 (Órbita igual, y además manda la notificación al terminar por su propio canal, «Terminado», que se puede silenciar
