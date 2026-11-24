@@ -8715,6 +8715,8 @@ alrededor), explica y habla (al trabajar, se van alternando), celebra (tarea ter
 saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se reconocen por el nombre o el id del agente;
 los demás agentes y los becarios siguen siendo robots.
 
+**Todos los peluches miden lo mismo en el 3D (24 nov 2026, v1.28.1; Yil: «¿por qué hay agentes más pequeños que otros?»).** El peluche de cada agente va de pie sobre el robot de siempre, que sigue escondido debajo para los indicadores y el nombre. Antes el peluche se escalaba con la altura de ese robot, que cambia según su cuerpo y su adorno (antena, orejas, pelo…), y unos salían hasta un 40 % más pequeños que otros. Ahora todos usan la misma altura de referencia (`PLUSH_SPAN` en `src/renderer/src/scene/Robot.tsx`); los de más atrás solo se ven algo menores por la perspectiva.
+
 **El peluche, único aspecto de kywai (24 nov 2026, v1.26.4; pedido por Yil: «que sea el nuevo estilo de kywai, todo
 usará esos agentes, quita los otros y elimina la opción de personalizar»).** Desde esta versión todos los agentes son
 su peluche en todas partes (chat, fichas, listas, espacio 2D, espacio 3D y vídeos) y lo que se cuenta abajo sobre
