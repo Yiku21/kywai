@@ -1182,7 +1182,16 @@ necesitan conexión; Álvaro y Jorge, de Edge, sí la necesitan siempre. Cuando 
 «Sonó con Piper · Claudia»); si no ves ese aviso, esa app aún no tiene esta versión. Si una voz no se puede preparar en ese equipo, la muestra ▶ lo
 dice (por ejemplo, «No se pudo instalar Piper») en vez de sonar con otra; al leer las respuestas, kywai lee con la voz
 de reserva para no quedarse callado y lo avisa al pasar el ratón por el altavoz. En kywai cloud la imagen trae Piper y
-sus seis voces ya bajadas. Sin elegir, lee la del idioma de la app (Álvaro en español). El altavoz se
+sus seis voces ya bajadas. Sin elegir, en español lee **Lucía de KittenTTS** (desde la 1.30.0: en la comparación
+del 24 nov sonó mejor que Kokoro y no necesita internet; si no se puede preparar, lee la de reserva y lo avisa); en
+inglés, la primera de los vídeos (Bella, de Kokoro).
+
+**KittenTTS en inglés (solo en la app de escritorio).** En inglés hay seis voces más de KittenTTS: Grace, Serena y
+Martha, Danny, Max y Otis. Usan el mismo modelo mini, pero para pronunciar el inglés necesitan un añadido de entre 1 y
+1,5 GB (misaki, spaCy con su modelo pequeño de inglés y torch solo para el procesador), que kywai instala la primera vez
+que eliges una, en un Python 3.12 aparte (`estudio-video/kitten/en-venv`, con uv) para no tocar el del estudio; el
+diccionario y el modelo de palabras raras (`g2p/`, ~6 MB) se bajan junto al modelo. En **kywai cloud** no salen: el
+añadido no cabe en cada espacio. El altavoz se
 enciende y se apaga solo desde el chat (en Ajustes ya no hay un interruptor repetido). Suena con el volumen de «Voces de
 los agentes»; si silencias esas voces, deja de leer, y al activar el altavoz vuelven. El altavoz y la voz se
 recuerdan por dispositivo (escritorio, cliente y navegador; Órbita aún no lo tiene).
@@ -2649,6 +2658,29 @@ El código está en `src/renderer/src/lib/inboxAlert.ts` (qué es nuevo, prueba 
 `needsYou` en `lib/audio.ts`, la campanita de la barra en `ui/header/InboxButton`, y la del 3D en `scene/Robot.tsx`
 (sprite), `scene/RobotLabel.tsx` (etiqueta y bocadillo dorado) y `scene/robotBrain.ts` (`callUser`).
 
+### Reglas de oro en cada encargo (v1.29.11 y v1.29.12)
+
+Las cuatro reglas de Andrej Karpathy (el CLAUDE.md de `forrestchang/andrej-karpathy-skills`, que vimos en un reel de
+pablotapias.ia el 24 nov 2026) salen de una queja: la IA da cosas por supuestas y lo complica todo. kywai ya tenía dos:
+la meta comprobable («acceptance», que revisa un agente de otra familia) y las dudas con botones (`QUESTIONS_RULE`).
+Ahora el encargo de toda tarea que trabaja con archivos lleva además tres líneas (`GOLDEN_RULES` en
+`src/main/orchestrator.ts`):
+
+- **Lo más sencillo** que cumpla la tarea, sin funciones, opciones ni capas que nadie pidió.
+- **Cambios quirúrgicos**: solo lo que pide la tarea; nada de reformatear, renombrar o «mejorar» lo de al lado ni
+  borrar lo que no es suyo. Lo que convendría cambiar fuera de la tarea lo dice al final en una frase.
+- **Nada supuesto en silencio**: si la tarea admite varias lecturas, elige la más probable y lo dice.
+
+**«Supuse: …» en el chat (v1.29.12).** La tercera regla pide al agente terminar con una línea «Supuse: …» (literal,
+aunque responda en otro idioma) con lo que dio por hecho. Al terminar la tarea, el chat la quita del resultado y la
+enseña aparte, en ámbar, con el botón **«No era eso»**: prepara una respuesta a ese mismo agente (como «Responder»)
+con «No era eso: » ya escrito, para corregirle sin leer todo el resultado. Si no supuso nada, no sale. En el código:
+`assumptionOf` y `withoutAssumption` en `src/shared/assumption.ts` (con su prueba) y `AssumedNote` en
+`src/renderer/src/ui/left/Messages.tsx`.
+
+Las consultas rápidas (solo leen) y las respuestas solo de texto no las llevan. La habilidad entera
+(`karpathy-guidelines`) va además en el paquete de serie como «Reglas de Karpathy».
+
 ### Tareas bloqueadas: le falta algo, no es un error
 
 Cuando un agente empieza su respuesta con «BLOQUEADA: …» es que le falta algo que no puede conseguir solo (una
@@ -4073,7 +4105,7 @@ Skills, Planning with Files, UI UX Pro Max, Taste Skill, Emil Kowalski Skills, A
 Scientific Skills y Stop Slop. El 22 nov 2026 llegaron Make Interfaces Feel Better (detalles finos de interfaz:
 animaciones, alineación óptica, radios concéntricos, sombras, zonas de clic) y Loopy (bucles de hacer, comprobar y
 corregir con un final claro; solo publica un bucle en Loop Library si el usuario lo pide), y después Claude SEO (auditoría SEO a fondo, 29
-habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
+habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
 traen algunas (Planning with Files, Taste Skill) no se ejecutan. Una habilidad en la raíz de su repositorio lleva sus
 carpetas (como `references/`), menos las de pruebas y las ocultas; con `only`, si la misma sale copiada en varias
 carpetas, vale la primera. Fuera a propósito: ECC y gstack (marcos con hooks que se solapan con Superpowers), Caveman
@@ -6287,6 +6319,15 @@ que mandó el usuario (solo su ritmo, nada de su contenido), de 45 a 60 s y con 
 Las reglas están en `STEPS_STRUCTURE` (`src/main/videoScript.ts`): van en el encargo del guion (una escena por tramo
 y por paso, como mucho 10) y en el de las películas con estilo (cada tramo es un beat de `beats.md`). Combina muy
 bien con el estilo **Robots de bloques**.
+
+**Cinta «1/2» en los vídeos de lista (v1.29.13).** Cuando el vídeo es una lista («2 archivos que…», «3 errores
+al…», los pasos de un tutorial), el guion trae `strip` (el titular corto de la lista) y cada escena de un punto su
+`part` (1, 2…). Con el estilo de kywai (el dinámico), arriba sale fija una cinta de papel con ese titular y el punto
+por el que va («/2» en el gancho, luego «1/2», «2/2»; el número entra con un salto y un «pop»), desde la primera
+escena hasta el cierre. Sin `strip` o con un solo punto, no hay cinta. Sale de un reel de pablotapias.ia (24 nov
+2026); la regla es `LIST_RULE`, y `listStrip`/`listParts` y el bloque `#strip` de `buildComposition` en
+`src/main/videoScript.ts` (con su prueba). Los estilos con presentador, «Charla y tutorial» y el explicativo no la
+llevan.
 
 **Diálogo (dos personajes, dos voces).** En el paso 4 del selector, «Diálogo» (marca `dialogo:si`), o con palabras («un
 diálogo entre…», «una conversación entre…», «charlando»): el vídeo lo cuentan **dos personajes que se contestan**, como
