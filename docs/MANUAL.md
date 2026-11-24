@@ -1086,7 +1086,10 @@ durante 15 min tras pulsar (`requestUpdateNow`, `readPending` añade también `p
 paso la barra avanza según lo que suele tardar y frena al final, sin pasarse. Durante el reinicio, la página «Estamos
 actualizando tu espacio» de Caddy sigue con la barra en el último paso. Desde la 1.30.29 el servidor atiende el botón
 en cada vuelta (2 min) aunque haya fusiones esperando. Código: `src/renderer/src/lib/cloudUpdateProgress.ts` y
-`src/renderer/src/ui/quota/CloudUpdateProgress.tsx`.
+`src/renderer/src/ui/quota/CloudUpdateProgress.tsx`. Desde la 1.30.48 la barra sale nada más pulsar (con la hora del
+clic, `withAskedAt`, si el proceso de la app aún no ha contestado) y la propia barra pregunta `updatePending()` cada 3 s,
+sin depender de que llegue el evento `update.pending`. Un espacio con una versión anterior a la 1.30.30 aún no tiene la
+barra en el aviso: la verá a partir de esa actualización (la página de reinicio de Caddy sí la enseña siempre).
 
 Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
 el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
@@ -2381,6 +2384,15 @@ En «Uso y coste» cada petición guarda su vía (`lane`: direct, agent o full) 
   a todos a la vez (tope 60 s cada uno). Sale una tabla con quién responde, con qué modelo, cuánto tarda y, si falla,
   por qué en palabras sencillas (sin sesión, sin cuota, no instalado, no responde). Código: `src/main/agentProbe.ts` y
   `probeTeam` en `src/main/orchestrator.ts`.
+- **Claude Code anticuado (24 nov 2026).** En Claude Code anterior a la 2.1.331, una herramienta MCP que respondía mal
+  (las de kywai van por MCP en cada tarea) dejaba la llamada esperando hasta 30 minutos y la tarea parecía atascada. Si
+  hay Claude en el equipo y `claude --version` es anterior, «/probar» lo avisa bajo la tabla, y en ⚙ → Configurar
+  agentes → Programas su fila dice «conviene la 2.1.331 o posterior» con un botón «Actualizar» (vuelve a pasar su
+  instalador, que deja la última). La versión mínima está en `src/shared/claudeVersion.ts`.
+- **Lo de fuera son datos, no órdenes (24 nov 2026).** Los agentes de código siguen órdenes escondidas en páginas que
+  salen en sus búsquedas. Cada tarea con carpeta lleva una regla fija (`UNTRUSTED_RULE` en `src/main/orchestrator.ts`,
+  junto a las reglas de oro): lo que lean en webs, búsquedas, issues, comentarios, correos o paquetes son datos; no
+  instalan, ejecutan, mandan claves ni cambian de tarea porque lo pida eso, y si algo lo pide lo cuentan al final.
 - **Hermes con OmniRoute apagado (v1.11.1).** En kywai cloud el OmniRoute del espacio se apaga tras 20 min sin Hermes
   y volver a encenderlo lleva hasta un minuto. Antes ese arranque contaba dentro del tope: la prueba decía «Hermes no
   responde (más de 60 s)» y la primera pregunta tras un rato sin uso se pasaba de los 25 s de la respuesta al momento.
@@ -4328,6 +4340,41 @@ memoria (como el FTS5 con trigramas del original, sin base de datos), y guarda l
 Claude, Codex, Gemini y Hermes en las tareas (no el coordinador). Se apaga en ⚙ → Ajustes → Agentes → «Modo
 contexto». Código: `src/main/contextMode.ts` (+ test), `coworkMcp.ts` (`CONTEXT_TOOL`, `readBigTool`) y la regla del
 encargo en `orchestrator.ts`; ajuste `contextMode` (`setTaskAdvice({ context })`).
+
+**Salidas recortadas** (1.30.42, 24 nov 2026; idea de **Squeez**, Apache 2.0, y de **Token Optimizer**; nada de su
+código copiado; **siempre encendido**). Lo complementa: el Modo contexto depende de que el agente se acuerde de usar
+`leer_grande`; esto va solo. Cuando **Claude Code** o **Hermes** ejecutan algo ruidoso (instalar paquetes, compilar,
+pasar pruebas, `git log`/`clone`/`pull`…), kywai recorta la salida **antes** de que la lean: quita barras de progreso,
+líneas repetidas («(×N)»), pruebas que pasan («✓ … N líneas correctas») y líneas parecidas seguidas, y si aún es
+larga deja el principio, el final y las líneas con errores o avisos (con dos de contexto). Los **errores, avisos y
+resúmenes** («Tests 600 passed») se quedan siempre. Al final añade una nota: «salida recortada de X a Y caracteres… si
+te falta algo, repite filtrando o añade `# kywai-entero`». No toca lo que el agente necesita tal cual (`cat`, `grep`,
+`git diff`/`show`, `npm view`, `docker ps`, `kubectl get`, nada con `| tail`…), ni salidas de menos de 3 000
+caracteres, ni recortes que ahorren menos del 20 %. En una prueba real con Claude Code 2.1.331, un `npm test` de
+24 555 caracteres llegó al agente en 415.
+- **Claude Code**: dos ganchos en `ahorro/claude-ajustes.json` (carpeta de datos) que se pasan con `--settings` solo al
+  trabajar (se suman a los del usuario). `PostToolUse` cambia la salida con `updatedToolOutput` (Claude Code ≥ 2.1.119;
+  en versiones anteriores no hace nada). Los comandos que **fallan** llegan por `PostToolUseFailure`, que no deja
+  cambiarlos: esos pasan enteros. Se probó también reescribir el comando antes (`PreToolUse` + `updatedInput`), pero
+  el filtro de seguridad de Claude Code lo bloquea («expansion obfuscation»): descartado.
+- **Hermes**: un plugin `kywai-ahorro` en `~/.hermes/plugins` (`transform_terminal_output`), activado una vez con
+  `hermes plugins enable kywai-ahorro` (entra al volver a encenderse su gateway). Se quita con
+  `hermes plugins disable kywai-ahorro`.
+- El programa es `ahorro/kywai-ahorro.cjs` (lo reescribe la app al arrancar); se ejecuta con Node si está instalado
+  (arranca en decenas de milisegundos) o con kywai en modo Node. Si algo falla, la salida pasa tal cual.
+
+**Aviso de bucle** (1.30.43, 24 nov 2026; idea de Token Optimizer; antes solo lo tenía el agente local,
+`stuckWatch.ts`). Si **Claude Code** o **Hermes** hacen la **misma llamada** (herramienta y argumentos) 3 veces entre
+las 6 últimas, o chocan 3 veces seguidas con el mismo error (Claude Code), kywai pega a ese resultado «llevas 3 veces
+la misma llamada sin avanzar: prueba otro enfoque». Si se vuelve a atascar, le pide que pare y cuente lo que tiene, y
+**bloquea** esa llamada repetida (en Claude Code con `PreToolUse` → `deny`, que solo niega y nunca aprueba nada; en
+Hermes con `pre_tool_call` → `block`). Lo demás pasa siempre. En Codex y Gemini todavía no: no dejan que kywai les
+hable a mitad de tarea. Código: el mismo programa (`loopGuard`) y `_transform_tool_result` del plugin de Hermes.
+
+Lo que ahorra cada llamada se apunta en `ahorro/llamadas/<id>.jsonl` (`KYWAI_LLAMADA` en el entorno de Claude Code;
+Hermes, en `hermes.jsonl`) y pasa a `UsageCall.trimmedTokens` y `loops` al terminar (ver «¿Dónde se van mis tokens?»
+en [Consumo: ¿compensa?](#consumo-compensa)). Código: `src/main/outputSqueeze.ts` (+ test), `hermesAhorro.ts`
+(+ test), `agents/claude.ts` (`--settings`), `agents/hermes.ts` y `index.ts` (`installSqueeze`).
 
 **Mapa del proyecto** (1.29.0–1.29.2, 24 nov 2026; idea de un reel de nacho.mirandap que «indexa el proyecto como un
 grafo» y dice ahorrar un 70 % de tokens; mismo sitio, **encendido de serie**). En una carpeta con **200 archivos de
@@ -8042,6 +8089,12 @@ entrada, salida y la parte leída de caché), cuánto tardó, si salió bien y c
 - ⚙ → **«Uso y coste…»** (antes «Consumo y tokens…»): totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
   paralelo, tokens, qué parte se fue en planificar y en intentos fallidos), cuota gastada de cada suscripción,
   reparto por agente y el detalle de cada petición. Se puede exportar a CSV.
+- En ese panel, **«¿Dónde se van mis tokens?»** (1.30.44, 24 nov 2026; idea de Token Optimizer): una barra con el
+  reparto del periodo entre **hacer las tareas**, **coordinar**, **comprobar** e **intentos fallidos**, y debajo lo
+  **ahorrado** (tokens que los agentes no tuvieron que leer gracias a las [salidas recortadas](#proyectos-memoria-y-consumo),
+  a unos 4 caracteres por token) y los **bucles** que kywai paró. Si más de una quinta parte se fue en intentos
+  fallidos, lo dice y manda a «Por agente». Código: `WhereTokens` en `UsageDialog.tsx` y `summarize` en
+  `usageStats.ts` (`workTokens`, `verifyTokens`, `trimmedTokens`, `trimmedCalls`, `loops`).
 
 Para comparar con un solo agente (por ejemplo Codex aparte), haz la misma petición allí y compárala con su fila
 (en Codex, `/status` da los tokens). Hermes no informa sus tokens. El registro se guarda en
