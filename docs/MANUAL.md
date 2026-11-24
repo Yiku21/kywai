@@ -1400,7 +1400,7 @@ voz: `LiveVoice.sample` en `src/main/liveVoice.ts` (caché en `voz-muestras/` de
 kywai no es solo para los agentes de fábrica: es una plataforma donde conectas **los agentes que ya pagas**. En
 ⚙ → Ajustes → «Configurar agentes…» (paso «Agentes»):
 
-- **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, **Claude Code + DeepSeek, Kimi o GLM**, **NVIDIA (gratis)**, OpenCode,
+- **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, **Claude Code + DeepSeek, Kimi o GLM**, **NVIDIA**, OpenCode,
   GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid,
   Auggie, Junie, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kiro, **Qwen Code**, **Antigravity CLI**,
   **Rovo Dev**, **MiniMax Code**, **Qoder CLI**, **Kilo CLI**, **Codewhale**… y los de fábrica que hayas
@@ -1574,7 +1574,7 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     y se queda con el primero que responda, avisando del cambio. Su prueba espera hasta 90 s (Gemini CLI tarda en
     arrancar en el espacio) y acepta la palabra de la prueba aunque venga en negrita o dentro de una frase corta.
     **También vale para todos los agentes con clave** que se conectan en la nube con su programa (`cloudAnswers`:
-    NVIDIA, Mistral Vibe, Continue…): la ventana dice el motivo real y lo que contestó el programa. **NVIDIA (gratis)**
+    NVIDIA, Mistral Vibe, Continue…): la ventana dice el motivo real y lo que contestó el programa. **NVIDIA**
     sigue en Nemotron 3 Ultra (`nvidia/nvidia/nemotron-3-ultra-550b-a55b`: en OpenCode el proveedor «nvidia/» va
     delante del id de NVIDIA, que ya empieza por «nvidia/», así que el doble prefijo es correcto); si no responde a
     tiempo, por cuota o por modelo, prueba Nemotron 3.5 Lightning (`nvidia/nvidia/nemotron-3.5-lightning-30b-a3b`) y se
@@ -1763,7 +1763,9 @@ tocar tu suscripción de Claude ni tu Claude normal: kywai solo cambia la direcc
 Free Claude Code sin su proxy (AGPL). Comprobado en nov. de 2026 que el programa llega a las tres APIs (con una clave
 falsa responden «Authentication error»); falta probarlo con una clave de verdad. Datos en `agentCatalogData.ts`.
 
-**NVIDIA (gratis): el plan B cuando se acaba la cuota.** Los modelos gratis de NVIDIA (Nemotron 3 Ultra por defecto;
+**NVIDIA: el plan B cuando se acaba la cuota.** (Desde la 1.30.16 el nombre de un agente no lleva «(gratis)» ni «(de pago)»
+en el chat, el 3D, el 2D ni las fichas: la etiqueta de gratis o de pago sale aparte en el catálogo «Añadir agente». Al abrir
+la app, los nombres ya guardados con ese añadido se limpian solos.) Los modelos gratis de NVIDIA (Nemotron 3 Ultra por defecto;
 también GLM, DeepSeek, MiniMax… según lo que NVIDIA tenga gratis ese mes) como agente de código, a través de OpenCode
 (se instala con él). Solo pide una **clave gratis de build.nvidia.com** (sin tarjeta), que se guarda como las demás en
 «Sesiones». Con él en el equipo, cuando Codex o Claude se quedan sin cuota la tarea pasa a otro agente disponible en vez
