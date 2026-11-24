@@ -5346,6 +5346,41 @@ errores de una se cuelan menos. Si solo hay una familia disponible, el mismo age
 dice. Para arreglar un hallazgo confirmado, una tarea normal o `/arreglar`. Código: `src/main/securityAudit.ts` y
 `sendSecurityAudit` en `orchestrator.ts`; está en la lista del «/» del escritorio, la web y Órbita.
 
+**Dos pasadas, memoria y lista de ataques (1.26.0–1.26.2, 24 nov 2026).** Ideas de seis vídeos sobre la seguridad de
+las apps hechas con IA (la habilidad de Cloudflare, «14 cosas que prueba un atacante», «10 formas de inflarte la
+factura», el rol cambiado en el navegador, la lista de antes de publicar y el plan gratis de Cloudflare):
+- **Dos pasadas** (1.26.0). El vídeo avisa de que una sola pasada encuentra más o menos la mitad de los fallos. Ahora
+  el primer agente termina sus hallazgos con «## Zonas revisadas» y una **segunda pasada** (el mismo agente en una
+  sesión nueva) caza solo donde la primera no llegó y añade «## Segunda pasada» al mismo archivo, siguiendo la
+  numeración. Después, el agente de otra familia desmonta todos.
+- **Memoria** (1.26.0). Si el proyecto ya tiene un `seguridad/informe-<fecha>.md`, la nueva auditoría parte del más
+  reciente: vuelve a comprobar los confirmados y los «por validar», no repite los descartados salvo que su código
+  cambiara y caza sobre todo en lo que cambió desde entonces. El chat lo dice al empezar.
+- **Lista de ataques** (1.26.1). 33 comprobaciones concretas (`ATTACKS` en `securityAudit.ts`): 15 para colarse
+  (rutas de admin, cambiar el ID en la dirección, claves en el navegador, precio, cantidades negativas, pago falso,
+  cupones repetidos, admin al registrarse, rol en el navegador, adivinar códigos, inyección de instrucciones, XSS,
+  subidas, `.env` en Git, inyección SQL), 10 para inflar la factura (IA en bucle, libros en el chat, pruebas gratis
+  repetidas, cuentas falsas, archivos de 5 GB, 100 a la vez, invitaciones como spam, descargas masivas, el chat como IA
+  gratis, códigos por correo o SMS) y 8 de antes de publicar (contraseñas y cookies, HTTPS y cabeceras, CSRF,
+  enlaces que caducan, depuración, dependencias, archivos expuestos, registro de lo sospechoso). Cada una queda como
+  **✓ protegido**, **✗ abierto** o **— no aplica**, con archivo:línea; las de factura abiertas, con lo que podrían
+  costar al mes. El informe acaba con «## Lista de ataques» y el chat añade «Lista: N protegidos · N abiertos · N no
+  aplican». **«/seguridad rápida [qué mirar]»** (o `rapida`, `quick`, `lista`) pasa solo la lista, en una pasada, y la
+  revisión cruzada.
+- **«Revisar seguridad» al terminar** (1.26.2). Cuando una petición termina bien y el código que escribió o cambió el
+  equipo tiene inicio de sesión, pagos, subida de archivos, chat con IA o base de datos (`securitySurfaces`), el chat
+  enseña un aviso con **«Revisar seguridad»** (lanza «/seguridad rápida») y **«Ahora no»** (deja de ofrecerlo en ese
+  proyecto en este equipo). Nunca se lanza solo, sale como mucho una vez cada 6 horas por proyecto y no sale en las
+  rutinas ni al terminar una propia auditoría.
+
+**Prueba de kywai y kywai Cloud contra esa lista (1.26.3, 24 nov 2026).** Se revisó el código ataque por ataque. Lo que
+estaba abierto y se cerró: en la nube, la charla de la voz gratis (`/api/voz/gratis/hablar`) no contaba el uso (ahora
+400 llamadas al día y 24.000 letras por llamada), los tokens de «Hablar con kywai» no tenían tope (ahora no da más con
+90 minutos de tokens sin cerrar, y como mucho 60 al día) y Mi cuenta manda `Strict-Transport-Security`; en la app, el
+código de 6 cifras para emparejar se anula tras 10 fallos en total (además del tope de 10 por minuto y dirección,
+`PAIRING_PIN_MAX_MISSES` en `mobileAuth.ts`) y se actualizó `fast-uri` (fallo moderado). Queda propuesto, sin hacer,
+Turnstile de Cloudflare en el registro de kywai Cloud (hoy cada cuenta nueva la aprueba el administrador).
+
 ### Vigilar una web (`/vigilar`)
 
 **«/vigilar <web> [cada N horas] [condición]»** vigila una página y te avisa en **«Te necesita»** cuando cambia lo que te
