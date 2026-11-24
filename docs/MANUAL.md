@@ -1008,6 +1008,16 @@ enseña el código para compararlo y, cuando lo confirmas, empareja el móvil co
 Seguridad lo lista y lo quita). La dirección que dé el portal solo se acepta si es `https://<id>.nube.kywai.app`. Código:
 `data/net/CloudLogin.kt` y `startCloud()` en `ui/onboarding/OnboardingViewModel.kt`.
 
+**Certificados en Órbita (kywai 1.29.9, 24 nov 2026).** Órbita comprueba el certificado de tu espacio (o de tu
+ordenador) con `PinningTrustManager` (`data/net/Tls.kt`): primero los certificados del sistema y, si no los reconoce,
+solo el certificado cuya huella confirmaste. Hasta la 1.29.9 le preguntaba al sistema sin decirle de qué servidor era,
+y como la app tiene reglas de red por dominio (`res/xml/network_security_config.xml`, las de `localhost`), Android
+rechazaba la pregunta («Domain specific configurations require that hostname aware checkServerTrusted…»). Así,
+«Entrar con kywai cloud» fallaba justo tras confirmar en Mi cuenta con «No se pudo llegar a tu espacio de kywai Cloud»,
+sin que la petición llegara al servidor. Ahora es un `X509ExtendedTrustManager` que le pasa al sistema la conexión (y
+con ella el nombre). Además, el emparejamiento con kywai Cloud (`pairWithPass`) espera hasta 45 s, porque el servidor
+reintenta hasta 20 s si el portal tarda. Prueba: `PinningTrustManagerTest`.
+
 **Mientras el espacio se actualiza** (despliegue de una versión nueva), el servidor responde 502, 503 o 504 durante
 unos segundos. La app ya no enseña «Error 502»: lo que solo lee (estados y listas, p. ej. Ajustes → Multimedia) espera
 y lo intenta otra vez solo (a los 3, 6 y 10 s), y si sigue sin responder dice «El servidor se está actualizando a una
