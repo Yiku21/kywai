@@ -7514,7 +7514,10 @@ pelo y se asienta.
 - **Onda al pulsar**: en cualquier botón, pestaña, fila u opción de menú sale una onda desde el punto exacto donde
   pulsas y se queda dentro de su forma.
 - **Resalte que se desliza**: en las pestañas, la barra lateral, los menús y la lista de Ajustes, el fondo de «estás
-  encima» es una sola pieza que viaja de una fila a otra con muelle, en vez de encenderse y apagarse en cada una.
+  encima» es una sola pieza que viaja de una fila a otra (130 ms, sin rebote), en vez de encenderse y apagarse en cada
+  una. Si mueves el ratón deprisa (menos de 110 ms por fila) salta directo a la fila de debajo, para que nunca se quede
+  detrás (antes, con un muelle de 340 ms, llegaba a ir una fila entera por detrás). Los botones se encienden en 70 ms al
+  entrar el ratón y se apagan con calma al salir (`--dur-hover-in`).
 - **Menús y globos** encogen un poco y funden al cerrarse (antes desaparecían de golpe); lo que recibe el foco del
   teclado se marca con un aro que llega desde fuera.
 - **Tarjetas** (Resultados, Tablero, temas, cuotas): se levantan con su sombra al pasar por encima y ceden al pulsar.
@@ -7535,7 +7538,13 @@ y la salida de los paneles `useExitGhost` (`ui/common/motion.ts`): al desmontars
 que se va (los iframes, vídeos y lienzos de la copia se cambian por su fondo para no recargarlos). Lo del arrastre está en `lib/dragMotion.ts`: `setDragCard` (la tarjeta) y `flipRows` (mide las
 filas con `data-slot` antes y después de soltar y anima la diferencia). La onda y el resalte que se desliza son
 `lib/touchFeedback.ts` (escucha en el documento: no hay que tocar cada botón; las listas se marcan con `data-glide` y
-lo que no debe llevarse el resalte, con `data-no-glide`). Los menús que se cierran llevan `data-exit-motion`
+lo que no debe llevarse el resalte, con `data-no-glide`; `glideTravels` decide si viaja o salta).
+
+**Que el ratón no frene la interfaz (1.29.4).** Con Vidrio líquido la luz del cristal sigue al ratón, pero si el 3D
+ya se está dibujando a su ritmo (`sceneDrawing` en `scene/perfStats.ts`) el movimiento solo apunta la luz y la recoge el
+siguiente fotograma: antes cada movimiento pedía además un dibujo entero del 3D y la tarjeta gráfica trabajaba casi el
+doble justo al mover el ratón. Los peluches que miran al ratón (`lib/PlushAvatar.tsx`) miden todos y después escriben,
+y solo lo que cambia; la mascota que mira (`WatchingMascot`) se mide una vez por fotograma. Los menús que se cierran llevan `data-exit-motion`
 (`lib/dialogMotion.ts`). Los sonidos son `playUi` en `lib/audio.ts` (`tab`, `toggleOn`, `toggleOff`, `open`, `close`,
 `expand`, `collapse`, `pick`, `drop`, `send`, `copy`), sintetizados como el resto. Las
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
@@ -8519,6 +8528,14 @@ claro en los claros y oscuro en los oscuros) al 82-90 %. Capturas en `/mnt/proje
     abajo) y, con la barra unida del todo (`data-fused` + `:root[data-logo-fused]`), sube su rectángulo `--bar-reach`
     píxeles para envolver el logo: barra y logo son una sola pieza de cristal, sin el canto brillante que dejaba una
     raya bajo el logo. El líquido de `LogoBridge` solo se ve mientras se une.
+    **Más ligero** (24 nov 2026, Yil: «me gusta como se ve pero pone la interfaz lenta»): con Vidrio líquido el 3D
+    ocupa toda la ventana, y el cristal se calculaba en cada punto de la ventana repasando todas las piezas (hasta 40).
+    Ahora se dibuja por trozos (`glassDraws` en `lib/liquidShader.ts`): un trozo por pieza, recortado a su caja más
+    `GLASS_EDGE` px, y en cada trozo solo cuentan las piezas a menos de `GLASS_REACH` px (lo que alcanza la unión
+    suave de las gotas). Se ve igual, punto por punto; en el navegador de pruebas la pasada del cristal pasó de unos
+    680 ms a unos 180 ms por fotograma. Además las piezas solo se vuelven a medir mientras algo puede moverlas (la
+    ventana cambia, una transición o animación de CSS, desplazar, pulsar o arrastrar, escribir, una gota que se
+    desliza; `HOT_MS`) y, por si acaso, uno de cada diez fotogramas (`remeasure`); antes se medían en todos.
     **Sin parpadeos con una ventana encima** (21 nov 2026, aviso de Yil: «cuando una ventana o chat está por encima
     y subes o bajas una lista da flashazos y microcortes donde el modelo 3D se pone en primer plano»). Tres causas:
     (1) el evento de desplazar (`scroll`) no trae ratón y la luz del cristal recibía `NaN`, así que el canto del
