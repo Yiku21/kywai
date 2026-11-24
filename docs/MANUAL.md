@@ -5633,7 +5633,8 @@ prueba** (trial reel): Instagram lo enseña primero solo a quien **no** sigue la
 solo a los seguidores (`trial_params` con `SS_PERFORMANCE` en la API). Sirve para probar un gancho o un formato sin
 gastar a los seguidores. La tarjeta dice «Reel de prueba».
 
-**Resultados.** **«/instagram resultados»** lee con la API los números de los últimos 12 reels (vistas, alcance, me
+**Resultados.** **«/instagram resultados»** lee los números de los últimos reels (con Instagram conectado con un clic,
+las analíticas de Zernio; si no, la API con el token: los últimos 12) (vistas, alcance, me
 gusta, comentarios, guardados, envíos y tiempo medio de visionado), los guarda en
 `<carpeta de trabajo>/instagram/resultados.md` (los mejores, los peores y una tabla con todos) y te dice en el chat
 cuáles funcionaron mejor. Con **3 reels o más**, los guiones de `/video` y los textos de `/instagram` leen ese archivo:
@@ -5728,11 +5729,42 @@ voz de la cuenta). Lo que pasa:
    siguen la cuenta). Se publica con tu visto bueno en la tarjeta, o solo si tienes activado «Publicar sin preguntar».
    Con «sin publicar» detrás («/turno-noche IA sin publicar») se queda en el vídeo.
 
-**Varios reels de prueba de una vez.** Con un número («/turno-noche 3 reels IA», «/turno-noche IA x3» o «tres al
-día», hasta 5) el turno hace una **tanda**: cada reel sale de un vídeo fuente distinto y prueba otro tipo de gancho
-(pregunta, cifra, contradicción, antes y después, error común), para saber antes qué funciona. Deja `desmontaje-1.md`,
-`guion-1.md`, `desmontaje-2.md`… y una orden `/video` por reel; kywai hace los vídeos y prepara cada uno como reel de
-prueba según termina. Para repartirlos a lo largo del día, mejor una rutina («/rutina cada 8 horas: /turno-noche IA»).
+**Varios reels de prueba de una vez.** Con un número («/crecer 20 reels IA», «/turno-noche IA x3», «tres al día» o
+«veinte reels», **hasta 20**, `NIGHT_SHIFT_MAX`) el turno hace una **tanda**: cada reel sale de un vídeo fuente distinto
+y prueba otro tipo de gancho (pregunta, cifra, contradicción, antes y después, error común), para saber antes qué
+funciona. Deja `desmontaje-1.md`, `guion-1.md`, `desmontaje-2.md`… y una orden `/video` por reel.
+
+**La máquina de reels (1.23.0–1.23.3).** Lo que enseñaba un vídeo de una «máquina de reels» hecha con Claude (50 reels,
+un «Ve», 5 al día, los ganadores a todas las redes y cada tanda aprende de la anterior), hecho con kywai y solo para
+Instagram y TikTok:
+
+- **Mesa de revisión (1.23.0).** Una tanda que se publica abre en el chat una tarjeta con todos sus reels en una
+  **rejilla** (portada, gancho y estado). Van llegando según se hace cada vídeo («Haciéndose…» mientras tanto). Cada
+  reel sigue teniendo su tarjeta de Instagram más abajo para cambiar el texto o la portada; en la rejilla se **quita**
+  con la ✕. Un solo **«Ve»** (también en «Te necesita») los manda todos; «Descartar la tanda» descarta los pendientes.
+  Los reels de una tanda no llenan «Te necesita» uno a uno: hay un solo aviso por tanda. Con «Publicar sin preguntar»
+  la tanda entra directamente en la tabla. Código: `addToReelBatch`/`decideReelBatch` en el orquestador,
+  `ReelBatchBlock.tsx`, tipos `ReelBatch` y `InstagramPost.batch`.
+- **Tabla de publicación (1.23.1).** Con «Ve», los reels se reparten **N al día** (5 por defecto, de 1 a 10 en la
+  tarjeta) entre las **10:00 y las 21:00** hora del equipo, siguiendo después del último ya programado
+  (`src/shared/reelBatch.ts`: `daySlots`, `reelSlots`). Se **programan en Zernio** (`scheduledFor` en
+  `zernioPublish`) como reels de prueba: Zernio los publica solos a su hora aunque el equipo esté apagado. La tarjeta
+  pasa a enseñar la tabla por días con la hora y el estado de cada uno. Sin Zernio no hay programador: salen ahora los
+  de hoy y el resto espera en la mesa (lo dice el chat).
+- **Ganadores a TikTok (1.23.2).** Un **ganador** es un reel que hace **3 veces o más** la mediana de vistas de la cuenta
+  (con 4 reels con números como mínimo; `winners` en `src/main/reelMachine.ts`). «/instagram resultados» (y el inicio
+  de cada `/crecer`) lee los números con **las analíticas de Zernio** (`zernioReelStats`; si la cuenta de Zernio no
+  tiene analíticas, con el token si lo hay) y, si TikTok está conectado, prepara cada ganador hecho por kywai para
+  **TikTok** con su tarjeta de siempre (texto adaptado, enviar como borrador o publicar). Cada ganador se prepara una
+  sola vez. Para saber qué vídeo es cada reel, kywai apunta lo que publica o programa en
+  `<carpeta de trabajo>/instagram/maquina.json` (vídeo, gancho, duración e ids de Zernio e Instagram; sin el texto
+  entero). Solo Instagram y TikTok por ahora (Yil, 24 nov): YouTube, LinkedIn y X quedan para más adelante.
+- **Mapa de reels (1.23.3).** «/instagram resultados» enseña en el chat un **gráfico**: cada reel es un punto (vistas
+  hacia arriba, segundos de visionado medio hacia la derecha), los ganadores en dorado y la línea del triple de la
+  media. Debajo, **qué funciona**: el tipo de gancho que más gana, si los ganadores retienen más, su duración y sus
+  ganchos literales (`reelLessons`). Eso mismo se guarda como sección «Qué funciona» en `instagram/resultados.md`, y el
+  encargo de `/crecer` lo trata como la regla número uno de la tanda siguiente (la mayoría de los reels siguen esa
+  fórmula y uno o dos prueban algo distinto). Al empezar cada `/crecer`, kywai actualiza los números antes de escribir.
 
 Todo queda en `<carpeta de trabajo>/instagram/turno-noche/<fecha>/` (`elegidos.md`, `fuente/`, `desmontaje.md`,
 `guion.md` y los datos de la cuenta). Código: `src/main/nightShift.ts` (el encargo y la orden del vídeo) y
