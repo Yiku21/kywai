@@ -1024,6 +1024,29 @@ y lo intenta otra vez solo (a los 3, 6 y 10 s), y si sigue sin responder dice «
 versión nueva. Espera un minuto y vuelve a intentarlo». Lo demás no se repite (para no hacer dos veces una acción) y
 da ese mismo aviso. Pedido por Yil el 23 nov 2026. Código: `call()` en `src/renderer/src/lib/api.ts`.
 
+**Una actualización de la nube no corta a quien está trabajando** (1.30.8, pedido por Yil el 24 nov 2026). Cada espacio
+escribe cada 20 s en su carpeta de datos `ocupado.json`: cuántas peticiones del chat o del equipo siguen en marcha
+(incluye /video y las respuestas de Hermes), cuántos programas de fondo hay (ffmpeg, renders, instalaciones), si la voz
+en directo está abierta, cuándo se tocó la interfaz por última vez (la web lo avisa como mucho una vez por minuto con
+`cloudActivity`) y la zona horaria de quien la usa. Solo números y horas: nada de lo que se escribe. El despliegue de
+kywai Cloud lo lee desde el servidor y no cambia un espacio ocupado (o usado en los últimos 5 min) hasta que queda
+libre. Código: `src/main/cloudBusy.ts` (lo arranca `index.ts` solo en la nube) y `src/renderer/src/lib/cloudActivity.ts`.
+
+Cuando el servidor deja a un espacio con la versión nueva esperando (porque estaba ocupado), deja también
+`actualizacion-pendiente.json` en su carpeta de datos. Con él (1.30.10) se enciende el aviso amarillo de ⚙ y sale abajo a
+la derecha la franja **«Hay una versión nueva de kywai» con «Actualizar ahora» y «Luego»**. Desde el 24 nov 2026
+(Yil) el espacio **no se actualiza hasta que su dueño lo pide** (ver el despliegue en kywai-cloud: solo se cambian solos
+los espacios apagados y los que llevan 24 h sin nadie conectado ni nada en marcha). «Luego» calla el aviso un día en
+ese navegador. «Actualizar ahora» lo
+apunta en `ocupado.json` y el servidor lo cambia en un par de minutos aunque haya trabajo en marcha; lo que estaba a
+medias sigue solo al volver y la página se recarga sola. Lo mismo está en ⚙ → Buscar actualizaciones. Código:
+`src/renderer/src/ui/quota/CloudUpdateToast.tsx`.
+
+Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
+el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
+Las peticiones que estaban a medias siguen solas como siempre (`resumeAfterRestart`). Código: `keepUnsent` y
+`takeUnsent` en `src/renderer/src/ui/left/composerStore.ts`, y el evento `cowork:before-reload` de `lib/api.ts`.
+
 ### kywai sin pantalla (servidor sin monitor o en la nube)
 
 kywai puede arrancar **sin abrir ninguna ventana**, solo como servidor: para un equipo sin monitor o para un
