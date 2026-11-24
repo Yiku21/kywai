@@ -4337,22 +4337,45 @@ Sirve para lo que una API no da: por ejemplo, documentar los pasos de un workflo
   Studio, Colibri) y los CLI de catálogo no lo tienen: una tarea que nombra el navegador de kywai (o GoHighLevel) no
   va a ellos ni en el plan ni en los relevos (`needsKywaiBrowser`, `hasKywaiBrowser`), y si aun así les llega
   responden «BLOQUEADA:» para que otro la haga.
-- **Desde el cliente de escritorio, la web u otro equipo:** el navegador vive en el equipo donde trabajan los agentes
-  (el servidor) y se ve **en vídeo en directo, como AnyDesk** (`src/main/browserStream.ts`): una ventana oculta de
-  kywai graba la pestaña con la captura de pestaña de Chromium (`setDisplayMediaRequestHandler` solo se la da a ella)
-  y la manda por WebRTC directo entre los dos equipos, por Tailscale o la red de casa, sin servidores de fuera (sin
-  STUN ni TURN; para eso kywai arranca con `WebRtcHideLocalIpsWithMdns` apagado, y las webs del navegador siguen sin
-  ver las IP locales con `setWebRTCIPHandlingPolicy`). Ratón y teclado vuelven por un canal de datos del mismo enlace
-  (un clic llega en milisegundos), y la vista manda su tamaño cada 3 s: si nadie mira la pestaña en el servidor, la
-  página se maqueta a ese tamaño. Texto nítido antes que movimiento suave (`contentHint = 'detail'`, hasta 8 Mbps).
-  Si el vídeo no conecta en ~9 s (por ejemplo, entrando por un túnel sin camino directo), sigue con **imágenes**:
-  cada petición espera (hasta 1 s) a que pase algo (un fotograma nuevo, un clic, la rueda o una carga, tras los que se
-  mira cada ~90 ms durante 1,5 s), hace una captura y solo la manda si cambió; ratón y teclado van entonces en una
-  sola cola y por lotes. En los dos modos se maneja como una web: al mover el ratón los menús se despliegan y el
-  puntero cambia (mano en enlaces, barra en textos), clic, doble clic, clic derecho, arrastrar, rueda (también
-  horizontal con Mayús), teclado, atajos con Ctrl/Alt/Cmd y pegar desde tu portapapeles. Al hacer clic sale un círculo
-  donde pulsaste y una raya arriba mientras la página carga. Copiar y cortar se quedan en el portapapeles del
-  servidor. La ventana de kywai tiene que estar abierta en el servidor (aunque esté detrás de otras).
+- **Desde el cliente de escritorio, la web, Órbita u otro equipo:** el navegador vive en el equipo donde trabajan los
+  agentes (el servidor) y se ve **en vídeo en directo, como AnyDesk**. Una ventana oculta de kywai graba la pestaña
+  con la captura de pestaña de Chromium (`setDisplayMediaRequestHandler` solo se la da a ella) y la vista prueba a la
+  vez dos caminos; se queda con el mejor que conecte:
+  1. **Vídeo directo (WebRTC)** (`src/main/browserStream.ts`): de equipo a equipo por Tailscale o la red de casa, o
+     por el **servidor de paso de Cloudflare** (TURN, `src/main/browserTurn.ts`) cuando no hay camino directo, como
+     en kywai Cloud. Ratón y teclado vuelven por un canal de datos del mismo enlace. Las direcciones se reúnen como
+     mucho 1,5 s por lado, se prefiere H.264 (el chip de vídeo del Mac lo codifica casi gratis), hasta 30 fps y
+     8 Mbps, con poca red baja un poco la nitidez antes que ir a saltos (`balanced`) y la vista no guarda colchón de
+     reproducción (`jitterBufferTarget = 0`). Sin servidor de paso, WebRTC no usa servidores de fuera (sin STUN ni
+     TURN; para eso kywai arranca con `WebRtcHideLocalIpsWithMdns` apagado, y las webs del navegador siguen sin ver
+     las IP locales con `setWebRTCIPHandlingPolicy`).
+  2. **Vídeo por WebSocket** (`/api/browser-video`, `src/main/browserSocket.ts`; vista en
+     `src/renderer/src/lib/browserVideo.ts`): la misma captura se codifica con WebCodecs en H.264 (o VP8 si no hay)
+     y va por el mismo HTTPS que la interfaz, así que llega a todas partes (Caddy en la nube, túneles, Órbita). Solo
+     se manda lo que cambia: una página quieta no gasta nada. Un fotograma de una página con texto pesa unos 5 KB,
+     frente a unos 250 KB de una imagen JPEG. A una vista lenta (más de 768 KB por salir) se le saltan fotogramas
+     hasta que se vacía y entonces recibe uno completo; ratón, teclado, tamaño de la vista y el «ping» del medidor
+     van por el mismo socket. Necesita el mismo acceso que `/api/call` (código de acceso o cliente emparejado).
+  3. **Imágenes** (reserva, si la vista no sabe decodificar vídeo o el servidor no sabe codificarlo): cada petición
+     espera (hasta 1 s) a que pase algo (un fotograma nuevo, un clic, la rueda o una carga, tras los que se mira cada
+     ~90 ms durante 1,5 s), hace una captura y solo la manda si cambió; ratón y teclado van entonces en una sola cola
+     y por lotes.
+
+  La vista manda su tamaño cada 3 s: si nadie mira la pestaña en el servidor, la página se maqueta a ese tamaño. Al
+  girar la rueda, la imagen se mueve ya en tu pantalla (hasta 160 px) y vuelve a su sitio cuando llega la página
+  desplazada de verdad. Abajo a la derecha, un **medidor** dice el camino («Vídeo directo», «Vídeo» o «Imágenes»,
+  este en ámbar), los fotogramas por segundo y la ida y vuelta en ms. En todos los modos se maneja como una web: al
+  mover el ratón los menús se despliegan y el puntero cambia (mano en enlaces, barra en textos), clic, doble clic,
+  clic derecho, arrastrar, rueda (también horizontal con Mayús), teclado, atajos con Ctrl/Alt/Cmd y pegar desde tu
+  portapapeles. Al hacer clic sale un círculo donde pulsaste y una raya arriba mientras la página carga. Copiar y
+  cortar se quedan en el portapapeles del servidor. La ventana de kywai tiene que estar abierta en el servidor
+  (aunque esté detrás de otras).
+- **Servidor de paso (TURN de Cloudflare):** en kywai Cloud el espacio pide las direcciones al portal
+  (`GET /api/turn`, con el mismo secreto que la voz incluida); la clave de Cloudflare (`KYWAI_CF_TURN_ID` y
+  `KYWAI_CF_TURN_TOKEN`) solo está en el portal. En la self host es opcional: con `KYWAI_TURN_KEY_ID` y
+  `KYWAI_TURN_TOKEN` en el entorno, kywai las pide a Cloudflare. Las credenciales duran 4 horas y se renuevan 10
+  minutos antes; las del puerto 53 se descartan. Sin nada de eso, WebRTC solo conecta con camino directo y en la
+  nube manda el vídeo por WebSocket.
 
 **Cómo está hecho** (`src/main/browser.ts`, `src/shared/browser.ts`, `src/renderer/src/ui/pane/BrowserPane.tsx`):
 es una `WebContentsView` pegada a la ventana principal que la interfaz coloca encima de su hueco (`browserShow`). Si
