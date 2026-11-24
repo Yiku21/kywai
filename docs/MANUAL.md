@@ -716,6 +716,11 @@ preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale d
 basta con actualizar kywai en el ordenador (⚙ → «Buscar actualizaciones…») para que el móvil la vea. Solo
 hay que instalar la APK a mano una vez: la primera versión que trae este botón.
 
+**Con kywai Cloud (1.30.36):** el espacio de la nube no lleva la APK dentro, así que baja la última Órbita
+publicada del repositorio público (la misma de la última Release), comprueba su huella y se la ofrece al móvil
+emparejado igual que un ordenador. No hace falta ningún ordenador: Ajustes → Acerca de → **Órbita** dice si hay una
+versión nueva y «Instalar la versión …» la instala encima.
+
 Si el ordenador tiene kywai **descargado de Releases** (sin la carpeta del código), no hay `android/release/` que
 leer: cuando el móvil pregunta, kywai baja `orbita.json` y `orbita.apk` de `master` del repositorio público
 (`raw.githubusercontent.com/Yiku21/kywai/master/android/release/`), comprueba que la APK es exactamente la anotada
@@ -751,8 +756,10 @@ lo corten:
 
 - **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
   los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados» (en el escritorio se llama «Favoritos»), los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
-  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Historial, Te necesita con su número, Chat,
-  Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
+  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Historial, Más, tus proyectos y
+  Ajustes abajo). **Menos cosas en pantalla, como el escritorio (1.30.36):** Chat, Tareas y Resultados ya no se repiten
+  en la barra (están en las pestañas de arriba), «Te necesita» solo sale cuando hay algo pendiente (si no, está en
+  «Más») y la Música también va en «Más». En la tableta cada icono lleva su nombre debajo; en el móvil en
   vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
   cajón por encima). Lo hace `SidebarRail` en `ui/orbita/Sidebar.kt`.
 - **Nombre del ordenador:** abajo en la barra lateral sale a qué ordenador estás conectado («macmini.lan»). Tócalo para
@@ -776,6 +783,20 @@ lo corten:
   Resultados, bajo la barra de arriba). La pestaña Tareas lleva el número de tareas en marcha.
 - **Un agente a la vez:** abajo, en vez de la barra del Equipo, sale la ficha de un agente con **‹ ›** (o deslizando)
   para pasar al siguiente; tocarla abre su tarjeta. Las tareas en pausa avisan arriba.
+- **Hablar con kywai siempre a mano (1.30.36):** junto a esa ficha hay un botón redondo con la onda. Tócalo desde
+  cualquier pestaña (también el Espacio) y se abre el chat con la voz en directo ya empezada; lo que se dice queda
+  escrito. Sale si el ordenador o kywai Cloud tienen la voz en directo y no hay ya una llamada (`LiveTalkButton` en
+  `ui/orbita/LiveVoiceUi.kt`). El botón de la onda del cuadro de escribir sigue igual.
+- **Peluches, como el escritorio (1.30.36):** los agentes de Órbita son los mismos peluches que en kywai
+  (los dibujos de `src/renderer/src/assets/peluche`, copiados en `android/app/src/main/assets/peluche`), con sus ojos
+  pintados encima: parpadean, se concentran al trabajar y entornan los ojos al pensar. Salen en el chat, las fichas,
+  las listas y la ficha de abajo (`ui/plush/PlushAvatar.kt`) y en el Espacio 3D, de pie en cada puesto y siempre de
+  cara (`drawPlush` en `ui/space/gl/SpaceRenderer.kt`). Quién lleva qué peluche se decide igual que en el escritorio
+  (`ui/plush/Plush.kt`, copia de `lib/plush.ts`). En el 3D, un agente parado solo lleva una píldora con su nombre; la
+  tarjeta con el modelo y el estado sale cuando trabaja, piensa, espera, falla, te necesita o lo tocas.
+- **Letras legibles con todos los temas (1.30.36):** las ventanas (Novedades, cambiar nombre, plantillas…), los bloques
+  de código y los botones rojos usan los colores del tema; antes tenían un azul oscuro fijo y con un tema claro las
+  letras oscuras no se leían.
 - **Controles de la cámara** (acercar, alejar, centrar) flotando abajo a la derecha en la tableta.
 - **Música sin anuncios:** ☰ → Música abre las radios de SomaFM y Audius con buscador y volumen. Mientras suena
   queda un reproductor pequeño en la barra de arriba; se para al salir de la app.
