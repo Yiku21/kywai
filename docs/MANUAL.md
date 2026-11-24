@@ -2248,6 +2248,43 @@ como consulta rápida (que solo lee) y el agente te mandaba a «Mis agentes». A
 - **Windows**: las ventanas de un programa abierto como administrador no se pueden manejar salvo que kywai también
   se abra como administrador. **Linux**: con Wayland solo se maneja la ventana de delante; leer las ventanas necesita
   AT-SPI (activado en GNOME y KDE).
+- **Sin mover tu ratón en Windows y Linux** (1.30.52, `src/main/agentDesktop.ts` + `src/main/computerElements.ts`; idea
+  del vídeo de gitrepo.es): un segundo motor, **agent-desktop** (vercel-labs/agent-desktop, licencia Apache-2.0), da a
+  los agentes la herramienta `ordenador_elementos`. Lee cada ventana como una lista de botones y campos con su ref
+  («@s…:eN», del árbol de accesibilidad: UI Automation en Windows, AT-SPI en Linux) y pulsa o escribe en ellos con la
+  propia accesibilidad del sistema, **sin mover el puntero ni quitarte la ventana**: puedes seguir trabajando mientras
+  tanto. Los agentes la usan antes que `ordenador_usar`, que queda para arrastrar, coordenadas y capturas; en Mac sigue
+  Cua, que ya trabaja en segundo plano. Se descarga sola (unos 16 MB, la primera vez o al minuto de abrir kywai) del
+  paquete oficial de npm en una **versión fija** (`AD_VERSION`), comprobando su huella sha512 y la sha256 del programa;
+  no se ejecuta su instalador. Solo pasan las acciones de `AD_ACTIONS` (sin portapapeles, ratón físico, cajas de
+  arena ni sesiones), cada una con los permisos de siempre, y su estado vive en la carpeta de datos de kywai
+  (`agent-desktop/estado`), sin las variables con claves. Lo que se escribe en un campo de contraseña o código sale
+  como «••••••» en el permiso y en la ventanita en vivo. Desde kywai cloud funciona igual en un PC con «Ratón y
+  teclado» encendido (con kywai 1.30.52 o más en ese PC).
+- **Si la pantalla cambia, reintenta solo cuando es seguro** (1.30.53, `retryStale` en `computerElements.ts`): si
+  al pulsar o escribir la ref ya no vale (`STALE_REF`, `ELEMENT_NOT_FOUND`, `WINDOW_NOT_FOUND`: la ventana se redibujó o
+  se volvió a abrir) y el motor dice que **no llegó a hacerse** (`retry: safe`, `not_delivered`), kywai vuelve a leer
+  la ventana igual que antes, busca el **mismo** botón o campo (mismo papel y nombre; si hay varios, el del mismo
+  camino) y lo intenta **una vez** con la ref nueva, avisando al agente. Si pudo llegar a hacerse, si el botón sale
+  repetido o ya no está, no repite: explica el error en español con qué hacer (con varias ventanas iguales,
+  `AMBIGUOUS_TARGET`, le da la lista para que elija una con `window_id`).
+- **Apps grandes gastando menos tokens** (1.30.54, `renderSnapshot` y `actionText` en `computerElements.ts`): la
+  ventana le llega al agente como **líneas cortas** (`[@s…:e3] button «OK»`, con su valor y solo los estados que
+  importan; los grupos vacíos no ocupan línea) en vez del JSON del motor, que en un diálogo sencillo es casi tres
+  veces más largo (836 frente a 301 caracteres, medido en Linux). Si la ventana pasa de `BIG_LINES` (150) líneas, como
+  Slack, Excel o un navegador, kywai le da primero el **mapa de sus zonas** (`skeleton`, con «+N dentro») y el agente
+  pide solo la que necesita con `root`. Pulsar o escribir contesta en una línea («Hecho y comprobado. Ahora vale…»).
+  Este motor no manda capturas de pantalla.
+- **Tus avisos del sistema** (1.30.55, `src/main/computerNotifications.ts`, herramienta `ordenador_avisos`, también
+  en **Mac**): «lee mis notificaciones», «descarta el aviso del calendario», «pulsa Abrir en el aviso del correo». Lee
+  el Centro de notificaciones (Mac), el Centro de actividades (Windows) o los avisos de GNOME (Linux) con el mismo
+  motor agent-desktop, en líneas cortas (número, app, título, texto y botones). Para descartar o pulsar un botón el
+  agente tiene que decir **qué aviso era** (`expected_app` y/o `expected_title`): si en ese número ya hay otro, no se
+  toca. Donde el sistema no deja abrir el panel por dentro (`POLICY_DENIED`: Windows con el Centro de actividades
+  cerrado, Linux) se repite como lo haría una persona (`--headed`, un momento en primer plano). Permisos de siempre:
+  mirar es «ver tu pantalla»; descartar o pulsar pide permiso con «Preguntarme antes», y «Enviar» o «Borrar» se
+  confirman siempre. En Mac usa el permiso de **Accesibilidad** de kywai. Probado en Linux sin GNOME (avisa de que no
+  hay servicio de avisos); en Mac y Windows falta probarlo con avisos de verdad.
 
 Permisos, iguales para todo: con **acceso completo** actúan solos; con **«Preguntarme antes»** (o «Solo la carpeta del
 proyecto») cada acción te pide permiso. **Borrar, pagar, comprar, publicar o enviar lo confirmas siempre tú**, aunque
