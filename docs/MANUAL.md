@@ -2163,7 +2163,14 @@ como consulta rápida (que solo lee) y el agente te mandaba a «Mis agentes». A
   piden en la nube; cada acción viaja por el puente (`deviceBridge.computer` → `bridgeClient.handleComputer` →
   `runComputer` con `remote`) y se hace en el PC con su motor. En el PC se ve en la ventanita («… usa este PC desde
   kywai cloud») y **Parar** también corta la tarea de la nube. Si el Mac aún no tiene los permisos, se abre solo el
-  ajuste de Privacidad y seguridad. Apagado en los equipos que ya estaban conectados hasta que lo enciendas.
+  ajuste de Privacidad y seguridad. Va con «Conectar kywai cloud con este PC» (también en los equipos que ya estaban
+  conectados); se apaga por separado en «Elegir qué hace».
+- **Con varios equipos** (1.30.1): cada mensaje que envías desde la app de escritorio lleva su equipo (lo pone el
+  servidor por la llave de ese equipo, `withOrigin` en `webServer.ts`; la página no puede cambiarlo) y «Tu ordenador»
+  actúa **en el equipo desde el que escribes**. Si nombras otro («en mi Windows haz…», «en el Mac mini»), el agente lo
+  pasa en `equipo` y se hace allí (`matchComputer`: por nombre o por sistema). Desde el navegador o el móvil, en el
+  equipo que usaste hace menos. Si escribes desde un equipo con «Ratón y teclado» apagado, kywai te lo dice en vez de
+  usar otro. Hermes ve la lista de tus equipos en «¿Se puede aquí?» y el permiso dice en qué equipo se hará.
 - **Windows**: las ventanas de un programa abierto como administrador no se pueden manejar salvo que kywai también
   se abra como administrador. **Linux**: con Wayland solo se maneja la ventana de delante; leer las ventanas necesita
   AT-SPI (activado en GNOME y KDE).
