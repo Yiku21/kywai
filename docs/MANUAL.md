@@ -1048,6 +1048,16 @@ apunta en `ocupado.json` y el servidor lo cambia en un par de minutos aunque hay
 medias sigue solo al volver y la página se recarga sola. Lo mismo está en ⚙ → Buscar actualizaciones. Código:
 `src/renderer/src/ui/quota/CloudUpdateToast.tsx`.
 
+**Barra de «Actualizar ahora»** (1.30.30, Yil 24 nov 2026: «dame una barra de update»). Tras pulsar el botón, el aviso
+y ⚙ → Buscar actualizaciones enseñan una barra con tres pasos (**Pedido enviado**, **Guardando tus datos**,
+**Reiniciando**) y el tiempo que suele faltar. Los pasos son los reales: el servidor los apunta en
+`actualizacion-pendiente.json` (`paso`: `copiando` o `reiniciando`, `pasoDesde` en segundos) y la app lo mira cada 3 s
+durante 15 min tras pulsar (`requestUpdateNow`, `readPending` añade también `pedido`, la hora del clic). Dentro de cada
+paso la barra avanza según lo que suele tardar y frena al final, sin pasarse. Durante el reinicio, la página «Estamos
+actualizando tu espacio» de Caddy sigue con la barra en el último paso. Desde la 1.30.29 el servidor atiende el botón
+en cada vuelta (2 min) aunque haya fusiones esperando. Código: `src/renderer/src/lib/cloudUpdateProgress.ts` y
+`src/renderer/src/ui/quota/CloudUpdateProgress.tsx`.
+
 Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
 el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
 Las peticiones que estaban a medias siguen solas como siempre (`resumeAfterRestart`). Código: `keepUnsent` y
@@ -4798,6 +4808,11 @@ En **Ajustes → General → Tus datos → Copia de seguridad** hay dos botones:
   - **Sin contraseña** las claves y secretos no van; la copia lleva su propia clave solo para comprobar que nada se
     ha estropeado.
   - Se escribe primero a un `.tmp` y se renombra al final: una copia cortada nunca pisa a otra buena.
+- **Mientras se guarda** (desde la 1.30.31): primero «Preparando: N archivos mirados (tamaño)…» con una barra que va y viene,
+  luego «Guardando: X de Y · N % · quedan unos M min» con la barra llenándose. Las carpetas de trabajo que no se
+  marcaron ya no se recorren al guardar (`collectMove(src, { skipWork, onFile })`): antes se miraban todas, que pueden
+  ser muchos GB, y la ventana se quedaba en «1 KB de 1 KB» sin moverse. Encima de la lista de carpetas hay
+  **Seleccionar todo** (con su tamaño total).
 - **Cargar copia…** elige un `.kywai`, enseña de cuándo y de qué equipo es, y pide la contraseña si la tiene.
   Antes de tocar nada la comprueba entera (cada trozo y la huella SHA-256 de cada archivo). Si todo cuadra, kywai se
   reinicia y la coloca al arrancar, antes de cargar ajustes y proyectos:
