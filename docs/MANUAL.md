@@ -8206,6 +8206,20 @@ abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para 
 (adjuntos, entregables o archivos de la tarea), **Vista previa / Código** en Markdown, HTML y SVG, **copiar** el
 texto, **guardar en el móvil** y **abrir con otra app** del móvil (visor de PDF, galería…).
 
+### Ventanas encima de otras ventanas (se adaptan a la ventana)
+
+Las ventanas que se abren desde dentro de otra (la copia de seguridad, «Pasar a kywai cloud», «Desinstalar kywai» o
+las actualizaciones desde **Ajustes**; añadir un agente desde el asistente; la galería y el editor de plantillas
+desde el chat…) se pintan siempre directamente en `<body>` con `toBody()` (`src/renderer/src/ui/common/toBody.ts`).
+Antes se pintaban dentro de la de fuera, y el desenfoque y el «vidrio» de Ajustes las encerraban en su caja: salían
+cortadas por arriba y por abajo, no se podía bajar hasta sus botones y no se adaptaban a ventanas pequeñas ni al móvil
+(arreglado en la 1.29.10). Ahora ocupan la ventana entera, su tarjeta mide como mucho el alto de la ventana y lo que
+no cabe se desplaza dentro de ella.
+
+**Regla para ventanas nuevas:** si la ventana tiene fondo oscuro a pantalla completa (`.backdrop` con `position:
+fixed`), su `return` va con `toBody(...)`. Las pruebas que la monten buscan en `document.body`, no en el `div` donde
+se monta.
+
 ### Ancho del chat y ventanas pequeñas
 
 El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva
