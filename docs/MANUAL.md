@@ -4809,6 +4809,13 @@ los trozos hasta el final de la comprobación: si se reinicia mientras comprueba
 arrancar; si ya no puede (faltan trozos), el paso queda en error con «Tu espacio se reinició mientras comprobaba lo
 subido» en vez de esperar callado. La self host espera 15 minutos más uno por GB a que termine.
 
+
+**Sin actualizar a mano (1.30.57).** Si el servidor dejó una versión nueva esperando para el espacio (`actualizacion-pendiente.json`)
+y no hay ningún paso abierto, `POST /api/mudanza/empezar` pide «Actualizar ahora» y contesta 503 con `updating: "<versión>"`.
+La app del equipo dice «Tu espacio se está poniendo al día…», espera (cada ~20 s, hasta 60 veces) y vuelve a empezar sola. Si
+la versión no llega en 20 minutos, el paso se abre igual con la de ahora. La ventana «Pasar a kywai cloud» también avisa si
+la propia app tiene una versión nueva y la pone con un botón, y la ventana Actualizaciones de un espacio en la nube explica
+que la app del ordenador se actualiza aparte (cliente: Ajustes → Acerca de → «Actualizar este equipo»).
 ### Modelo recomendado según tu equipo (agente local)
 
 Antes de elegir modelo, la configuración del agente local (su indicador de cuota) mira **el equipo donde va a correr**:
