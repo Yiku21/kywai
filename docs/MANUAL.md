@@ -4639,6 +4639,8 @@ lo lleva todo a tu espacio de la nube. Esta instalación no se toca: si algo fal
    mismo enlace que «Usar kywai cloud» (sin IP ni código de acceso).
 3. Si no cabe en tu espacio, te lo dice antes de subir nada (amplíalo en Mi cuenta o quita alguna carpeta).
 4. Se sube cifrado, a trozos; si se corta la red, repite ese trozo.
+   Si tu espacio se reinicia a mitad de la subida (antes salía «Este paso ya no está abierto: vuelve a empezar»), la
+   ventana espera a que vuelva y empieza la subida otra vez ella sola, hasta 2 veces (1.30.35).
 5. Tu espacio comprueba cada archivo, guarda una copia de lo que ya tenía en las rutas que se pisan, se reinicia y lo
    coloca todo. Al final ves la tabla **«En tu self host / En kywai cloud»**: proyectos, chats, mensajes, adjuntos, notas
    de memoria, rutinas, habilidades, agentes, claves y archivos, con un ✓ en cada fila.
@@ -4664,6 +4666,13 @@ tocar el disco, y nunca salen en registros. La self host (`src/main/mudanzaEnvio
 código 75, `entrada.sh` lo vuelve a abrir en el mismo contenedor y, antes de cargar ajustes y proyectos, se coloca todo,
 se reescriben las rutas (también las de Windows) y se cuenta lo que llegó. La copia de lo que el espacio tenía queda en
 `~/.kywai-mudanza/<id>/copia-previa/`.
+
+**Que una actualización no corte la subida (1.30.35).** La clave del paso solo vive en la memoria del espacio, así que un
+reinicio a mitad lo pierde. Por eso, mientras un paso recibe trozos (o se está comprobando), `MoveReceiver.active()` lo
+cuenta y `ocupado.json` (`cloudBusy.ts`) lleva el motivo `mudanza`: el despliegue (`desplegar-cuenta.py`) lo trata como
+ocupado. Además, un espacio cuya web nadie ha abierto nunca (`ultimoUso` vacío, lo normal en quien sube desde su
+escritorio) ya no cuenta como «24 h sin uso» hasta que la versión lleve 24 h esperando. Si aun así se pierde el paso,
+`part`/`terminar` contestan **410** y la self host espera a que el espacio vuelva y empieza de nuevo (hasta 2 veces).
 
 ### Modelo recomendado según tu equipo (agente local)
 
