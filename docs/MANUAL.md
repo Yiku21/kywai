@@ -4201,6 +4201,36 @@ Claude, Codex, Gemini y Hermes en las tareas (no el coordinador). Se apaga en �
 contexto». Código: `src/main/contextMode.ts` (+ test), `coworkMcp.ts` (`CONTEXT_TOOL`, `readBigTool`) y la regla del
 encargo en `orchestrator.ts`; ajuste `contextMode` (`setTaskAdvice({ context })`).
 
+**Mapa del proyecto** (1.29.0–1.29.2, 24 nov 2026; idea de un reel de nacho.mirandap que «indexa el proyecto como un
+grafo» y dice ahorrar un 70 % de tokens; mismo sitio, **encendido de serie**). En una carpeta con **200 archivos de
+código o más** (sin `node_modules`, compilados ni carpetas ocultas), kywai crea solo un mapa del código con
+**Graphify** (Apache-2.0) al empezar el primer encargo, y lo pone al día al terminar cada uno (`graphify update`, solo
+lo que cambió, unos segundos; como mucho una vez por minuto). La primera vez hace `graphify extract . --code-only` y
+`graphify cluster-only . --no-label`: el código se lee con tree-sitter en el propio equipo, **sin modelo, sin claves y
+sin que salga nada** (unos 30 s para 1.200 archivos). El programa se instala solo con uv (`uv tool install
+"graphifyy[mcp]"`: el extra trae `anyio`, que pide `graphify query`); sin uv no se instala nada y la pestaña lo dice.
+El mapa queda en `<carpeta>/graphify-out/` (`graph.json` para consultar, `graph.html` para verlo, `GRAPH_REPORT.md`
+con el resumen) y se aparta de git en `.git/info/exclude` (solo en ese equipo: el `.gitignore` no se toca).
+- **Los agentes** lo consultan con la herramienta de kywai **`consultar_mapa`** antes de abrir archivos: `pregunta`
+  (en palabras: qué funciones y archivos tocan algo, con archivo y línea), `explicar` (qué usa y quién usa una pieza) o
+  `desde` + `hasta` (el camino entre dos piezas). Luego abren solo los archivos que les nombra. Los agentes sin las
+  herramientas de kywai reciben en el encargo los comandos `graphify query/explain/path`. En la tarea se ve «Mapa del
+  proyecto: …». La regla del encargo solo sale si el mapa existe.
+- **Verlo** (1.29.1): pestaña **Memoria → «Mapa del proyecto»** dice cuántas piezas, conexiones y grupos tiene y
+  cuándo se puso al día; **«Ver el mapa»** abre el grafo (`graph.html`) en el panel de vista previa (se mueve y se
+  busca, como la vista de grafo de Obsidian; con más de 5.000 piezas enseña los grupos). **«Poner al día»** o, en un
+  proyecto más pequeño, **«Crear el mapa»** lo hace al momento.
+- **Ahorro** (1.29.2): cada consulta apunta lo que habría costado abrir los archivos que nombra la respuesta (los 6
+  primeros, hasta 24 KB de cada uno) menos lo que ocupa la respuesta (4 caracteres ≈ 1 token), en
+  `<workspace>/mapa-ahorro.json`. **⚙ → «Uso y coste»** enseña «Ahorrado con el mapa del proyecto» del periodo (y del
+  proyecto si marcas «Solo …»), dicho como estimación. El 70 % del reel no lo hemos medido: en carpetas pequeñas
+  apenas ahorra, por eso no se crea solo por debajo de 200 archivos.
+Se apaga en ⚙ → Ajustes → Agentes → «Mapa del proyecto» (ajuste `projectMap`, `setTaskAdvice({ map })`). La habilidad
+Graphify del paquete de serie sigue ahí para mapas con documentos o PDF (esos sí usan el modelo del agente).
+Código: `src/main/projectMap.ts` (+ test), `coworkMcp.ts` (`MAP_TOOL`), `orchestrator.ts` (`autoMap` al empezar y al
+terminar, `mapPromptLines`), `index.ts` (`projectMapStatus`, `buildProjectMap`, `projectMapSavings`),
+`ui/left/ProjectMapSection.tsx` y `ui/usage/UsageDialog.tsx` (`MapSavings`).
+
 **Leer página limpia** (22 nov 2026, con **Defuddle**, kepano/defuddle, MIT, el motor de Obsidian Web Clipper). La
 herramienta de kywai **`leer_pagina`** (`{"url": "https://…"}`) baja una web pública y devuelve solo su contenido (el
 artículo, la documentación, la ficha) en Markdown, con título, autor, web y fecha, sin menús, cabeceras, pies,
