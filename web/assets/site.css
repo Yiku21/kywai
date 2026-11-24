@@ -500,3 +500,22 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @media(max-width:900px) { .tour-panel { grid-template-columns:1fr; }.tour-shot { border-right:0; border-bottom:1px solid var(--line); }.tour-copy { padding:20px; }.news-grid { grid-template-columns:1fr 1fr; } }
 @media(max-width:560px) { .news-grid { grid-template-columns:1fr; }.tour-tabs { padding:10px 12px 12px; }.tour-copy h3 { font-size:20px; }.tour-studio>p { font-size:13px; padding:10px 12px; }.release-badge-more { display:none; } }
 @media(prefers-reduced-motion:reduce) { .tour-tabs button::after { animation:none; } }
+/* 1.28: capturas que se ven enteras (peluches, miniaturas, conectores), tarjeta «Tu ordenador» y línea de «Y además». */
+.tour-shot-entera { background:#070b14; }
+.tour-shot-entera img { object-fit:contain; object-position:center; }
+.tour-pc { width:min(100%,560px); padding:clamp(16px,3vw,28px); display:flex; flex-direction:column; gap:12px; }
+.tour-pc>p { margin:0; }
+.tour-pc-bar { display:flex; align-items:center; gap:8px; font-weight:600; color:var(--fg); }
+.tour-pc-bar span { width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 22%,transparent); }
+.tour-pc-screen { position:relative; height:clamp(120px,22vw,200px); border:1px solid var(--line); border-radius:12px; background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 18%,var(--surface)),var(--surface)); overflow:hidden; }
+.tour-pc-screen i { position:absolute; left:12%; top:18%; width:52%; height:60%; border-radius:6px; background:#eef2f8; box-shadow:0 10px 28px rgba(0,0,0,.35); border-top:14px solid #cfd8e8; }
+.tour-pc-screen b { position:absolute; left:60%; top:58%; width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:17px solid var(--blue); transform:rotate(-30deg); }
+@media(prefers-reduced-motion:no-preference) { .tour-pc-screen b { animation:tour-pc-cursor 3.2s ease-in-out infinite; } }
+@keyframes tour-pc-cursor { 0%,100% { translate:0 0; } 50% { translate:-60px -30px; } }
+.tour-pc-step { color:var(--muted); font-size:14px; }
+.tour-pc-row { display:flex; align-items:center; gap:10px; }
+.tour-pc-stop { background:#e5484d; color:#fff; border-radius:8px; padding:7px 16px; font-weight:600; font-size:14px; }
+.tour-pc kbd { font:500 13px var(--mono); color:var(--muted); }
+.tour-pc small { color:var(--muted); font-size:11px; }
+.news-more { color:var(--muted); margin:-8px 0 22px; font-size:15px; }
+
