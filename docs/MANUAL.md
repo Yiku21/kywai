@@ -187,8 +187,12 @@ de Windows (`.exe`), el de macOS (`.dmg` y `.zip`, Apple silicon e Intel) y el A
 sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yiku21/kywai/releases/latest.
 
 - **Se actualiza sola.** Esas versiones traen `app-update.yml` y, al abrirse (y cada 6 horas), buscan la última
-  Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y, si llega en los primeros 5 minutos
-  desde que se abrió, la instalan y la app se reabre sola; si llega más tarde, se instala al cerrar. **En el Mac igual**
+  Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y se instala al cerrar kywai (sin volver a
+  abrirla). Al terminar de bajarla sale, una vez por sesión, el aviso «La versión X de kywai está lista» con **Reiniciar
+  y actualizar** (se instala ya y se vuelve a abrir sola) o **Al cerrar kywai**. Mientras se cierra para instalar, una
+  ventanita dice «Actualizando kywai a la X… se vuelve a abrir sola en unos segundos». **Nunca se cierra sola al
+  abrir** (desde la 1.30.17): antes, si la descarga llegaba en los 5 primeros minutos, se cerraba sin avisar para
+  instalarla y, con versiones nuevas cada pocos minutos, parecía que kywai se cerraba al abrirla una y otra vez. **En el Mac igual**
   (desde el 10 nov 2026): como no va firmada por Apple, electron-updater no sabe reemplazarla, así que lo hace
   `src/main/macUpdate.ts`. Baja de la Release el `.zip` de su arquitectura (arm64 o x64), comprueba la huella sha512
   de `latest-mac.yml`, lo descomprime con `ditto` en una carpeta oculta junto a la app (`.kywai-actualizacion`) y un
