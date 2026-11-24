@@ -7700,6 +7700,20 @@ y solo lo que cambia; la mascota que mira (`WatchingMascot`) se mide una vez por
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 
+**Que el 3D no frene la interfaz (1.30.26).** Yil, 24 nov 2026: «sigo sintiendo que consume mucho, me muevo medio lento
+en los menús y el espacio 3D». La interfaz gasta poco procesador; lo que carga es la tarjeta gráfica (el 3D a 30 fps
+con unas 35 pasadas de efectos). Ahora:
+- **Menús y desplegables congelan el 3D** mientras están abiertos, como ya hacían las ventanas (`COVER_SELECTOR` en
+  `scene/sceneCover.ts`: `aria-modal`, `data-popover` de `Popover`, `role="menu"` y `role="listbox"`). Llevan
+  desenfoque y, con el 3D cambiando, la tarjeta lo recalculaba en cada fotograma.
+- **20 fps con el ratón fuera del 3D** (chat, barra, menús) y 30 al pasar por él (`usePointerOver` en
+  `scene/sceneRest.ts`, `sceneFps(focused, resting, engaged)`). El ajuste automático de calidad solo mide con el ratón
+  sobre el 3D, para no bajarla por esos 20 fps.
+- **Caras de los peluches** (`scene/plushCard.ts`): se repintan a 30 fps solo si botan, tiemblan o trabajan; respirando,
+  pensando o dormitando, a 15.
+- **Suelo bajo los agentes** (`scene/Robot.tsx`): andando, el rayo que busca el suelo se lanza como mucho cada
+  `GROUND_EVERY_MS` (150 ms).
+
 ### Buscar (Ctrl+K)
 
 **Buscar** en la barra lateral, o Ctrl+K (⌘K en el Mac), abre un buscador que mira a la vez en **todas las
