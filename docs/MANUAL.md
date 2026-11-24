@@ -8467,11 +8467,33 @@ los demás agentes y los becarios siguen siendo robots.
 
 Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
 tema (foto de tres agentes y nombre): **Formas animadas** (por defecto desde el 23 nov 2026; cada agente con su forma y su
-color, ver «Formas animadas»), **Clásico** (los robots de siempre, que gastan menos), **Píxel** (los personajes como sprites de pixel art), **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema) o, la última, **Personajes** (los personajes 3D de Meshy). Se guarda en el dispositivo
+color, ver «Formas animadas»), **Peluche** (desde la 1.19.0, un robot de fieltro distinto para cada agente, ver «Aspecto «Peluche»»), **Clásico** (los robots de siempre, que gastan menos), **Píxel** (los personajes como sprites de pixel art), **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema) o, la última, **Personajes** (los personajes 3D de Meshy). Se guarda en el dispositivo
 (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía sus robots y los demás temas los
 clásicos. El icono del agente en el chat y en los paneles cambia con la skin (`lib/RobotAvatar.tsx`: dibujos en
 `assets/robots/` para Personajes, `assets/robots/clasico/` y `assets/robots/refugio/`). Mientras carga el modelo se ve
 el robot clásico, y los agentes sin personaje también. Con personaje, los disfraces de Navidad y Halloween no se ponen.
+
+**Aspecto «Peluche» (24 nov 2026, v1.19.0).** Robots de fieltro, uno distinto para cada agente, va el segundo del
+selector (`'peluche'` en `SKINS`, `usesPlush` en `scene/characters.ts`). Hay 22 dibujos propios (Claude, Codex, Gemini,
+Hermes/cotorra, Qwen, Muse, becario, modelo local, DeepSeek, Kimi, Grok, Copilot, Cursor, OpenHands, Antigravity, Aider,
+Kilo, Goose, Amp, Mistral, OpenClaw, NVIDIA) y cuatro peluches blancos de base que, para cualquier otro agente, se tiñen con su
+color (elegido por su nombre, siempre el mismo). Los dibujos se generaron con Meshy (texto a imagen) y se recortaron;
+están en `assets/peluche/` en 384 px y @128, sin ojos: el visor negro queda vacío. Su geometría (dónde está el visor y
+dónde empieza el adorno de arriba) va en `PLUSH` de `lib/plush.ts`, y `plushFor(agente)` elige el peluche: primero el
+proveedor concreto por el nombre (así «Claude Code + DeepSeek» es DeepSeek), luego el logo o el proveedor, y si no, una
+base teñida; los becarios llevan el del becario.
+En el chat, las fichas, las listas y el 2D lo pinta `lib/PlushAvatar.tsx`: dos capas del mismo dibujo (el adorno de
+arriba se balancea aparte) y los ojos en SVG con brillo encima, dentro del visor. Un único escuchador del puntero para
+toda la ventana pone `--plush-lx/--plush-ly` en las caras cercanas, así que miran al ratón cuando está cerca; parpadean y
+cambian de cara con lo que hace el agente (`plushMood`: trabaja, piensa con «…», te necesita con «!», celebra con
+chispas, error, cansado y duerme con «zzz»). En fichas y 2D se pueden tocar: un toque lo alegra y tres seguidos sacan
+corazones. En listas largas va quieto (`calm`) y con «Reducir movimiento» no se anima. En el 3D, `scene/plushCard.ts`
+dibuja el mismo peluche en un lienzo de 256 px sobre un cartel que mira a la cámara (como las Formas): respira, salta al
+celebrar, tiembla con un error, cabecea dormido, mira a su alrededor y parpadea; se redibuja a 30 fotogramas por segundo
+(15 con «Reducir movimiento»). La cotorra coordinadora es el peluche de Hermes en todas partes. Los agentes con su propio
+modelo 3D o aspecto lo conservan.
+La técnica (dibujo pintado en capas, ojos SVG que siguen al ratón y reacciones al tocar) se inspira en AnyModelBot
+(licencia MIT); los dibujos son nuestros, no los suyos.
 
 **«Personajes» solo en Ajustes (Yil, 23 nov 2026, v1.6.7).** kywai ya no usa el estilo «Personajes» para enseñarse: se
 puede seguir eligiendo (va el último del selector, `SKINS` en `scene/characters.ts`) y quien ya lo tenía lo conserva,
