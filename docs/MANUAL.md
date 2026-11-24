@@ -6121,6 +6121,12 @@ Homebrew o Flathub; el selector lo avisa) mientras se hacen la voz y las imágen
 conectado con «Conectar kywai cloud con este PC» (`deviceBridge.video(…, 'blender')`: antes uno que ya tenga Blender);
 sin equipo conectado sale el explicativo sencillo y el chat dice cómo tener el escenario. Si Blender falla a mitad, el
 vídeo sale igual como explicativo en el formato pedido (`escenario: false` en el resultado y una nota en el chat).
+
+*Arreglos de la 1.30.14.* En kywai cloud sin equipo conectado ya no se niega: el selector solo avisa (nota, no
+bloqueo) y sale el explicativo con los personajes. Dentro del monitor ya no salen los personajes 2D (la cotorra 3D
+está delante) y los titulares son un 40 % más grandes para que se lean en la pantalla pequeña (`screen: true` en
+`buildExplainerComposition`). Si el equipo que lo montó tiene una kywai anterior a la 1.18.1 (no conoce el estilo y
+devuelve el explicativo sin decir nada), el chat lo dice y pide actualizar ese equipo (⚙ → Ajustes → Acerca de).
 Origen: Yil, 23 nov, con un reel de referencia: «se ve bonito, fluido, interesante… con volumen»; la muestra con Meshy y
 Blender en su Mac mini le gustó («mucho mejor»).
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
