@@ -6505,7 +6505,15 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    con el dibujo proyectado de frente (visor, ojos y mofletes), los lados y la espalda del color del fieltro, las orejas
    como almohadillas y el adorno de arriba recortado del dibujo. Giran de verdad para mirarse, proyectan sombra y hablan
    rebotando y estirándose con cada sílaba (no tienen boca ni manos). Primero fueron carteles planos y Yil dijo que se
-   veían como una imagen 2D. Los robots de antes (Hermes, Claude y
+   veían como una imagen 2D. **Desde la 1.30.33, si están, son sus modelos 3D de verdad**: kywai, Claude, Codex y
+   Gemini hechos con Meshy (imagen a 3D) a partir de sus peluches, en `src/main/peluches3d/*.glb` (texturas webp de
+   1024, sin compresión de malla). `robotModels3d()` (videoCharacters.ts) los encuentra, el estudio los copia como
+   assets/peluche-<robot>.glb junto con el cargador de GLB de three.js (`copyGltfLoader`, que cambia `from 'three'`
+   por el three.module.js de assets) y van en `StageData.models`. El plató los carga con
+   `window.__hf.buildReady.peluches3d` (HyperFrames espera a que estén antes del primer fotograma), los pone del mismo
+   alto que el peluche de caja (`MODEL_H`), de fieltro mate con un poco de luz propia, y hablan rebotando igual. Si
+   falta el modelo de alguno, sale el peluche de caja. Gemini solo existe en 3D: sin su modelo sale el robot de Hermes.
+   Los robots de antes (Hermes, Claude y
    Codex están hechos en three.js dentro de un plató de juguete (salita con alfombra, papel pintado de rayas,
    estantería, planta, lámpara, sofá, cuadros, una ventana con cielo de atardecer y cortinas, una guirnalda de
    bombillas y una **pantalla gigante** que muestra la imagen de cada escena o, si no hay imagen, una tele
