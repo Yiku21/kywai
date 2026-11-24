@@ -572,6 +572,9 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   allí, el botón es «Apartar sus cambios y actualizar» (igual que arriba: se guardan en git, no se borran). Si la
   actualización falla, el servidor vuelve a su versión y «Ver cómo va» o la próxima consulta dicen por qué. El
   servidor tiene que tener ya esta función: la primera vez se actualiza desde el ordenador.
+  **Con kywai Cloud (1.30.40)** no hay git: el apartado dice si el servidor tiene una versión nueva esperando a tu
+  espacio y «Actualizar el servidor» hace lo mismo que «Actualizar ahora» en la web (el espacio se cambia en un par de
+  minutos y Órbita se reconecta sola). Con el espacio al día, Acerca de → Órbita encuentra también la APK nueva.
 - **⚙ → «Reiniciar kywai»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
   pillada; también desde el navegador del móvil, que se recarga solo cuando vuelve. Si la app está cerrada del
   todo, no hay nada que responda al enlace: hay que abrirla en el equipo.
@@ -751,8 +754,14 @@ New repository secret), con los datos del archivo que indica `aicoworkSigning` e
 Sin esos secretos la publicación se para con el aviso «Falta el secreto de la clave de Órbita». Publicar a mano
 desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue funcionando igual.
 
-**Cómo es Órbita.** El mundo 3D ocupa toda la pantalla y todo lo demás flota encima en cristal, sin recuadros que
-lo corten:
+**Solo el chat, sin 3D (1.30.39).** Órbita es para usar kywai a distancia y rápido: abre directa en el chat, a toda
+la pantalla, sin el mundo 3D detrás (carga antes y gasta menos batería). Las pestañas son Chat, Archivos, Tareas y
+Resultados; cerrar otro panel vuelve al chat. Quien quiera ver a los agentes en su mundo lo enciende en Ajustes →
+General → **«Ver el espacio 3D»**: entonces Órbita es como se describe abajo. En el escritorio el 3D sigue igual.
+Lo decide `Preferences.space3d` (`chatOnly` en `OrbitaModel`).
+
+**Cómo es Órbita con el espacio 3D.** El mundo 3D ocupa toda la pantalla y todo lo demás flota encima en cristal, sin
+recuadros que lo corten:
 
 - **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
   los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados» (en el escritorio se llama «Favoritos»), los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
