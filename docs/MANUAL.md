@@ -2662,7 +2662,7 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 - **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo, y la petición que se pausó al llegar a su
   **tope por petición** (con «Darle 1 $ más», «Seguir sin tope» o «Quitar»).
 
-**Solo lo importante (v1.30.37).** Una **pregunta** sale aquí solo cuando el agente te deja una **tarjeta de preguntas**
+**Solo lo importante (v1.30.38).** Una **pregunta** sale aquí solo cuando el agente te deja una **tarjeta de preguntas**
 sin contestar (una decisión sin la que no puede seguir) o la hace con su herramienta `preguntar_usuario`. Una pregunta
 suelta al final de su texto **no cuenta**: un saludo («¿En qué te ayudo?»), una cortesía («¿Algo más?») o un
 ofrecimiento («¿Quieres que te deje preparado un mensaje…?») ya están en el chat y la petición ha terminado, así que va
@@ -9473,23 +9473,24 @@ tiene una hoja de animación sacada de su modelo 3D con colores planos y contorn
 `assets/espacio2d/hojas/<personaje>.webp` (12 cuadros de 192 px por fila, 8 filas: reposo, trabaja con el portátil,
 piensa, duda, celebra, saluda, camina de lado y explica; `space2d/sprites.ts`).
 
-**Los agentes caminan y se visitan** (en Flujo, Mesa, Aldea y Tren). Cuando un agente le pasa algo a un compañero, se
-levanta y se lo lleva andando por su camino con el sobre en la mano, se queda un momento explicándoselo a su lado y
-vuelve a su puesto (unos 9 segundos). Y de vez en cuando (cada medio minuto más o menos, cada uno a su ritmo), un
-agente que descansa se levanta a ver a alguien con quien trabaja, o al coordinador si no trabaja con nadie. Mientras
-está fuera, su puesto se queda vacío. Los agentes con aspecto propio caminan dando saltitos con su dibujo. Con
+**Cada agente se queda en su puesto** (v1.30.38, pedido por Yil el 24 nov 2026: «se puede mover en su sitio pero que no
+salga de su puesto»). Se mueve y se anima en su plataforma, pero ya no se levanta a visitar a otros: antes se iba
+andando y su puesto se quedaba vacío. Lo que se pasan entre ellos viaja solo como un sobre por la línea que los une. Con
 «Reducir efectos» o el espacio en pausa no se mueve nadie. Trabajando teclea en el
 portátil, pensando se lleva la mano a la barbilla, esperando o con un error duda, al terminar celebra, si te necesita
 saluda y al pasar el ratón por encima te saluda. Los agentes con aspecto propio de «Crea tu agente» siguen con su
 dibujo y su expresión para cada estado, animados con CSS. La cotorra usa el estilo elegido en Ajustes.
 
+**Nada se sale del marco** (v1.30.38). En Flujo (`flow.ts`), la caja de «Entregas» y la plataforma de la cotorra
+quedan enteras dentro del panel: en paneles de menos de 640 px de ancho, «Entregas» baja debajo del coordinador en vez
+de cortarse por la derecha. El reparto busca la mayor escala a la que todos caben sin pisarse y, si las columnas de
+«espera a…» no caben a lo ancho (o dejan a los agentes diminutos), los pone a todos en una columna partida a lo alto;
+las líneas siguen uniendo a quien espera con quien le pasa el trabajo.
+
 **Con «Formas animadas» en el 2D** (arreglado el 23 nov 2026, v1.6.3):
 
 - La **cotorra** es la misma forma que en el 3D (bola verde con cresta, pico y alas; `cotorraCharacter()`), no el
   dibujo detallado, y se mueve con su ánimo (coordina, te necesita, celebra, duerme).
-- **Sin copias al caminar**: mientras un agente visita a otro, su puesto queda vacío de verdad. Antes la forma marcaba la
-  cabeza como siempre visible y se quedaba una copia sin ojos en su sitio (se oculta con `opacity: 0` en
-  `.agent[data-away]`), y el que llega se para al lado del otro, sin montarse encima.
 - **Más pequeñas y con aire**: una forma llena todo su cuadro (los dibujos traen margen), así que se dibuja al 64 % del
   alto de un dibujo (`FIGURE_K` en `Space2D.tsx` y `--s2-fig` en el CSS) y la cotorra al 80 % del suyo. El reparto
   (`flow.ts` y `ring.ts` para la Mesa) cuenta con ese tamaño real y con el ancho de la cotorra: la primera columna
