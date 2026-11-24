@@ -4063,7 +4063,7 @@ Skills, Planning with Files, UI UX Pro Max, Taste Skill, Emil Kowalski Skills, A
 Scientific Skills y Stop Slop. El 22 nov 2026 llegaron Make Interfaces Feel Better (detalles finos de interfaz:
 animaciones, alineación óptica, radios concéntricos, sombras, zonas de clic) y Loopy (bucles de hacer, comprobar y
 corregir con un final claro; solo publica un bucle en Loop Library si el usuario lo pide), y después Claude SEO (auditoría SEO a fondo, 29
-habilidades) y Social Media Skills (estrategia, calendario y textos para redes). De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
+habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
 traen algunas (Planning with Files, Taste Skill) no se ejecutan. Una habilidad en la raíz de su repositorio lleva sus
 carpetas (como `references/`), menos las de pruebas y las ocultas; con `only`, si la misma sale copiada en varias
 carpetas, vale la primera. Fuera a propósito: ECC y gstack (marcos con hooks que se solapan con Superpowers), Caveman
@@ -5800,6 +5800,20 @@ Instagram y TikTok:
   ganchos literales (`reelLessons`). Eso mismo se guarda como sección «Qué funciona» en `instagram/resultados.md`, y el
   encargo de `/crecer` lo trata como la regla número uno de la tanda siguiente (la mayoría de los reels siguen esa
   fórmula y uno o dos prueban algo distinto). Al empezar cada `/crecer`, kywai actualiza los números antes de escribir.
+- **Segunda vida del ganador (1.26.5; idea de Clip Drop).** Un ganador publicado hace **7 días o más** vuelve a salir
+  **una vez** en Instagram con **otro texto y otra portada**: «/instagram resultados» (y el inicio de cada `/crecer`)
+  prepara su tarjeta de siempre con «Publicar» (hasta 2 a la vez, los de más vistas primero; `pendingSecondLives` en
+  `src/main/reelMachine.ts`). El agente recibe el gancho de la primera vez para no repetirlo. En el registro la
+  segunda vida es otra entrada (`secondLife`) y el ganador queda marcado (`second`) para no repetirla. Con Zernio, al
+  pulsar «Publicar» se programa a la mejor hora de Instagram de la cuenta (si ya se sabe).
+- **Cada red a su mejor hora (1.26.6).** Con los números de cada red (Zernio da la hora de publicación de cada reel),
+  `bestHour` (`src/shared/reelBatch.ts`) busca la hora entre las 10:00 y las 21:00 con más vistas (mediana; hace falta
+  un mínimo de 6 publicaciones y 2 en esa hora) y la guarda en `<carpeta de trabajo>/instagram/horas.json`. Instagram:
+  la tabla de publicación de `/crecer` mueve su hueco más cercano a esa hora (con uno al día, va a ella). TikTok:
+  «Publicar» directo (con un clic) se programa a la mejor hora de TikTok y **nunca a menos de 2 horas** de cuando ese
+  mismo vídeo sale en Instagram (`nextHourSlot`); la tarjeta dice «Programado en TikTok para el …». Un borrador de
+  TikTok no se puede programar y va al momento. «/instagram resultados» dice las horas que ya sabe. Solo Instagram y
+  TikTok por ahora.
 
 Todo queda en `<carpeta de trabajo>/instagram/turno-noche/<fecha>/` (`elegidos.md`, `fuente/`, `desmontaje.md`,
 `guion.md` y los datos de la cuenta). Código: `src/main/nightShift.ts` (el encargo y la orden del vídeo) y
@@ -7084,6 +7098,55 @@ Además, cualquier rutina que **falla 3 veces seguidas** (fallo o interrumpida, 
 sola**: queda desactivada, la lista dice «se pausó sola» y «Te necesita» lo avisa con «Reactivarla». Al reactivarla
 los fallos cuentan de cero. Código: `afterRun`, `streak` y `stopObserving` en `src/main/routines.ts`; los avisos y sus
 botones (`routine-act`, `routine-enable`) en `src/main/index.ts`.
+
+**Objetivo del equipo (24 nov 2026, v1.27.0; idea de Paperclip).** En la pestaña Rutinas, junto a «Nueva rutina», el
+botón **«Objetivo del equipo»** abre el formulario con un objetivo en vez de una petición («Lanzar mi tienda online y
+conseguir las primeras 10 ventas»), cada **4 horas** y actuando (sin «Primero observa»). Es una rutina con `goal: true`:
+corre en el servidor 24/7, así que el equipo sigue aunque el usuario no esté. En cada turno no se envía el objetivo tal
+cual sino `goalText` (`src/shared/routines.ts`): el objetivo, la orden de dar el siguiente paso repartiéndolo entre los
+agentes, **nada grande sin permiso** (gastar, publicar, enviar fuera de kywai, borrar o tocar cuentas: lo deja preparado
+y pide el visto bueno), empezar la respuesta con **una línea que resuma el turno** y, si el objetivo ya está cumplido,
+escribir `[OBJETIVO CUMPLIDO]`. Debajo van los resúmenes de los **5 últimos turnos**. Al terminar cada turno el motor
+apunta en la ejecución su `summary` (primera línea de la última respuesta, `beatSummary`) y, si lleva la marca,
+`goalDone`: la rutina **se para sola** (`goalDoneAt`) y «Te necesita» avisa «Objetivo cumplido» con «Reactivarlo». En la
+tarjeta, «Última:» enseña el resumen y el historial pasa a llamarse **«Turnos»**, con el resumen de cada uno. Código:
+`noteBeat` y `afterRun` en `src/main/routines.ts`, el aviso `goal-done` en `src/main/index.ts`, la interfaz en
+`src/renderer/src/ui/left/RoutinesView.tsx`. Hermes lo explica si se lo piden en el chat (`coordinatorGuide.ts`).
+
+**Equipos listos (24 nov 2026, v1.27.2; idea de las «Ready-Made Teams» de Paperclip y del reel «pre-sold»).** Junto a
+«Objetivo del equipo», el botón **«Equipos listos»** enseña tres equipos ya pensados, cada uno con su icono, una línea de
+para qué sirve y **«Usar este equipo»**, que abre el formulario del objetivo ya relleno (nombre, objetivo con el reparto
+de papeles y cada cuánto):
+- 🤝 **Prevender antes de construir** (cada 4 h): busca problemas por los que las empresas ya pagan, hace una demo
+  pequeña, prepara la propuesta y los mensajes **en borrador** (los envía el usuario, nunca kywai) y monta una página de
+  preventa con devolución si no se entrega; objetivo, 3 clientes que paguen antes de construir. Usa la habilidad de
+  serie nueva **`prevender-antes-de-construir`** (`src/main/specialistSkills.ts`): problemas.md → demo/ → propuesta.md y
+  mensajes.md → preventa/ → construir.md (solo lo que se compró). El cobro va solo por el enlace de pago del usuario y
+  nunca se le piden claves.
+- 🛍️ **Tienda online** (cada 4 h): las habilidades `tienda-*`; precio, stock y pedidos solo con su visto bueno.
+- 📈 **Más clientes para mi negocio** (cada 24 h): `web-auditoria-seo-geo`, `anuncios-campana` (la campaña queda en
+  borrador) y `negocio-informe-semanal`.
+
+El objetivo trae el hueco **«[escríbelo aquí]»**: no deja guardar hasta cambiarlo por lo de cada uno («Cambia
+«[escríbelo aquí]» por lo tuyo…»). Los equipos están en `src/shared/readyTeams.ts` (`readyTeams`, `fillHere`).
+
+**Película de producto (24 nov 2026, v1.28.0; idea del reel de elasthic.motion: películas de producto en Blender en las
+que «nada avanza sin tu sí»).** «/video película de producto de mi app de recetas» (o la marca `pelicula:producto`) con
+las capturas adjuntas hace un **Escenario 3D** en el que el monitor del escritorio enseña **tus capturas**, una por
+escena y con un acercamiento lento (`productSlides` en `src/main/escenarioPlan.ts`, `slideArgs` en
+`src/main/videoEscenario.ts`), en vez del explicativo; la voz, la música y la cotorra son las de siempre. Va por pasos y
+cada uno espera tu sí:
+1. **Guion**: sale siempre para repasarlo, como con «guion:repasar» («Grabar» o «Descartar»).
+2. **Fotograma de muestra**: Blender pinta un solo fotograma (la mitad del segundo plano, `productStillFrame`) y sale en
+   el chat; en «Te necesita», **«Seguir»** o **«Parar»**.
+3. **Prueba corta**: los primeros **4 s** con sonido (`productTrialFrames`, `pelicula-prueba.mp4`); otra vez «Seguir» o
+   «Parar».
+4. **Final**: Blender pinta solo lo que falta (`desde` en el plan de `escenario.py`; lo de la prueba se aprovecha).
+
+«Parar» termina la tarea con «Paraste la película de producto…» y no se hace otro vídeo en su lugar (error
+`ProductStopped`). Sin capturas adjuntas, el monitor enseña el explicativo. En kywai cloud la hace el equipo conectado
+con tus capturas (viajan como `refs` con `product: true`), sin los pasos 2 y 3. Código: `approveFilmStep` y
+`decideFilmStep` en `src/main/orchestrator.ts` (avisos `film-go` / `film-stop`), `PRODUCT_RE` en `src/main/videoScript.ts`.
 ### Secretos: claves y tokens que los agentes usan sin verlos
 
 Cada proyecto tiene la pestaña **Secretos** (la llave, junto a Rutinas) para guardar claves de API, tokens (por
@@ -7776,6 +7839,15 @@ El mismo panel (⚙ → **«Uso y coste…»**) dice también cuánto dinero sup
   vuelve a llegar, vuelve a preguntar), «Seguir sin tope» (ya no se vuelve a parar por el tope) o «Quitar». Idea
   de las misiones con presupuesto de Replit (`checkRunBudget`, `runLimitUsd` y la acción `budget-more` en
   `orchestrator.ts`; `runApiSpendUsd` y `runBudgetUsd` en `src/shared/costs.ts`).
+- **Tope al mes por agente** (24 nov 2026, v1.27.1; idea de Paperclip): una casilla por cada agente del equipo (sin
+  becarios; lo que gastan los becarios cuenta para su agente). Vacío: sin tope. Solo cuenta lo que pagas por uso de
+  ese agente desde el día 1. Al **80 %** «Te necesita» avisa una vez al mes; al **100 %** el agente **descansa hasta
+  el día 1**: queda bloqueado como cuando se queda sin cuota (sus tareas pasan a otro agente libre) y el aviso trae
+  **«Darle … más este mes»** (suma otro tanto a su tope solo este mes y vuelve a trabajar al momento). Si le subes o
+  quitas el tope en esta pantalla, vuelve en cuanto se le pide algo. Código: `checkAgentBudget`, `restAgent`,
+  `overAgentBudget` y la acción `agent-budget-more` en `orchestrator.ts`; `agentBudgetUsd`, `agentMonthApiSpendUsd` y
+  `budgetAgentOf` en `src/shared/costs.ts`; se guarda en `costs.agentBudgets` (y `agentBudgetExtra`,
+  `agentBudgetAlerted`, que se conservan al guardar desde la pantalla).
 - **Precios por millón de tokens (en dólares)**: entrada, entrada leída de caché y salida de cada modelo. Vienen los
   oficiales comprobados el 7 nov 2026 (Claude, GPT y Gemini); los que salen de una fuente no oficial o son de
   promoción lo dicen al lado. Se pueden cambiar (el cambiado sale en otro color, con «Original» para volver) y
