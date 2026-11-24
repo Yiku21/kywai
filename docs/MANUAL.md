@@ -590,6 +590,14 @@ de los agentes (`telegram-bot`); el chat enlazado y el proyecto, en `telegram.js
 «Desenlazar» pide un código nuevo; «Quitar el bot» borra el token. Por ahora solo entiende texto (las notas de voz
 vendrán después). Código: `src/main/telegram.ts`, pruebas en `telegram.test.ts`.
 
+**Sin respuestas perdidas (24 nov 2026, v1.21.4; idea de AnyModelBot).** Todo lo que kywai manda a Telegram (textos y
+archivos) pasa por una cola guardada en `telegram-outbox.json` de la carpeta de datos. Si Telegram no contesta, la red
+falla o pide esperar (429 con `retry_after`), se reintenta en orden con esperas de 5 s, 10 s, 20 s… hasta 10 minutos,
+también tras reiniciar kywai. Las peticiones hechas desde Telegram (`runs`, las 100 últimas) y lo ya enviado (`sent`)
+se guardan en `telegram.json`, así la respuesta a algo que pediste antes de cerrar kywai llega igual y nada sale dos
+veces. Lo que Telegram rechaza para siempre (400, 403 bot bloqueado, 404) o lleva más de un día esperando se descarta.
+Mientras haya algo en la cola, Ajustes → Conexión → Telegram dice cuántas respuestas esperan.
+
 ### Hablar con kywai por WhatsApp (20 nov 2026)
 
 Como en OpenClaw: kywai se vincula a tu WhatsApp como un dispositivo más (igual que WhatsApp Web) y le escribes en tu
@@ -2564,7 +2572,7 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 - **Una tarea bloqueada** (ver [abajo](#tareas-bloqueadas-le-falta-algo-no-es-un-error)): el agente dijo que le falta
   algo para terminarla. «Darla por buena así», «Contestarle en el chat» o «Pasársela a otro agente».
 - **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo, y la petición que se pausó al llegar a su
-  **tope por petición** (con «Seguir de todas formas» o «Quitar»).
+  **tope por petición** (con «Darle 1 $ más», «Seguir sin tope» o «Quitar»).
 
 Solo cuenta lo que espera algo de ti. **Lo terminado no va aquí**: la última petición acabada de cada proyecto sale
 arriba en **Resultados**, en «Recién terminado», con su número en la barra lateral, «Visto» y «Marcar todo como visto»
@@ -2616,6 +2624,17 @@ Cuando entra algo nuevo en «Te necesita» (en cualquier proyecto), kywai te avi
 El coordinador es el primero de la lista de quién planifica (⚙ → Agentes), así que si cambias de coordinador, la
 campanita pasa al nuevo. Lo que ya estaba en la bandeja al abrir la app (o lo que tiene más de 5 minutos al
 reconectar) solo hace palpitar la campanita, sin sonar ni llamar. Lo informativo («Terminado») no avisa.
+
+**Silencio de noche y avisos agrupados (24 nov 2026, v1.21.6; idea de AnyModelBot).** En ⚙ → Ajustes → Agentes,
+debajo de «El coordinador te avisa en el 3D», **«Silencio de noche»** viene encendido de 22:00 a 08:00 (se cambian las
+dos horas; cruza la medianoche). A esas horas lo nuevo de «Te necesita» no suena ni hace que el coordinador te llame
+en el 3D: la campanita de la barra sí se queda brillando. Al acabar el silencio, si sigue habiendo algo pendiente,
+suena una sola vez por todo lo que llegó. Si has usado kywai (tecla o clic) en los últimos 10 minutos, estás
+despierto y suena igual (`AWAKE_MS`). Además, a cualquier hora, varios avisos seguidos suenan como uno: tras un
+timbre no vuelve a sonar en 90 s (`GROUP_MS`), y lo que llegó entretanto suena una vez después si sigue pendiente.
+Es por dispositivo (`aicowork.avisos.silencio`). Las notificaciones del móvil (Órbita) siguen el «No molestar» del
+propio teléfono. Código: `isQuietTime` y `startInboxAlert` en `lib/inboxAlert.ts`; el ajuste, `QuietRow` en
+`ui/settings/SettingsDialog.tsx`.
 El código está en `src/renderer/src/lib/inboxAlert.ts` (qué es nuevo, prueba en `inboxAlert.test.ts`), el timbre
 `needsYou` en `lib/audio.ts`, la campanita de la barra en `ui/header/InboxButton`, y la del 3D en `scene/Robot.tsx`
 (sprite), `scene/RobotLabel.tsx` (etiqueta y bocadillo dorado) y `scene/robotBrain.ts` (`callUser`).
@@ -3934,6 +3953,17 @@ Se guarda en el `project.json` del proyecto (también el interruptor de Código 
   Extensiones → Habilidades). Código: `parseTaskSkill`, `saveTaskSkill`, `learnedSkills`,
   `confirmLearnedSkill` y `removeLearnedSkill` en `src/main/skills.ts`; la pestaña, en `MemoryView.tsx`.
 
+
+**Lo que la memoria no guarda (24 nov 2026, v1.21.5; idea de AnyModelBot).** La memoria la leen todos los agentes y
+modelos en cada encargo, así que antes de guardar una entrada pasa por `src/main/memoryGuard.ts`:
+- Claves de API, tokens, contraseñas («contraseña: …», «password = …»), claves privadas, tarjetas (con comprobación
+  de Luhn) e IBAN se tapan siempre («[clave oculta]», «[tarjeta oculta]», «[cuenta oculta]»), lo escriba quien lo
+  escriba. Si la nota solo era la clave, no se guarda. Las claves van en los secretos del proyecto, cifrados.
+- Teléfonos, direcciones y correos solo entran si los escribe el usuario. Si un agente los quiere anotar, no se guarda
+  y la herramienta `anotar_memoria` le contesta que pregunte antes al usuario.
+- Cada entrada tiene, junto a la papelera, **No volver a recordarlo** (ojo tachado, pide un segundo clic): la borra y
+  guarda su texto normalizado en `memoryForgotten` del proyecto (200 como mucho); desde entonces ningún agente puede
+  volver a anotarla, ni una variante casi igual. Si la escribes tú a mano, vuelve a valer y sale de esa lista.
 ### AGENTS.md, habilidades y herramientas de kywai
 
 **Instrucciones del repositorio.** Cada CLI lee por su cuenta solo su archivo (Claude, `CLAUDE.md`; Codex,
@@ -6976,6 +7006,17 @@ ya se decidió). Los cambios llegan por el evento `routines.updated` y los mensa
 
 Se guardan en el `project.json` del proyecto (`routines`) y las lanza `src/main/routines.ts`, que mira cada 30 s.
 
+
+**Primero observa y pausa al fallar (24 nov 2026, v1.21.8; idea de AnyModelBot).** Al crear una rutina en la pestaña
+Rutinas viene marcada **«Primero observa»**: su petición va con un aviso delante (`observeText`) para que el agente no
+cambie ni envíe nada y cuente «Lo que haría:» (a quién, dónde y con qué resultado). Cada ejecución así queda marcada
+(`observed`). Tras **3 pasadas buenas seguidas** observando, «Te necesita» propone **«Pasar a actuar»** o «Que siga
+observando» (solo una vez; vuelve a proponerlo si la pones a observar otra vez). La lista dice «solo observa» mientras
+dura. Las rutinas que ya existían, y las que crea el coordinador porque se lo pides, actúan desde el principio.
+Además, cualquier rutina que **falla 3 veces seguidas** (fallo o interrumpida, sin contar las saltadas) se **pausa
+sola**: queda desactivada, la lista dice «se pausó sola» y «Te necesita» lo avisa con «Reactivarla». Al reactivarla
+los fallos cuentan de cero. Código: `afterRun`, `streak` y `stopObserving` en `src/main/routines.ts`; los avisos y sus
+botones (`routine-act`, `routine-enable`) en `src/main/index.ts`.
 ### Secretos: claves y tokens que los agentes usan sin verlos
 
 Cada proyecto tiene la pestaña **Secretos** (la llave, junto a Rutinas) para guardar claves de API, tokens (por
@@ -7223,6 +7264,18 @@ agentes encendidos (nombre, programa y modelo). **Nunca** van claves, contraseñ
 kywai Cloud va con tu cuenta (para poder responderte); desde la self host va sin cuenta, con tu correo si lo dejas, y
 el portal limita los envíos seguidos para evitar spam. Código: `src/main/problemReport.ts`,
 `ui/settings/ProblemReportDialog.tsx` y, en kywai-cloud, `portal/problemas.py`.
+
+**Diagnóstico paso a paso (24 nov 2026, v1.21.10; idea de AnyModelBot).** «Probar» de un agente (Añadir un agente,
+Mis agentes de Mi cuenta) ya no dice solo «no responde»: enseña cuatro pasos, **Su programa** (está instalado),
+**Conexión a internet** (no hace falta en Ollama, LM Studio y demás modelos locales), **Cuenta o clave** y
+**Responde**, con ✓, ✗ o «sin probar». Se para en el primero que falla, dice «{agente} se atasca en: …» y qué hacer
+(instalar o reconectar, revisar la red o la VPN, volver a entrar o pegar la clave, esperar o recargar saldo, otro
+modelo). El tipo de fallo sale del propio agente (`errorKind`: missing, offline, auth, quota). En **Reportar un
+problema** hay **Probar paso a paso**: prueba internet y todos los agentes encendidos (hasta 4 a la vez) y deja
+**Copiar informe**; si la casilla de datos está marcada, el informe va también con el aviso. Informe y detalles pasan
+por `maskSecrets` (memoryGuard.ts): nunca llevan claves, tokens ni contraseñas. Código: `src/main/diagnostics.ts`
+(`diagnoseAgent`, `diagnoseAll`, `diagnosisReport`), `probeAgent`/`checkAgentNow` y `cowork:diagnose` en
+`src/main/index.ts`, `ui/common/DiagSteps.tsx`.
 
 Lo que antes también estaba en este menú sigue en su sitio de siempre: *Importar de otras apps* en Ajustes → General
 → Tus datos, *Cómo rinde cada agente* en Ajustes → Agentes, *Archivos del servidor* en Ajustes → Conexión, *Buscar
@@ -7648,11 +7701,14 @@ El mismo panel (⚙ → **«Uso y coste…»**) dice también cuánto dinero sup
   un agente con un modelo gratis (Kilo con `kilo/…/free`, OpenRouter `…:free`) sale «Gratis». Los agentes sin indicar
   cuentan a precios de API, pero no como pagado.
 - **Presupuesto al mes por API** (vacío: sin límite).
-- **Tope por petición** (desde el 20 de noviembre de 2026; vacío: sin límite). Si UNA petición gasta eso en agentes
-  que pagas por uso (las suscripciones no cuentan), kywai la **pone en pausa** en cuanto termina la llamada que lo
-  pasa: sus tareas a medias quedan para reanudar donde estaban y «Te necesita» dice cuánto lleva, con «Seguir de
-  todas formas» (ya no se vuelve a parar por el tope) o «Quitar». Idea de las misiones con presupuesto de Replit
-  (`checkRunBudget` en `orchestrator.ts`, `runApiSpendUsd` y `runBudgetUsd` en `src/shared/costs.ts`).
+- **Tope por petición** (desde el 20 de noviembre de 2026). Desde la 1.21.7 (24 nov, idea de AnyModelBot) viene
+  puesto: **vacío es 1 $** (`DEFAULT_RUN_BUDGET_USD`) y con **0 no hay tope**. Si UNA petición gasta eso en agentes
+  que pagas por uso (las suscripciones y los agentes sin «Cómo pagas» elegido no cuentan), kywai la **pone en pausa**
+  en cuanto termina la llamada que lo pasa: sus tareas a medias quedan para reanudar donde estaban y «Te necesita»
+  dice cuánto lleva, con **«Darle 1 $ más»** (o el tope que tengas: sube el tope de esa petición y la reanuda; si
+  vuelve a llegar, vuelve a preguntar), «Seguir sin tope» (ya no se vuelve a parar por el tope) o «Quitar». Idea
+  de las misiones con presupuesto de Replit (`checkRunBudget`, `runLimitUsd` y la acción `budget-more` en
+  `orchestrator.ts`; `runApiSpendUsd` y `runBudgetUsd` en `src/shared/costs.ts`).
 - **Precios por millón de tokens (en dólares)**: entrada, entrada leída de caché y salida de cada modelo. Vienen los
   oficiales comprobados el 7 nov 2026 (Claude, GPT y Gemini); los que salen de una fuente no oficial o son de
   promoción lo dicen al lado. Se pueden cambiar (el cambiado sale en otro color, con «Original» para volver) y
@@ -7815,6 +7871,25 @@ no: allí depende de que el agente lo escriba en bloque.
 Por debajo: el componente `pre` de `MarkdownView.tsx` (`CodeBlock`), `fenceLooseJson` de `src/shared/looseCode.ts` (saca el
 JSON suelto a un bloque ```json antes de pintar; la orden a los agentes está en `CHAT_STYLE` de `coordinatorGuide.ts`) y la función común `copyText` de
 `src/renderer/src/lib/clipboard.ts` (la usan también las rutinas). En Órbita, `CodeBlock` en `ui/orbita/Markdown.kt`.
+
+### ZIP adjuntos: se abren solos y sin riesgos (24 nov 2026, v1.21.9)
+
+Un **.zip** adjunto (arrastrado, pegado, subido desde Órbita o «Adjuntar al mensaje») se abre aparte en la carpeta
+`attachments/<nombre>-zip/`, y Hermes y los agentes reciben esa carpeta en vez del .zip («ZIP ya abierto en … lee
+esa carpeta»). Antes de sacar nada se lee el índice del ZIP y se rechaza **entero** si:
+
+- trae **más de 2.000 archivos** o **más de 200 MB** descomprimidos (también si el .zip pesa más de 200 MB);
+- alguna ruta se sale de la carpeta (`../`, `/…`, `C:\…`), tiene caracteres de control o nombres que Windows no
+  deja, o dos archivos se llaman igual salvo mayúsculas;
+- hay **enlaces simbólicos** o archivos **cifrados** (o un método de compresión que no sea guardar/deflate).
+
+Al sacar se cuenta lo que de verdad sale (un ZIP puede mentir sobre su tamaño: se corta), nunca se escribe encima
+de nada y hay un tope de **60 s**. Si algo falla, se borra todo lo extraído y el agente recibe «ZIP sin abrir por
+seguridad (motivo); no lo descomprimas a mano», para decirte por qué. Borrar el adjunto borra también su carpeta.
+
+Por dentro: `src/main/safeUnzip.ts` (`readZipIndex`, `safeUnzip`, `ZIP_LIMITS`), `openZipAttachment` y `zipsReady` en
+`src/main/projects.ts` (el plan espera a que se abran), `Attachment.zip` en los tipos y `zipNote` en
+`src/main/orchestrator.ts`. Idea sacada de AnyModelBot.
 
 ### Ver los archivos del chat sin salir de kywai (panel de vista previa)
 
