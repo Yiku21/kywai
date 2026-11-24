@@ -2094,16 +2094,52 @@ como consulta rápida (que solo lee) y el agente te mandaba a «Mis agentes». A
 - `kywai_ajustes`: lee o cambia idioma, tema, agentes a la vez, permisos de los agentes y visto bueno a los planes.
   Los dos últimos (de seguridad) **siempre los confirmas tú**.
 
-**Usar tu ordenador** (`src/main/computerControl.ts`; no en kywai Cloud):
+**Usar tu ordenador** (`src/main/computerControl.ts` y `src/main/cuaDriver.ts`, desde la 1.21.0):
 
 - Con acceso completo, los agentes pueden trabajar fuera de la carpeta del proyecto cuando se lo pides (tus
   Descargas, el Escritorio, programas, ajustes del sistema). Sin pedirlo, fuera de ella solo lo imprescindible.
-- Para lo que solo se hace con el ratón: `ordenador_captura` (ver la pantalla principal), `ordenador_clic`,
-  `ordenador_escribir` (pega el texto y deja el portapapeles como estaba), `ordenador_tecla` (enter, cmd+c,
-  alt+tab…) y `ordenador_abrir` (un programa, un archivo o carpeta, una web). Mac con Quartz y System Events, Windows
-  con PowerShell, Linux con xdotool.
-- **Mac, la primera vez**: Ajustes del Sistema › Privacidad y seguridad › **Accesibilidad** (ratón y teclado) y
-  **Grabación de pantalla** (capturas) para kywai; después, reinicia kywai. Si falta, el agente te lo dice.
+- **Motor: Cua Driver** (trycua/cua, `libs/cua-driver`, licencia MIT; la idea viene de AnyModelBot, MIT). Es un
+  programa nativo que lee los botones, campos y menús de cada ventana por su nombre (el árbol de accesibilidad del
+  sistema) y pulsa el elemento exacto; en Mac lo hace en segundo plano, sin mover tu ratón ni quitarte el foco. kywai
+  baja la versión fija `CUA_VERSION` (0.37.0) de las Releases oficiales al minuto de arrancar, comprueba su huella
+  SHA256 y la guarda en la carpeta de datos (`cua-driver/<versión>/<sistema>-<arquitectura>`). Pesa entre 35 y 85 MB y
+  se baja una sola vez. Nunca se baja cua-perception ni OmniParser (AGPL) ni Cua Spaces.
+- kywai lo arranca él mismo (`cua-driver mcp`; en Mac con `--direct`, así los permisos son los de kywai), sin
+  telemetría, sin comprobar actualizaciones, sin `run_script` ni portapapeles y sin pasarle las claves del entorno.
+  Va en modo «unrestricted» porque quien aprueba es kywai: cada llamada pasa antes por sus permisos.
+- Los agentes tienen tres herramientas: `ordenador_usar` (una acción: `list_apps`, `list_windows`,
+  `get_window_state`, `get_desktop_state`, `zoom`, `verify_state`, `launch_app`, `bring_to_front`, `click`,
+  `type_text`, `press_key`, `hotkey`, `scroll`, `drag`, `set_value`, `invoke_menu`, `set_window_frame`,
+  `run_steps`…), `ordenador_ayuda` (la explicación completa de una acción en este sistema, para no cargar 90 KB de
+  instrucciones en cada tarea) y `ordenador_abrir` (un archivo, carpeta o web). `run_steps` solo admite acciones de la
+  lista.
+- **Modo sencillo** (si el driver no se puede preparar: sin conexión, sistema sin paquete oficial): las herramientas de
+  antes, `ordenador_captura`, `ordenador_clic`, `ordenador_escribir`, `ordenador_tecla` y `ordenador_abrir` (Mac con
+  Quartz y System Events, Windows con PowerShell, Linux con xdotool). Si el driver falla a mitad de una tarea, las
+  acciones básicas siguen por este modo.
+- **Mac, la primera vez** (1.21.1): si a kywai le falta **Accesibilidad** (ratón y teclado) o **Grabación de
+  pantalla** (ver), el Mac lo pide y sale un aviso en «Te necesita» con **Abrir Ajustes** (abre esa página de
+  Privacidad y seguridad) y, para la Grabación, **Reabrir kywai** (el Mac solo la aplica al reabrir). La tarea espera
+  hasta 3 minutos y sigue sola en cuanto lo actives; si no, el agente te lo explica y sigue con lo que pueda.
+- **Permitir siempre** (1.21.1): en «Preguntarme antes», los permisos de ver la pantalla y de usar el ratón y el
+  teclado tienen un cuarto botón, «Permitir siempre», que se recuerda también tras reiniciar (`computerAlways` en la
+  configuración). Se olvida al cambiar los permisos de los agentes o con **Olvidar** en Ajustes → Agentes. Borrar,
+  pagar, comprar, publicar o enviar nunca lo ofrecen: se confirman cada vez.
+- **En vivo y «Parar»** (1.21.2, `src/main/computerOverlay.ts`): mientras un agente usa tu ordenador sale arriba a la
+  derecha una ventanita siempre encima con quién es, el paso que da y una miniatura de lo último que vio. No coge el
+  foco y no sale en las capturas del agente. **Parar** (o Ctrl+Alt+Esc; ⌃⌥⎋ en Mac, aunque kywai no esté delante)
+  pausa las ejecuciones que usan el ordenador (se pueden reanudar) y rechaza lo que aún llegue de ellas durante 5
+  minutos. Se cierra sola tras 45 s sin acciones o al terminar la tarea.
+- **Desde kywai cloud** (1.21.3, web o móvil): con la app de escritorio conectada en ⚙ → Ajustes → **Este PC** y
+  **«Ratón y teclado»** encendido (lo enciende el interruptor general «Conectar kywai cloud con este PC»; también se
+  puede apagar solo eso en «Elegir qué hace»), los agentes de la nube tienen las mismas herramientas. Los permisos se
+  piden en la nube; cada acción viaja por el puente (`deviceBridge.computer` → `bridgeClient.handleComputer` →
+  `runComputer` con `remote`) y se hace en el PC con su motor. En el PC se ve en la ventanita («… usa este PC desde
+  kywai cloud») y **Parar** también corta la tarea de la nube. Si el Mac aún no tiene los permisos, se abre solo el
+  ajuste de Privacidad y seguridad. Apagado en los equipos que ya estaban conectados hasta que lo enciendas.
+- **Windows**: las ventanas de un programa abierto como administrador no se pueden manejar salvo que kywai también
+  se abra como administrador. **Linux**: con Wayland solo se maneja la ventana de delante; leer las ventanas necesita
+  AT-SPI (activado en GNOME y KDE).
 
 Permisos, iguales para todo: con **acceso completo** actúan solos; con **«Preguntarme antes»** (o «Solo la carpeta del
 proyecto») cada acción te pide permiso. **Borrar, pagar, comprar, publicar o enviar lo confirmas siempre tú**, aunque
