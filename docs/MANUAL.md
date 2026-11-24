@@ -8038,6 +8038,10 @@ izquierda la etiqueta del tipo («PNG», «MP4», «PDF») y debajo el nombre de
 ancho ni la barra de «Descargar / Abrir» debajo.
 
 - **Clic** en la miniatura: se abre en grande en el panel de vista previa (con ‹ › para pasar por todo el mensaje).
+  Dónde (v1.28.6, pedido por Yil): en la columna del espacio 3D, a la derecha del chat; si esa columna la ocupa otro
+  chat (el chat de al lado) o el navegador, en grande y delante de todo, como «Ampliar». Un archivo que se abre desde
+  el propio chat de al lado también sale en grande delante, en la ventana principal (mensaje `preview` del marco).
+  Código: `openPreview`/`openViewer` en `store/cowork.ts`, `ChatPaneApp.tsx` y `SplitChat.tsx`.
 - **Ratón encima**: aparece la flecha de **descargar** arriba a la derecha. En móvil y tableta se ve siempre.
 - **Abierto** en la vista previa, la cabecera lleva el botón **«Descargar»** con su flecha a la vista (en pantallas
   estrechas, solo la flecha).
