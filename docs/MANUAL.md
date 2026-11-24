@@ -2786,7 +2786,7 @@ cuadrada sale al tamaño que tengas puesto).
 
 - **En el chat**: «hazme una imagen de un gato astronauta en acuarela», «dibújame…», «genera un póster de…». El
   coordinador pone la imagen en el campo `"image"` de su plan (el texto en inglés y el formato) y kywai la dibuja en el
-  acto, sin tareas; **la imagen se ve en el propio chat** (grande si es una, en cuadrícula hasta 4; al pulsarla se abre en la vista previa) y debajo queda su fila con Abrir y Descargar y queda en `artifacts/imagenes/` (o
+  acto, sin tareas; **la imagen se ve en el propio chat** como miniatura (ver «Miniaturas de imágenes, vídeos y PDF en el chat») y queda en `artifacts/imagenes/` (o
   `.ai-cowork/entregables/imagenes/` en una carpeta tuya). Hasta 4 por mensaje.
 - **Los agentes** la dibujan con la herramienta **`generar_imagen`** del servidor de kywai (Claude, Codex, Gemini,
   Hermes en sus tareas) o **`generate_image`** (Gemma y los demás modelos de LM Studio dentro de kywai): para una web,
@@ -5913,7 +5913,7 @@ Código: `proposeSkills` y `decideSkillProposal` en el orquestador, y `src/main/
 
 ### Crear vídeos con solo pedirlo (`/video`)
 
-Pides un vídeo y te llega **solo el vídeo**: un MP4 que se ve en el propio chat (con Abrir y Descargar debajo). Sin
+Pides un vídeo y te llega **solo el vídeo**: un MP4 que sale en el propio chat como miniatura con ▶ (clic para verlo en grande; flecha de descargar al pasar el ratón). Sin
 plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
@@ -8029,6 +8029,22 @@ seguridad (motivo); no lo descomprimas a mano», para decirte por qué. Borrar e
 Por dentro: `src/main/safeUnzip.ts` (`readZipIndex`, `safeUnzip`, `ZIP_LIMITS`), `openZipAttachment` y `zipsReady` en
 `src/main/projects.ts` (el plan espera a que se abran), `Attachment.zip` en los tipos y `zipNote` en
 `src/main/orchestrator.ts`. Idea sacada de AnyModelBot.
+
+### Miniaturas de imágenes, vídeos y PDF en el chat
+
+(24 nov 2026, v1.28.5; pedido por Yil: «como lo haces tú, Claude».) Lo que entrega un agente que sea **imagen, vídeo
+o PDF** sale en el chat como una **miniatura compacta**, igual que al compartir un archivo en Claude: arriba a la
+izquierda la etiqueta del tipo («PNG», «MP4», «PDF») y debajo el nombre del archivo. Ya no sale la imagen a todo lo
+ancho ni la barra de «Descargar / Abrir» debajo.
+
+- **Clic** en la miniatura: se abre en grande en el panel de vista previa (con ‹ › para pasar por todo el mensaje).
+- **Ratón encima**: aparece la flecha de **descargar** arriba a la derecha. En móvil y tableta se ve siempre.
+- **Abierto** en la vista previa, la cabecera lleva el botón **«Descargar»** con su flecha a la vista (en pantallas
+  estrechas, solo la flecha).
+- El vídeo enseña su primer fotograma con ▶; el PDF, su icono.
+- Varias imágenes (hasta 4) salen en una fila de miniaturas. Si una no carga (archivo borrado), vuelve su fila de
+  siempre para que no se pierda. Los demás archivos (páginas, documentos, código) siguen con su fila.
+- Código: `MediaThumbs` / `MediaThumb` y `ArtifactCards` en `src/renderer/src/ui/left/Messages.tsx`.
 
 ### Ver los archivos del chat sin salir de kywai (panel de vista previa)
 
