@@ -4763,6 +4763,9 @@ lo lleva todo a tu espacio de la nube. Esta instalación no se toca: si algo fal
 4. Se sube cifrado, a trozos; si se corta la red, repite ese trozo.
    Si tu espacio se reinicia a mitad de la subida (antes salía «Este paso ya no está abierto: vuelve a empezar»), la
    ventana espera a que vuelva y empieza la subida otra vez ella sola, hasta 2 veces (1.30.35).
+   Desde la 1.30.56 la subida es **reanudable**: si se corta la red o el espacio se reinicia, la ventana dice «Esperando a
+   que vuelva…» y sigue desde el último trozo que llegó, sin volver a subir lo demás. Mientras sube, el equipo no se
+   duerme (la pantalla sí puede apagarse).
 5. Tu espacio comprueba cada archivo, guarda una copia de lo que ya tenía en las rutas que se pisan, se reinicia y lo
    coloca todo. Al final ves la tabla **«En tu self host / En kywai cloud»**: proyectos, chats, mensajes, adjuntos, notas
    de memoria, rutinas, habilidades, agentes, claves y archivos, con un ✓ en cada fila.
@@ -4795,6 +4798,16 @@ cuenta y `ocupado.json` (`cloudBusy.ts`) lleva el motivo `mudanza`: el despliegu
 ocupado. Además, un espacio cuya web nadie ha abierto nunca (`ultimoUso` vacío, lo normal en quien sube desde su
 escritorio) ya no cuenta como «24 h sin uso» hasta que la versión lleve 24 h esperando. Si aun así se pierde el paso,
 `part`/`terminar` contestan **410** y la self host espera a que el espacio vuelva y empieza de nuevo (hasta 2 veces).
+
+**Subida reanudable (1.30.56).** Al empezar, el espacio guarda la clave del paso en `~/.kywai-mudanza/<id>/clave.json`,
+cifrada con su llave, así que un reinicio ya no pierde el paso. `GET /api/mudanza/<id>/partes` dice qué trozos tiene; la
+self host vuelve a generar el paquete, comprueba que cada trozo es igual que el que mandó (huella SHA-256 antes de
+cifrar; si algo cambió en el equipo, empieza de nuevo) y solo sube los que faltan. Tras un corte espera hasta 15 minutos
+a que el espacio conteste y lo intenta hasta 30 veces. `powerSaveBlocker` (`prevent-app-suspension`) evita que el equipo
+se duerma mientras dura. Al «terminar», el espacio guarda `terminar.json` (manifiesto y recuentos) y, si hay sitio, deja
+los trozos hasta el final de la comprobación: si se reinicia mientras comprueba, `resumeChecks()` vuelve a comprobar al
+arrancar; si ya no puede (faltan trozos), el paso queda en error con «Tu espacio se reinició mientras comprobaba lo
+subido» en vez de esperar callado. La self host espera 15 minutos más uno por GB a que termine.
 
 ### Modelo recomendado según tu equipo (agente local)
 
