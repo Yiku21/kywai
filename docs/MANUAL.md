@@ -1009,6 +1009,8 @@ Seguridad lo lista y lo quita). La dirección que dé el portal solo se acepta s
 `data/net/CloudLogin.kt` y `startCloud()` en `ui/onboarding/OnboardingViewModel.kt`.
 
 **Certificados en Órbita (kywai 1.29.9, 24 nov 2026).** Órbita comprueba el certificado de tu espacio (o de tu
+
+**Órbita y kywai Cloud usan el TLS normal de Android (kywai 1.30.13, 24 nov 2026).** Con la 1.29.9 Yil seguía viendo «No se pudo llegar a tu espacio de kywai Cloud». Ahora los espacios de la nube (`*.nube.kywai.app`, sin huella fijada) se conectan con la comprobación de certificados de Android tal cual, igual que Mi cuenta (`CloudLogin`), que sí funcionaba. La validación propia con huella (`PinningTrustManager`) queda solo para el ordenador de casa. Si aun así falla, debajo del aviso sale entre paréntesis el motivo técnico (por ejemplo `SSLHandshakeException: …`, `UnknownHostException` o `SocketTimeoutException`), sin direcciones ni datos de la cuenta, para saber al momento si es el certificado, el nombre o el tiempo. Con un espacio de la nube, «Sin conexión» ya no habla de Tailscale ni de abrir kywai en el ordenador: pide comprobar internet y añade el motivo (o el código HTTP si el servidor contestó al abrir la conexión en vivo). En la nube, la conexión en vivo (`/api/mobile/v1/events`, WebSocket) daba 400 en la comprobación del portal; se arregló en Kywai-Cloud#146.
 ordenador) con `PinningTrustManager` (`data/net/Tls.kt`): primero los certificados del sistema y, si no los reconoce,
 solo el certificado cuya huella confirmaste. Hasta la 1.29.9 le preguntaba al sistema sin decirle de qué servidor era,
 y como la app tiene reglas de red por dominio (`res/xml/network_security_config.xml`, las de `localhost`), Android
