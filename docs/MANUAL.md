@@ -6498,6 +6498,16 @@ las emociones en inglés y otras palabras como «feliz» o «excited»).
 - En las **películas con estilo** (las dirige un agente), el encargo pide lo mismo: emoción por frase, nunca retocar
   velocidad ni tono, y si Chatterbox está instalado, cómo usarlo (`<studio>/chatterbox/voz.py` con un JSON de frases).
 
+**Voz Ming, la otra voz que narra (1.30.51, solo en el equipo).** En Ajustes → Multimedia → Estudio de vídeo, «Voz que
+narra» deja elegir entre **Chatterbox (con emoción)**, la de siempre, y **Ming (más natural)**: Ming-3.0-tts 0.5B de
+inclusionAI (MIT, `src/main/mingVoice.ts`), que suena más natural y copia mejor el timbre de la voz elegida (las mismas
+muestras que Chatterbox: Álvaro, Jorge, Carmen, Bella…), pero lee sin emociones. Habla español, inglés, chino, francés,
+alemán, japonés y coreano. Al elegirla se instala sola (entorno de Python 3.11 con uv, su código fijado y el modelo, unos
+3 GB) en `estudio-video/ming`, y prueba dónde funciona (gráfica NVIDIA, Apple o el procesador). La elección se guarda en
+`estudio-video/narrador.json`. Medida el 24 nov en un procesador de 4 núcleos sin gráfica: 3,5 GB de memoria y unos 20 s
+por frase. Pide la misma memoria que Chatterbox (16 GB) y no se instala en kywai Cloud. Si Ming no saca el vídeo entero,
+va Chatterbox y luego el orden de siempre; las frases que se alargan sin parar se repiten una vez.
+
 **Repasar el guion antes de grabar.** Al final del selector (con el estilo de kywai, no en las películas con estilo),
 la casilla «Repasar el guion antes de grabar» (marca `guion:repasar`). El agente escribe el guion como siempre pero
 kywai **no graba todavía**: el guion sale en el chat como una tarjeta con cada escena (su rótulo y lo que se dice, con
