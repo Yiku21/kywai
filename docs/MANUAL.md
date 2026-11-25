@@ -202,12 +202,12 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   donde no se puede escribir (abierta desde el `.dmg`, «translocada» por macOS o en una carpeta sin permiso) avisa con
   «Descargar» y abre la página de la Release como antes. Las apps del Mac anteriores a este cambio aún abren la página:
   hay que descargar la nueva una última vez a mano.
-- **Ventana de «Novedades»: notas de parche** (desde el 20 nov 2026, `src/shared/patchNotes.ts`,
+- **Ventana de «Novedades»: notas de parche** (desde el 20 nov 2026, `src/shared/patchNotes.ts` y `src/shared/notasDeParche/`,
   `src/main/whatsNew.ts` y `WhatsNewDialog.tsx`). La primera vez que kywai se abre después de actualizarse sale una
   ventana como las notas de un parche: arriba y en grande lo **destacado**, cada cosa con su explicación corta y, si
   la tiene, un botón «Probarlo» que abre su sitio en Ajustes; al final, en pequeño, las **mejoras** y los **arreglos**
   en una línea cada uno. Todo sale en el idioma de la app (español si falta la traducción).
-  Las notas van **dentro de la app** (`src/shared/patchNotes.ts`), así que salen igual en el self host, en la app
+  Las notas van **dentro de la app** (`src/shared/notasDeParche/`), así que salen igual en el self host, en la app
   descargada, en **kywai cloud** y en la **web**, sin leer GitHub ni git (antes en la nube no salía nunca: el
   contenedor corre sin empaquetar y sin git). Cada nota tiene un id fijo; al cerrar la ventana se apuntan como vistas
   (`novedades-vistas.json` en la carpeta de datos) y no vuelven a salir. En una instalación nueva se dan todas por
@@ -218,8 +218,10 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   (`latestWhatsNew` y `GET /api/mobile/v1/server/news`, capacidad `whatsNew`) y cada uno apunta qué vio (el navegador
   en `localStorage`, `kywai.novedades.notas`; Órbita en sus preferencias). Órbita enseña de momento los títulos en el
   idioma de la cuenta. En la nube las notas nuevas salen al desplegar la imagen nueva.
-  **Cómo se añade una nota** (cada mejora, en su mismo commit): arriba del todo en `src/shared/patchNotes.ts`, con id
-  `AAAA-MM-DD-tema`, `tipo` (`destacado`, `mejora` o `arreglo`), título en los 6 idiomas (es, en, pt, fr, zh, hi) y, en los destacados, una
+  **Cómo se añade una nota** (cada mejora, en su mismo commit; desde la 1.31.0): un archivo nuevo en
+  `src/shared/notasDeParche/` llamado como su id, `AAAA-MM-DD-tema.ts` (una nota por archivo, así dos cambios a la vez
+  no chocan al fusionar; `patchNotes.ts` las junta solas, de la más nueva a la más vieja, y detrás pone las de antes de
+  la 1.31.0, que siguen en `patchNotesAnteriores.ts` y ya no se tocan), con `tipo` (`destacado`, `mejora` o `arreglo`), título en los 6 idiomas (es, en, pt, fr, zh, hi) y, en los destacados, una
   explicación de una o dos frases; `abrir` y `solo` son opcionales (el archivo explica cada campo). Lo interno
   (pruebas, documentos, despliegues) no lleva nota. `whatsNew.test.ts` falla si una nota está mal escrita. Para
   probar la ventana en desarrollo: `AICW_WHATS_NEW=1`.
@@ -1078,6 +1080,11 @@ apunta en `ocupado.json` y el servidor lo cambia en un par de minutos aunque hay
 medias sigue solo al volver y la página se recarga sola. Lo mismo está en ⚙ → Buscar actualizaciones. Código:
 `src/renderer/src/ui/quota/CloudUpdateToast.tsx`.
 
+**Sin versión nueva esperando** (1.30.64, Yil 25 nov: «¿por qué dice que los updates los genera la nube?»), ⚙ → Buscar
+actualizaciones en la nube dice «Tu espacio tiene la última versión disponible. Cuando haya una nueva, aparecerá aquí el
+botón «Actualizar ahora»» en vez de «kywai Cloud gestiona las actualizaciones», que parecía decir que no se podía hacer
+nada. Pulsar sin versión esperando devuelve «Tu espacio ya tiene la última versión.».
+
 **Barra de «Actualizar ahora»** (1.30.30, Yil 24 nov 2026: «dame una barra de update»). Tras pulsar el botón, el aviso
 y ⚙ → Buscar actualizaciones enseñan una barra con tres pasos (**Pedido enviado**, **Guardando tus datos**,
 **Reiniciando**) y el tiempo que suele faltar. Los pasos son los reales: el servidor los apunta en
@@ -1617,6 +1624,17 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     app y de Mi cuenta: Google ya no deja usar Gemini CLI con cuentas personales, y ese inicio de sesión borraba la clave
     y dejaba Gemini «Con fallos». Sin clave propia, Gemini usa la de Gemini Live (`gemini-live`, la misma de AI Studio),
     y cada ejecución con clave deja sus ajustes en «gemini-api-key».
+  - **Gemini con clave no usa «Auto» (1.30.65, 25 nov 2026).** Con «Auto», Gemini CLI elige Gemini 3.1 Pro, y la clave
+    gratis de Google AI Studio no tiene **ninguna** cuota para Pro (Google responde «limit: 0»). Ahora, si Gemini entra
+    con clave (`GEMINI_API_KEY` o ajustes en «gemini-api-key») y el agente no tiene modelo fijado, va con 3.8 Flash
+    (`geminiRunModel`, `GEMINI_KEY_MODEL` en `agents/gemini.ts`). Con la sesión de una cuenta de empresa, «Auto» sigue igual.
+    Si Google dice «limit: 0» para el modelo elegido, el fallo cuenta como **modelo no disponible** (no como cuota
+    agotada) y la tarea se repite con el modelo predeterminado (Flash) en vez de pasar a otro agente. La cuota diaria
+    agotada («exhausted your daily quota») sigue siendo «Gemini alcanzó su límite de uso».
+  - **Google AI Pro no sirve en Gemini CLI.** Desde junio de 2026 Google no deja entrar en Gemini CLI con cuentas
+    personales, ni con Google AI Pro o Ultra («tu cuenta no es de pago»); esas suscripciones se usan con el agente
+    **Antigravity CLI**. «Configura Gemini» lo avisa arriba, y el fallo de inicio de sesión lo explica igual. La etiqueta
+    «PRO» de AI Studio tampoco sube la cuota de la clave: eso depende de la facturación del proyecto de la clave.
   - **«Guardar y probar» dice por qué no va una clave** (`main/keyProbe.ts`, 1.4.1): la prueba de la clave en la nube
     (`cloudTestAgent`) ya no se queda en «No respondió». Cuenta si el proveedor no acepta la clave (`rejected`), si no
     tiene saldo o su nivel gratuito no incluye el modelo (`quota`), si el modelo no existe para esa clave (`model`) o si
@@ -1825,6 +1843,16 @@ probar), lo que envías pasa por NVIDIA y sus modelos rinden menos que GPT o Cla
 usarlos directamente: desde 2026 solo habla la API Responses y NVIDIA solo ofrece la de chat (probado con Codex 0.169:
 `/v1/responses` da 404), por eso va por OpenCode. La lista de modelos sale con `opencode models nvidia`; se cambia en el
 selector de modelo del agente.
+
+**NVIDIA y OpenCode no se cortan mientras trabajan callados (1.30.65, 25 nov 2026).** kywai corta un programa que pasa
+20 min sin escribir nada (y avisa a los 3 min de que «no da señales»). OpenCode, cuando lanza sus subagentes («explore»),
+puede pasar todo ese rato sin sacar una línea aunque esté trabajando: el 25 nov una tarea de NVIDIA hizo ~70 pasos en 20
+min y se cortó como «El CLI dejó de responder». Ahora, con OpenCode (y NVIDIA, que es OpenCode), antes de avisar o cortar
+kywai mira si el registro de **esa** ejecución (el archivo que OpenCode abre en `~/.local/share/opencode/log` al arrancar;
+no el de otro OpenCode que trabaje a la vez) se tocó desde la última señal (`cliActivityPaths` en `agents/generic.ts`,
+`activityPaths` + `touchedSince` en `agents/spawn.ts`, respeta `XDG_DATA_HOME`). Si se tocó, sigue vivo; el corte llega
+tras 20 min sin pantalla y sin rastro. Si arrancan dos a la vez y no se sabe cuál es el suyo, mira la carpeta entera, y en
+cualquier caso el trabajo callado tiene un tope de 60 min sin escribir nada (`QUIET_WORK_MAX_MS`).
 
 Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
 
@@ -4145,6 +4173,38 @@ modelos en cada encargo, así que antes de guardar una entrada pasa por `src/mai
 - Cada entrada tiene, junto a la papelera, **No volver a recordarlo** (ojo tachado, pide un segundo clic): la borra y
   guarda su texto normalizado en `memoryForgotten` del proyecto (200 como mucho); desde entonces ningún agente puede
   volver a anotarla, ni una variante casi igual. Si la escribes tú a mano, vuelve a valer y sale de esa lista.
+### Habilidades de kywai por MCP y órdenes de habilidades frenadas (1.30.64)
+
+(`src/main/mcpSkills.ts`, `src/main/coworkMcp.ts`, `src/main/outputSqueeze.ts`; vigía 25 nov 2026.)
+
+- **Habilidades por MCP.** El servidor MCP de kywai (`ai-cowork`) anuncia la extensión `io.modelcontextprotocol/skills`
+  y responde `skills/list`, `skills/get` y `resources/read` (direcciones `skill://nombre/archivo`, con la huella
+  sha256 de cada archivo). También contesta `server/discover`, el saludo del protocolo nuevo (2026-07-28) con el que
+  arranca Claude Code 2.1.332; sin él, Claude volvía al saludo antiguo. Se sirven las habilidades del proyecto y las
+  del paquete (sin las de vídeo); los nombres raros no se sirven; hasta 32 archivos de apoyo de 1 MB (4 MB en total).
+- **Límite sincero:** Claude Code solo pide las habilidades por MCP cuando Anthropic enciende su beta en la cuenta
+  (hoy apagada y siempre apagada en sesiones remotas). Mientras tanto las habilidades siguen llegando por el encargo,
+  igual que antes; cuando la enciendan aparecerán como `ai-cowork:nombre` en el menú «/».
+- **Órdenes al cargar una habilidad.** Una habilidad puede llevar líneas `` !`orden` `` que Claude ejecuta al cargarla.
+  Con Claude Code 2.1.332 o más nuevo, kywai añade el gancho `PreSkillShellCommand`
+  (`claude-ajustes-habilidades.json`): si la habilidad viene de un servidor MCP o de la carpeta del proyecto (las que
+  pueden haberse instalado solas), la orden no se lanza y Claude recibe el motivo. Las habilidades del usuario y de
+  plugins siguen igual. Con versiones anteriores no se pone (abrían un aviso por el gancho desconocido).
+
+### Aviso cuando dos agentes cambian el mismo archivo (1.30.64)
+
+(`src/main/editClash.ts`, `watchProgress` en `src/main/orchestrator.ts`.) En cuanto una tarea edita un archivo que
+otra tarea en marcha del mismo proyecto ya ha cambiado, sale en el chat «Aviso: A y B están cambiando `archivo` a la
+vez…» y se deja una nota en la pizarra del equipo para que el segundo agente toque solo su parte. Se avisa una vez por
+pareja y archivo; al terminar o pararse una tarea sus archivos dejan de contar. Lee las ediciones de Claude, Gemini y
+las líneas «cambiado:/nuevo:» de Codex. Juntar los cambios sigue igual que antes (al terminar; si chocan, la tarea
+vuelve a su agente).
+
+**Codex: herramientas que arrancan solo cuando hacen falta.** Revisado el 25 nov: Codex ya trae
+`features.mcp_lazy_stdio_startup` encendido por defecto, pero solo arranca tarde un servidor cuya lista de
+herramientas tiene guardada. kywai lanza cada tarea con su propio lanzador (con sus secretos en el entorno), así que
+Codex no lo reconoce entre tareas. Dejarlo fijo obligaría a guardar los secretos en disco, así que no se cambia.
+
 ### AGENTS.md, habilidades y herramientas de kywai
 
 **Instrucciones del repositorio.** Cada CLI lee por su cuenta solo su archivo (Claude, `CLAUDE.md`; Codex,
@@ -4845,6 +4905,14 @@ reinició su espacio (06:49Z, apuntado como «boton» en el servidor) porque `em
 - El paso abierto se guarda en memoria aunque la subida se pare con un error: «Volver a intentarlo» sigue con él (si no
   cambió lo elegido). Si se cierra la app, se empieza otro.
 Probado de punta a punta con el espacio reiniciándose a mitad y chats ya mandados cambiados: termina sin volver a empezar.
+
+**«Terminar» con muchísimos archivos y la causa real de un corte (1.31.0).** 25 nov: la mudanza de Elizabeth subía los 1898 trozos enteros y aun así salía «Tu espacio se reinició a mitad de la subida». El espacio no se había reiniciado: lo que fallaba era la última petición, «terminar», que llevaba dentro la lista de TODOS los archivos de una vez; con muchísimos archivos esa petición no entraba (el espacio corta las de más de 256 MB; reproducido con 1 millón de archivos: «terminar» de 315 MB, 31 intentos y «se reinició») y la app la repetía 30 veces en ~8 minutos y lo explicaba como un reinicio. Ahora:
+- La lista de archivos va a trozos de ~8 MB (`PUT /api/mudanza/<id>/lista/<n>`) y «terminar» solo dice cuántos (`listParts`). Un espacio de antes contesta 404 a esa ruta y la lista va entera, como antes.
+- «terminar» tiene 10 minutos para contestar (antes 60 s).
+- Los cortes se cuentan solo si van seguidos sin avanzar: si llega algún trozo entre uno y otro, la cuenta vuelve a cero. Entre intento e intento se espera más cada vez (5 s, 10 s… hasta 2 min).
+- Un 401/403 al preguntar por los trozos (equipo quitado de la cuenta) se dice tal cual en vez de esperar.
+- Al pararse, el aviso dice la causa real («La subida se paró: <causa>. Pulsa «Volver a intentarlo»…»). «Se reinició» solo sale si el espacio de verdad perdió el paso (410).
+- Registro en el equipo: `mudanza-envio.log` en la carpeta de datos de kywai (en Mac, `~/Library/Application Support/<carpeta de kywai>/`). Apunta cada corte con su causa y fase, el inicio y la respuesta a «terminar». Solo datos técnicos, sin nombres de archivos; no pasa de ~1 MB (guarda uno anterior `.1`).
 
 **Fusionar o reemplazar (1.30.64).** Yil, 25 nov: al pasar de self host a la nube la ventana pregunta qué hacer con lo
 que ya hay en el espacio.
@@ -5722,6 +5790,34 @@ código de 6 cifras para emparejar se anula tras 10 fallos en total (además del
 `PAIRING_PIN_MAX_MISSES` en `mobileAuth.ts`) y se actualizó `fast-uri` (fallo moderado). Queda propuesto, sin hacer,
 Turnstile de Cloudflare en el registro de kywai Cloud (hoy cada cuenta nueva la aprueba el administrador).
 
+### SEO y marketing de una web o una app (`/seo`, `/marketing`)
+
+**«/seo <web, repositorio o carpeta> [qué cuidar]»** (también `/posicionamiento`, `/posicionar`, `/geo`; 25 nov 2026,
+pedido del dueño: «pones /seo y la web que quieras y te lo hace») y **«/marketing <web o app> [para quién]»** (también
+`/promocionar`, `/difundir`, `/mkt`) juntan en una orden lo que kywai ya tenía suelto para el SEO y el marketing. Van
+directos a un agente, sin plan, como `/cliente-ideal`. Sin nada detrás usan el proyecto abierto.
+
+- **`/seo`**: un agente audita el SEO y el GEO (si ChatGPT, Gemini, Perplexity y las demás IA pueden citar la web y la
+  citan) con la habilidad de serie `web-auditoria-seo-geo` (si la borraste, el encargo lleva su método) y, si están
+  puestas, las guías Claude SEO, OpenSEO y Marketing Skills del paquete kywai default skills. Si el agente tiene el
+  servidor OpenSEO o Search Console, los usa; si no, las cifras de tráfico salen «sin dato», nunca inventadas. Deja
+  `seo/informe-<fecha>.md` con las dos notas (salud SEO y preparación GEO), los arreglos P0/P1/P2 y las preguntas con las
+  que miró si le citan las IA. **Si la web es la carpeta del proyecto (o una carpeta tuya) y es un repositorio git**, hace
+  los arreglos seguros en una rama nueva `seo-<fecha>`, un commit por arreglo, **sin subirla ni fusionar**; con una
+  dirección de fuera no toca nada y deja cada cambio listo para copiar.
+- **`/marketing`**: un agente lee la web o el proyecto, y escribe para tu cliente ideal (`cliente-ideal.md`; si no lo
+  hay, lo deduce, lo marca «(supuesto)» y te recomienda `/cliente-ideal`). Deja en `marketing/<fecha>/`: `posts.md`
+  (5 posts para Instagram y TikTok, cada uno con su gancho, texto, hashtags y la orden `/video …` lista), `blog.md` (un
+  artículo de 800 a 1.200 palabras pensado para Google y para que lo citen las IA), `anuncio.md` (un anuncio con tope
+  siguiendo la habilidad `anuncios-campana`, en estado «preparado») y `plan.md` (2 semanas de publicaciones). **Todo
+  queda en borrador**: no publica, no envía nada y no crea campañas ni gasta. Para publicar, `/video` con el post y
+  luego `/instagram` o `/tiktok` con tu visto bueno.
+
+Para que lo haga solo cada día está el equipo listo «📈 Más clientes para mi negocio» (pestaña Rutinas → «Equipos
+listos»). Código: `src/main/seoMarketing.ts` (`parseGrowthRequest`, `seoPrompt`, `marketingPrompt`) y el bloque de
+`parseGrowthRequest` en `orchestrator.ts`; está en la lista del «/» del escritorio, la web y Órbita, y Hermes lo propone
+si se lo piden con otras palabras (`coordinatorGuide.ts`).
+
 ### Vigilar una web (`/vigilar`)
 
 **«/vigilar <web> [cada N horas] [condición]»** vigila una página y te avisa en **«Te necesita»** cuando cambia lo que te
@@ -6439,13 +6535,31 @@ biblioteca del estudio Pro. Hasta la 1.30.62 la nube quitaba el estilo y, con «
    4 imágenes adjuntas.
 3. En el equipo, su propio agente (el primer Claude encendido, si no Codex, si no otro con terminal que no sea un modelo
    local) la dirige con el mismo encargo que en el escritorio (`filmPrompt`) en `.ai-cowork/peliculas-nube/<carpeta>` de
-   su carpeta de trabajo, y devuelve el MP4 y su respuesta («Título: …»). Necesita «Acceso completo» en Ajustes →
-   Agentes (no hay nadie allí para dar permiso a cada paso); si falta eso, la biblioteca o un agente, la tarea lo dice.
+   su carpeta de trabajo, y devuelve el MP4 y su respuesta («Título: …»). Necesita permiso para trabajar sin preguntar a
+   cada paso: «Acceso completo» en Ajustes → Agentes o, con la app en modo nube, «Películas con estilo» en Este PC (ver
+   abajo); si falta eso, la biblioteca o un agente, lo dice antes de empezar.
 4. La nube deja el MP4 como `pelicula.mp4` en la carpeta de la película y sigue como siempre (`completeFilm`): kywai lo
    comprueba (negro, congelado, silencio), otro agente lo revisa y, si hay que corregir, la corrección vuelve al mismo
    equipo y a la misma carpeta (la ruta de la nube se cambia por la del equipo). Las carpetas de más de 3 días se borran
    al empezar otra.
 Lo que gasta el agente del equipo va con la cuenta de ese agente en el equipo, no con los créditos de la nube.
+
+**Con la app en modo kywai cloud** (1.31.0, 25 nov 2026, `src/main/videoWorker.ts`). En la 1.30.63 el equipo buscaba el
+director solo entre los agentes de su configuración, y la app en modo nube (un MacBook conectado a kywai cloud) no tiene
+agentes propios ni dónde añadirlos: la película fallaba siempre con «En este equipo no hay un agente con terminal», y la
+nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov). Ahora:
+- **Quién dirige** (`deviceFilmDirector`): el agente de la configuración del equipo si lo tiene; si no, el **Claude
+  Code, Codex o Gemini instalado** en él (en ese orden; antes de buscarlos lee el PATH de la terminal, que la app en
+  modo nube no leía al arrancar).
+- **El permiso** es el interruptor **«Películas con estilo»** de ⚙ → Ajustes → Este PC → «Elegir qué hace» (archivo
+  `peliculas-desde-la-nube.json` de la carpeta de datos). Va dentro de «Vídeos» (las películas viajan por el mismo
+  puente, que con «Vídeos» apagado no acepta ningún vídeo): sin elegirlo nunca va con él, y «Conectar kywai cloud con
+  este PC» lo enciende y apaga con lo demás. Sustituye en modo nube al «Acceso completo», que allí no existe.
+- **El equipo solo anuncia películas si puede de verdad** (`withFilmDirector`): biblioteca, permiso y director. Si no,
+  manda `films: false` con el motivo (`filmsMissing`: `library`, `permit` o `agent`), la nube no se la manda y
+  `/video` dice antes de empezar qué le falta a tu equipo (`FILM_MISSING_TEXT` en `src/shared/videoPreflight.ts`).
+- **Sin relevo inútil**: si el equipo dice que no puede o no está conectado, la tarea falla una vez con el motivo
+  (`noRelay` en el resultado); solo un corte a mitad del envío se vuelve a intentar con otro agente.
 
 **Antes de empezar: ¿se puede hacer aquí?** (21 nov 2026, `src/shared/videoPreflight.ts`). Un sketch con los robots se
 quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
@@ -7264,6 +7378,8 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |
 | `/turno-noche nicho o cuentas` | Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba (ver «El Instagram de kywai»; también `/crecer` y `/maquina`) |
 | `/cliente-ideal quién te compra` | Escribe la ficha de tu cliente ideal (`cliente-ideal.md`): qué le duele, qué quiere y cómo habla; los guiones y los textos la usan solos (ver «El Instagram de kywai») |
+| `/seo web, repositorio o carpeta` | Auditoría SEO y GEO de una web o una app, con lo que hay que arreglar; si es la carpeta del proyecto en git, lo arregla en una rama (ver «SEO y marketing de una web o una app») |
+| `/marketing web o app [para quién]` | 5 posts para Instagram y TikTok, un artículo de blog, un anuncio con tope y un plan de 2 semanas para darla a conocer, todo en borrador (ver «SEO y marketing de una web o una app») |
 | `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
 | `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
 | `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |
@@ -7605,6 +7721,14 @@ pegarlos en el chat ni crear un `.env` en la carpeta del proyecto.
   prohíbe escribir el valor. En el navegador de kywai el agente escribe `{{secreto:NOMBRE}}` con
   `navegador_escribir` y kywai pone el valor en el campo (en el permiso se ve el marcador, no el valor). Los modelos
   locales (Ollama, LM Studio) no ejecutan órdenes, así que no los usan.
+- **Solo para esta web (1.30.64, idea de Foreman, vigía 25 nov 2026):** en el secreto se puede poner una web
+  (`api.openai.com`; se limpia `https://` y la ruta). Ese secreto **no llega al agente**: no está en su entorno.
+  Para usarlo, el agente llama a la herramienta `peticion_api` de kywai (`src/main/secretRequest.ts`) con
+  `{{secreto:NOMBRE}}` en la dirección, una cabecera o el cuerpo; kywai pone el valor solo si la petición va por
+  https a esa web (la web se mira con los marcadores aún sin poner), no sigue redirecciones y devuelve el estado y el
+  cuerpo con los valores tapados. En el navegador de kywai, `navegador_escribir` solo lo escribe en páginas https de
+  esa web. Así, aunque una página engañe al agente, no puede mandarlo a otro sitio. `peticion_api` también sirve con
+  los secretos normales. La tarjeta muestra «Solo en web»; vaciar el campo lo quita.
 - **Tapado:** todo lo que devuelve un agente (respuesta, pasos, actividad, errores), lo que guarda con las
   herramientas de kywai (memoria, preguntas) y lo que lee de la página del navegador pasa por un filtro que cambia
   cualquier valor guardado (también escapado en JSON o en una URL) por `[secreto NOMBRE]`. La vista previa de
@@ -9831,7 +9955,21 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   respaldo); en español no carga ninguno. Antes cargaba los cinco (unos 3,6 MB de textos) en cada arranque. El
   archivo de entrada pasó de 6,9 MB a 4 KB (`renderer/src/main.tsx` espera a `loadLangPacks` de `lib/langPack.ts`
   y luego importa `start.tsx`; el proceso principal y las pruebas registran todos con `shared/i18nAll.ts`).
-  Si añades un idioma, ponlo en `LOADERS` de `langPack.ts` y en `i18nAll.ts`.
+  Si añades un idioma, ponlo en `LOADERS` de `langPack.ts` en `i18nAll.ts` (pruebas) y en `src/main/i18nMain.ts` + `electron.vite.config.ts` (motor).
+- **El motor también lee solo tu idioma (1.31.0).** El proceso principal ya no carga los cinco diccionarios al
+  arrancar: `src/main/i18nMain.ts` registra un cargador por idioma (`registerDictLoader` de `shared/i18n.ts`) y cada
+  uno es un archivo aparte (`out/main/i18n-xx.js`) que se lee la primera vez que se pide ese idioma (los avisos de
+  «Te necesita» se guardan en todos los idiomas, así que el primero de la sesión los lee todos: es lo esperado). Con
+  el lector de páginas limpias (`cleanPage.ts`: defuddle y linkedom, que se cargan la primera vez que se usa), el
+  motor (`out/main/index.js`) pasó de 10,7 MB a 4,35 MB y arranca en la mitad de tiempo.
+- **La ventana abre sin el motor 3D (1.31.0).** Lo que se dibuja al arrancar (`start.tsx` → tema, colores, aspecto de
+  los agentes) ya no importa Three.js: los colores del tema están en `scene/palette.ts` y las piezas que necesitan
+  Three en `scene/paletteGl.ts`; el aspecto de los agentes (`scene/agentSkin.ts`) no carga modelos. Ajustes se
+  carga al abrirlo (o solo, 4 s después de abrir la app); si su archivo no llega, se cierra sin dejar la ventana en
+  blanco y se reintenta al volver a abrirlo (`ui/common/ChunkGuard.tsx`). El arranque de la ventana pasó de 3,25 MB a 2,1 MB. Regla:
+  nada de `lib/`, `store/` ni `ui/` que se cargue al abrir puede importar `three` ni `scene/*` con Three.
+- **Texturas en WebP (1.31.0).** Las siete imágenes grandes del Fondo marino y del Refugio Kywai son WebP (calidad
+  90): 3,4 MB en vez de 23 MB, sin diferencia visible.
 - **Música sin comprobaciones de más.** Mientras el audio está en pausa (sin música sonando), el programador de la
   música mira una vez por segundo en vez de 20 (`schedule` en `lib/audio.ts`).
 - **El 3D en reposo.** Si durante un minuto ningún agente trabaja, piensa ni espera, no suena música y no mueves
@@ -10000,6 +10138,19 @@ pueden correr varias pruebas a la vez, ninguna prueba debe escuchar en un puerto
 (como `lmstudioDirect.test.ts`). Java, Node y el SDK de Android los bajan los flujos la
 primera vez; el portal usa el `python3.12` de Homebrew. Nunca se usa en el repositorio público. La web, los
 instaladores y las Releases siguen en el escaparate público, donde los minutos son gratis.
+Su flujo «Publicar escritorio» saca **una versión al día** (desde la 1.31.0, a las 9:00 UTC) con todo lo fusionado en
+kywai-original desde la anterior; para publicar antes se lanza a mano («Run workflow»). Antes miraba cada 10 minutos.
+
+**Espejo de kywai-codigo** (desde la 1.31.0, `.github/workflows/espejo-codigo.yml`): cada push a master de
+kywai-original se copia solo en master de `Yiku21/kywai-codigo`, en el Mac mini, así los dos repositorios privados
+están siempre a la misma versión sin portar cada mejora a mano. Está **apagado** hasta que exista el secreto. Para
+encenderlo (una vez): en el Mac mini, `ssh-keygen -t ed25519 -N "" -C espejo-codigo -f ~/espejo-codigo`; en
+kywai-codigo → Settings → Deploy keys → Add deploy key, pegar `~/espejo-codigo.pub` y marcar **Allow write access**;
+en kywai-original → Settings → Secrets and variables → Actions → New repository secret `KYWAI_ESPEJO_LLAVE` con el
+contenido de `~/espejo-codigo`; después borrar los dos archivos del Mac y lanzar el flujo a mano una vez. La primera
+vez guarda el master antiguo de kywai-codigo en la rama `respaldo/antes-del-espejo` (las dos historias son distintas)
+y lo sustituye por el de kywai-original; si master de kywai-codigo tiene protección contra force-push, hay que
+quitarla. Desde entonces los PR van solo a kywai-original.
 Las pruebas abren la app con su propia carpeta de datos (`KYWAI_APPDATA_PRUEBAS`), sin tocar la del kywai instalado.
 Las pruebas del zip de «Archivos del servidor» descomprimen con `bsdtar` (en Linux, paquete `libarchive-tools`);
 sin él comprueban el zip sin descomprimirlo.
