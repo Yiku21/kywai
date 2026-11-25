@@ -4810,7 +4810,8 @@ arrancar; si ya no puede (faltan trozos), el paso queda en error con «Tu espaci
 subido» en vez de esperar callado. La self host espera 15 minutos más uno por GB a que termine.
 
 
-**Sin actualizar a mano (1.30.57).** Si el servidor dejó una versión nueva esperando para el espacio (`actualizacion-pendiente.json`)
+**Sin actualizar a mano (1.30.57, retirado en la 1.30.63).** Ya no se hace: el espacio solo se reinicia si su dueño
+pulsa «Actualizar ahora» (ver «Nada reinicia el espacio sin el botón»). Lo de antes, por si se ve en un espacio viejo: si el servidor dejó una versión nueva esperando para el espacio (`actualizacion-pendiente.json`)
 y no hay ningún paso abierto, `POST /api/mudanza/empezar` pide «Actualizar ahora» y contesta 503 con `updating: "<versión>"`.
 La app del equipo dice «Tu espacio se está poniendo al día…», espera (cada ~20 s, hasta 60 veces) y vuelve a empezar sola. Si
 la versión no llega en 20 minutos, el paso se abre igual con la de ahora. La ventana «Pasar a kywai cloud» también avisa si
@@ -4826,6 +4827,20 @@ lo que encoge mientras se lee se completa con ceros, y la ventana dice cuántos 
 se lleva ya no usa `push(...lista)`, que reventaba la pila con más de ~120.000 archivos. Probado de punta a punta con 16 GB
 y 200.000 archivos, y con archivos borrados a mitad (el código anterior se paraba en seco con `ENOENT`). El portal ya no
 para la mudanza por la cuota «usada» (incluye trozos de un intento anterior): solo si no cabría ni con el espacio vacío.
+
+**Nada reinicia el espacio sin el botón y la subida sigue donde iba (1.30.63).** El 25 nov el reintento de una usuaria
+reinició su espacio (06:49Z, apuntado como «boton» en el servidor) porque `empezar` pedía «Actualizar ahora» por su cuenta
+(1.30.57). Regla de Yil: **el espacio de la nube solo se reinicia si su dueño pulsa «Actualizar ahora»**. Por eso:
+- `empezar` ya no pone al día el espacio: abre el paso con la versión que tenga.
+- El despliegue de la nube ya no cambia solo los espacios «24 h sin uso» ni los de la app antigua «libres»; esperan al
+  botón (Kywai-Cloud, `update_decision` / `decide_target`). Solo se cambian ya los apagados y los del botón.
+- La subida va en trozos que, pasada la mitad de su tamaño, se cortan justo antes del archivo siguiente (`markedParts`): casi
+  todos empiezan con un archivo entero. Tras un corte se sigue desde el último de esos que no pasa del primero que falta
+  (`resumePoint`), comprobando con una huella que la lista de archivos de antes es la misma. Antes, si cualquier archivo ya
+  mandado había cambiado en el equipo (kywai abierto escribe sin parar), el paso se tiraba y se volvían a subir todos los GB.
+- El paso abierto se guarda en memoria aunque la subida se pare con un error: «Volver a intentarlo» sigue con él (si no
+  cambió lo elegido). Si se cierra la app, se empieza otro.
+Probado de punta a punta con el espacio reiniciándose a mitad y chats ya mandados cambiados: termina sin volver a empezar.
 
 Antes de elegir modelo, la configuración del agente local (su indicador de cuota) mira **el equipo donde va a correr**:
 este mismo o, en kywai Cloud, el PC que presta sus modelos. Enseña en una línea la RAM, la tarjeta gráfica (NVIDIA con su
@@ -6392,8 +6407,27 @@ ESTE equipo, instala aquí su estudio (la app pregunta antes) y enciende **«Hac
 
 Si el equipo se apaga o se desconecta a mitad, la tarea falla diciendo qué pasó. Por el puente solo va el encargo y
 vuelve el MP4: ni archivos del equipo ni órdenes. «Hacer los vídeos» funciona aunque «Prestar los modelos de este
-equipo» esté apagado: entonces el equipo no contesta ninguna petición a sus motores. Los estilos de película aún no se
-mandan al equipo (los dirige un agente con terminal en la nube).
+equipo» esté apagado: entonces el equipo no contesta ninguna petición a sus motores.
+
+**Estilos de película hechos en tu equipo** (1.30.63, 25 nov 2026, `src/main/filmOnDevice.ts`). En la nube los estilos
+de película (blueprint, acuarela, urban sketch…) no caben: los dirige un agente con terminal que renderiza con la
+biblioteca del estudio Pro. Hasta la 1.30.62 la nube quitaba el estilo y, con «equipo:si», el vídeo salía siempre igual
+(Yil: «me da el mismo vídeo continuamente, no toma el estilo visual»). Ahora:
+1. Con un estilo elegido y el equipo conectado con la biblioteca de películas instalada (`films` en lo que cuenta el
+   equipo), el selector ofrece «Hacerlo en {equipo}» y, sin tocar nada, la orden se manda allí (como el plató 3D).
+2. La tarea no lanza un agente en la nube: manda el encargo por el puente (`deviceBridge.video(…, 'films')`, antes un
+   equipo con la biblioteca): estilo, tema, formato, idioma, tipo (charla, sketch…), voces, diálogo, estructura, el
+   personaje (los robots los tiene el equipo; uno guardado viaja con hasta 4 imágenes), el episodio de la serie y hasta
+   4 imágenes adjuntas.
+3. En el equipo, su propio agente (el primer Claude encendido, si no Codex, si no otro con terminal que no sea un modelo
+   local) la dirige con el mismo encargo que en el escritorio (`filmPrompt`) en `.ai-cowork/peliculas-nube/<carpeta>` de
+   su carpeta de trabajo, y devuelve el MP4 y su respuesta («Título: …»). Necesita «Acceso completo» en Ajustes →
+   Agentes (no hay nadie allí para dar permiso a cada paso); si falta eso, la biblioteca o un agente, la tarea lo dice.
+4. La nube deja el MP4 como `pelicula.mp4` en la carpeta de la película y sigue como siempre (`completeFilm`): kywai lo
+   comprueba (negro, congelado, silencio), otro agente lo revisa y, si hay que corregir, la corrección vuelve al mismo
+   equipo y a la misma carpeta (la ruta de la nube se cambia por la del equipo). Las carpetas de más de 3 días se borran
+   al empezar otra.
+Lo que gasta el agente del equipo va con la cuenta de ese agente en el equipo, no con los créditos de la nube.
 
 **Antes de empezar: ¿se puede hacer aquí?** (21 nov 2026, `src/shared/videoPreflight.ts`). Un sketch con los robots se
 quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
@@ -6405,7 +6439,8 @@ equipo y lo dice **antes de enviar**, debajo de la barra del vídeo:
   rápido sin ellos). Elegirla añade la marca `ligero:si`.
 - **Falta instalar algo** (el estudio de vídeo en el equipo): «Instalar ahora». Si no se pulsa, se instala solo con el
   primer vídeo, como siempre.
-- **Nota**: en charla y sketch el estilo de película no se usa; se avisa para que no sea una sorpresa.
+- Desde la 1.30.61 el estilo de película **sí se usa en charla y sketch** (antes se ignoraba y salía siempre el plató 3D;
+  Yil: «cada vídeo tiene que salir con el estilo que el usuario seleccionó»): ya no hay nota de «no se usa».
 El motor lo vuelve a mirar al recibir la orden (vale igual escrita a mano, desde la web, Órbita o una rutina): si algo
 no se puede y no lleva `ligero:si`, **no empieza** y dice qué pasa y cómo seguir. En la nube el plató 3D no se usa nunca.
 Los avisos ocupan su propio sitio entre la barra del vídeo y el cuadro de escribir, uno debajo de otro (1.13.1, 23 nov):
@@ -6711,6 +6746,17 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    **Sin aspecto elegido, siempre van en el plató 3D animado** con los peluches de Meshy, aunque haya ComfyUI en el
    equipo (ComfyUI dibuja entonces solo la pantalla de detrás). Hasta la 1.30.60 se dibujaban con ComfyUI en «Cine 3D»
    y el vídeo salía de imágenes quietas; Yil preguntó «¿dónde están los robotitos animados?».
+   **Con un estilo de película elegido** (`estilo:urban-sketch`…), la charla o el sketch **se hacen en ese estilo**: van
+   por el agente que dirige las películas (`filmPrompt`, con las reglas del tipo, el diálogo y los robots dibujados en el
+   estilo), en vertical salvo que se pida horizontal. Hasta la 1.30.61 `parseVideoRequest` tiraba el estilo y todo
+   salía en el plató 3D, eligieras el que eligieras. Sin estilo, el plató 3D de siempre.
+   **Encuadre** (1.30.61): los planos se calculan con el tamaño real de los personajes (`CH`, `CW` en charlaStage.ts,
+   medidos con su caja al cargar): cada plano mete de los pies a la cabeza (con sitio para los saltos) en su franja y a
+   lo ancho (el plano de los dos cabe entero). En vertical, entre el 9 % y el 46 % de la pantalla desde abajo, por debajo
+   del titular y los subtítulos; en horizontal, entre el 27 % y el 86 %, por encima de los subtítulos. El «muy de cerca»
+   enseña la cabeza y el cuerpo enteros, más grandes. Antes los números eran fijos, pensados para los robots de antes
+   (más altos): con los peluches 3D de Meshy el primer plano les cortaba media cabeza y en horizontal los subtítulos les
+   tapaban la cara.
    **Sketch de humor** (`tipo:sketch`, o escribir «un sketch de humor» / «tipo sketch»): la misma charla de dos
    personajes (plató, diálogo, vertical, burbujas en el gancho y «Comenta PALABRA»), pero **sin pasos, ni puntos, ni
    tarjetas «PASO n/N»**: el encargo pide una situación cómica con conflicto, giros, réplicas rápidas, personalidades
@@ -7579,6 +7625,13 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
   **«Ver los X restantes»** despliega los demás y, abierta, **«Ver menos»** los vuelve a esconder. Si solo sobra uno,
   se enseña sin la fila. Un **✓ verde de puntos** junto a un proyecto indica que tiene resultados terminados sin ver y
   unas **ondas ámbar** que espera tu decisión (lo de «Te necesita»). Ver «Cargas de puntos».
+- **Borradores por chat** (1.30.63): lo que escribes en el cuadro sin enviar (el texto, los adjuntos pendientes y el
+  «Responder a…») es **de ese chat**. Al cambiar de conversación no se lleva al nuevo: se guarda en el que dejas y al
+  volver sigue ahí, también tras cerrar y abrir kywai (se guarda en el equipo o el navegador, clave
+  `kywai.borradores` de `localStorage`, hasta 200 chats). Mientras tanto, la fila de ese chat en la barra lateral
+  (en Proyectos, Favoritos y Recientes) enseña un **lápiz ámbar «Borrador»** en lugar de la fecha; al enviarlo o
+  borrarlo, la marca se va. El chat de al lado y las ventanas sueltas comparten los borradores con la principal.
+  Código: `src/renderer/src/ui/left/chatDrafts.ts` y `switchDraftChat` en `composerStore.ts`.
 - **Filtro de Proyectos** (el botón de las rayas, junto al **+**): se guarda en cada equipo (cada pantalla a su
   gusto) y, si hay algo distinto de lo de siempre, el botón lleva un punto.
   - **Agrupación**: *Por proyecto* (lo de siempre) o *Por fecha*: los chats de todos los proyectos en Hoy, Ayer,
@@ -9512,6 +9565,14 @@ suscripciones no gasta créditos. Se ven y se recargan en Mi cuenta → **Crédi
   Con **Pro Max**, «Escribir a soporte» (Mi cuenta → Ayuda y cuenta) manda el correo marcado como prioritario.
   Bajar cambia el precio desde la próxima renovación y solo se puede si los archivos caben. Las ampliaciones de espacio
   cuestan solo la diferencia sobre lo que trae el plan (con Pro, 100 GB +3 $ y 130 GB +8 $).
+- **Pagos reales (25 nov 2026):** Mi cuenta cobra de verdad cuando el servidor tiene la clave real de Stripe
+  (`sk_live_…`); con una de prueba todo sigue siendo de prueba. El modo sale de la clave y nunca se mezclan. El paso se
+  hace una vez en el servidor con `python3 /opt/kywai/portal/stripe_modo_real.py` (pide la clave sin mostrarla, crea el
+  precio, el webhook y el portal de facturación reales, guarda copia y reinicia Mi cuenta; `--comprobar` solo mira,
+  `--admin correo` hace administradora a una cuenta y `--volver` regresa a prueba). Quien tenía un plan de prueba
+  conserva su espacio y sus archivos y elige su plan real en Plan y pagos («Elegir mi plan»); pasado el plazo
+  (`--dias`, 7 por defecto) el espacio se pausa sin borrar nada y vuelve al pagar. No pagan las cuentas de
+  administración. Detalle en `portal/DEPLOY.md` de Kywai-Cloud («Pasar a pagos reales»).
 - El código vive en el portal de kywai Cloud (repo Kywai-Cloud, `portal/creditos.py`). La app solo lee del portal el
   saldo y los precios para enseñarlos en «Crea tu agente».
 - Las imágenes se guardan en la carpeta de datos, en `aspecto-agentes/<agente>/` (`<expresión>.png` de 512 px y
@@ -9737,6 +9798,18 @@ con Pillow. Las dos de Órbita (`docs/img/movil-*.jpg`) se hacen a mano en un m�
 
 Lo que hace kywai para ir fluido sin que tengas que tocar nada:
 
+- **Quieto mientras no lo miras.** Con kywai detrás de otra ventana o minimizado, los peluches, el espacio 2D, los
+  puntos que laten y las ruedas de carga se quedan quietos; al volver siguen donde estaban. Antes seguían animándose
+  sin que nadie los viera: medido el 25 nov, la tarjeta gráfica pasaba de ~23 % a 0 % y la ventana de ~11 % a ~1 %
+  (`lib/awayPause.ts` pone `data-away` en `<html>`; las reglas de pausa están en `PlushAvatar.module.css`,
+  `Space2D.module.css` y `ui/common/ui.module.css`). El 3D ya se paraba solo con la ventana oculta.
+- **Solo tu idioma al abrir.** La app carga al arrancar solo el diccionario del idioma que usas (y el inglés de
+  respaldo); en español no carga ninguno. Antes cargaba los cinco (unos 3,6 MB de textos) en cada arranque. El
+  archivo de entrada pasó de 6,9 MB a 4 KB (`renderer/src/main.tsx` espera a `loadLangPacks` de `lib/langPack.ts`
+  y luego importa `start.tsx`; el proceso principal y las pruebas registran todos con `shared/i18nAll.ts`).
+  Si añades un idioma, ponlo en `LOADERS` de `langPack.ts` y en `i18nAll.ts`.
+- **Música sin comprobaciones de más.** Mientras el audio está en pausa (sin música sonando), el programador de la
+  música mira una vez por segundo en vez de 20 (`schedule` en `lib/audio.ts`).
 - **El 3D en reposo.** Si durante un minuto ningún agente trabaja, piensa ni espera, no suena música y no mueves
   el ratón, la rueda ni tocas sobre el espacio 3D, la escena baja a 10 fotogramas por segundo. Los robots siguen
   respirando y paseando, solo que con menos fotogramas, y eso es casi todo el tiempo que kywai está abierto. En
