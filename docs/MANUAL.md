@@ -298,13 +298,14 @@ con barra de progreso:
    español). Mientras no se termine el asistente, el motor lo vuelve a mirar en cada arranque y lo guarda en
    `config.language`; la ventana lo sigue (si en ese equipo se eligió otro a mano, manda ese). Si se
    cambia aquí, la ventana se recarga y vuelve al paso 2.
-2. **¿Con qué agente empiezas?**: nada viene marcado. **Hermes + OmniRoute** sale arriba como «Recomendado»; debajo,
-   Claude, Codex y Gemini, y «Ver todos los agentes» abre el catálogo completo. «Siguiente» lo añade al equipo
+2. **¿Con qué agente empiezas?**: nada viene marcado ni sale como «Recomendado» (desde el 25 nov 2026 Hermes con
+   OmniRoute es una opción más): Claude, Codex, Gemini y Hermes, y «Ver todos los agentes» abre el catálogo completo. «Siguiente» lo añade al equipo
    (`addAgent`). Si es el único, Hermes también trabaja (`plannerOnly: false`), como en kywai cloud.
 3. **Instalamos lo que falta**: su programa (y Node.js o Python si hacen falta) con un clic, o «Descargar» y
    «Comprobar» si no se puede instalar desde la app. Con Hermes avisa de que OmniRoute se instala en el paso 4.
-4. **Conéctalo y pruébalo**: la misma pantalla de «Configura {agente}» (`ConfigureAgent` con `firstRun`): Hermes abre
-   en «Clave de API» → OmniRoute con «Instalar y preparar OmniRoute»; los demás, con su cuenta o su clave. «Siguiente»
+4. **Conéctalo y pruébalo**: la misma pantalla de «Configura {agente}» (`ConfigureAgent` con `firstRun`): cada agente
+   abre en su primera forma de conectarse (Hermes, como los demás; OmniRoute sigue en «Clave de API» → OmniRoute con
+   «Instalar y preparar OmniRoute»). «Siguiente»
    no se activa hasta que el agente responde de verdad.
 5. **Listo**: enseña lo que contestó y «Ir a kywai» termina el asistente (`setupFinish`); después sale el recorrido
    de la interfaz.
@@ -375,9 +376,8 @@ kywai oscurece la ventana e ilumina, uno a uno, los sitios de la app con una exp
 - **Todo lo demás** (con «Enseñarme todo»): proyecto, barra lateral (Nuevo chat, Buscar, Historial, Amigos, Tareas,
   Tablero, Rutinas, Proyectos e importar chats), las secciones del proyecto, esfuerzo, hablar con kywai, 3D o 2D,
   «⋯» del espacio (Modo noche y Navegador), Música, ocultar el espacio y cada pestaña de Ajustes (la abre y la cierra sola). En «Conectar un agente»
-  explica el recomendado (Hermes con OmniRoute, que elige el modelo según la dificultad y sigue con la reserva gratis
-  de OpenRouter si OmniRoute no responde), los agentes gratis y que en kywai cloud Hermes entra con tu ChatGPT o Claude
-  desde Mi cuenta → Mis agentes y trabaja 24/7.
+  explica los pasos, los agentes gratis y que en kywai cloud Hermes entra con tu ChatGPT o Claude desde Mi cuenta →
+  Mis agentes y trabaja 24/7, con OmniRoute y OpenRouter como otras opciones (ya no hay ninguno «recomendado»).
 - **Se puede omitir siempre**: botón «Omitir», la ✕ o Esc. Terminada u omitida, se apunta en el dispositivo
   (`kywai.introduccion.vista` en su almacenamiento) y no vuelve a salir sola; se repite con **⚙ → «Ver la introducción»**.
 - Sale después de cualquier ventana abierta (asistente, «Novedades»…) y nunca en la demo sin motor ni cuando la
@@ -1561,8 +1561,8 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     petición de Hermes a tu equipo, con la respuesta a trozos. Tus suscripciones y claves no salen de tu equipo. Si tu
     equipo no está conectado, Hermes avisa de que no llega y qué encender («Prestar los modelos de este equipo»).
     También se puede poner a mano una dirección pública de OmniRoute (protegida con contraseña).
-    **En la bienvenida de Mi cuenta** («Elige y prueba tu primer agente» con Hermes), OmniRoute sale primero como
-    «Recomendado». El portal pregunta al espacio `cloudOmniRouteStatus` (qué equipo conectado presta OmniRoute y si
+    **En la bienvenida de Mi cuenta** («Elige y prueba tu primer agente» con Hermes), OmniRoute sale entre las «Otras
+    opciones» (desde el 25 nov 2026 ya no es lo recomendado: primero va tu Claude o tu ChatGPT directo). El portal pregunta al espacio `cloudOmniRouteStatus` (qué equipo conectado presta OmniRoute y si
     está encendido). Si lo presta, «Probar Hermes con OmniRoute» llama a `cloudTestAgent('hermes', '', null,
     {provider: 'omniroute'})`: el espacio lista los modelos por el relevo, escribe el proveedor `omniroute` en
     `config.yaml`, elige los modelos por dificultad (`pickHermesTiers`), borra una clave de OpenRouter guardada antes y
@@ -1576,9 +1576,13 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     actividad («OmniRoute no responde: Hermes sigue con los modelos gratis de OpenRouter»). «Quitar cuenta o clave» y
     quitar el agente la borran. Sin reserva, avisa del motivo como antes.
   - **OmniRoute en tu espacio** (`omniRouteSpace.ts`, `omniroute.ts`). La imagen del espacio trae OmniRoute instalado
-    y cada espacio enciende el suyo en 127.0.0.1:20128 solo cuando Hermes lo necesita (`ensureOmniRouteForHermes`),
-    sin panel (`OMNIROUTE_HEADLESS=1`), solo dentro del contenedor (`OMNIROUTE_SERVER_HOST=127.0.0.1`), con 512 MB de
-    memoria como tope (`--max-old-space-size=512`) y se apaga tras 20 minutos sin uso (`withOmniRoute`). Así Hermes usa
+    y cada espacio enciende el suyo en 127.0.0.1:20128 (`ensureOmniRouteForHermes`), sin panel
+    (`OMNIROUTE_HEADLESS=1`), solo dentro del contenedor (`OMNIROUTE_SERVER_HOST=127.0.0.1`) y con 512 MB de memoria
+    como tope (`--max-old-space-size=512`). **Si el Hermes del espacio lo usa, se queda encendido siempre** (Yil, 25 nov
+    2026): se enciende al arrancar el espacio (`keepSpaceOmniRouteOn`), cada minuto se mira y, si no contesta, se
+    vuelve a encender (`spaceOmniRouteStep`; tras un arranque fallido espera 5 min, `OMNIROUTE_RETRY_MS`), y el gateway
+    de Hermes se toca cada 5 min aunque no haya ninguna pantalla abierta (`keepHermesGatewayAwake`). Si Hermes no lo
+    usa (por ejemplo, solo se encendió para conectar una suscripción), se apaga tras 20 minutos sin uso, como antes. Así Hermes usa
     tus suscripciones 24/7 aunque tu ordenador esté apagado. La imagen lo trae instalado (`omniroute@3.8.54` en el
     Dockerfile de kywai-cloud) y sus datos viven en `~/.omniroute`, dentro del volumen del espacio. Las suscripciones
     se conectan desde la bienvenida de Mi cuenta o desde la ficha de Hermes en Mis agentes: «Conectar mi Claude» o
@@ -1594,8 +1598,9 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     no tiene sección `model:` y sin ella Hermes se cree sin configurar: al escribir el proveedor, kywai la añade con ese
     proveedor y su modelo (`upsertHermesProvider`).
   - **Hermes con tu suscripción de ChatGPT o Claude en la nube, con su propio inicio de sesión** (`hermes-codex` y
-    `hermes-claude` en `cloudAccountSpecs`). Desde el 22 nov Mi cuenta ya no lo ofrece: en su lugar conectas tus
-    suscripciones al OmniRoute de tu espacio (arriba). Sigue funcionando en los espacios que ya lo usaban. Para que Hermes funcione 24/7 sin depender de tu ordenador, Mi cuenta lanza el inicio de
+    `hermes-claude` en `cloudAccountSpecs`). Desde el 25 nov 2026 es **lo que sale primero** en la bienvenida y en la
+    ficha de Hermes de Mis agentes («Usar mi Claude», «Usar mi ChatGPT»); el OmniRoute del espacio y la clave de
+    OpenRouter quedan plegados en «Otras opciones» (del 22 al 25 nov iba al revés). Para que Hermes funcione 24/7 sin depender de tu ordenador, Mi cuenta lanza el inicio de
     sesión oficial de Hermes: `hermes auth add openai-codex --type oauth --no-browser` (código de dispositivo en
     auth.openai.com/codex/device; Hermes guarda su propia sesión y no toca la de Codex) o `hermes auth add anthropic
     --type oauth --no-browser` (enlace de claude.ai y pegar el código que da la web). Al terminar,
@@ -4342,7 +4347,7 @@ Skills, Planning with Files, UI UX Pro Max, Taste Skill, Emil Kowalski Skills, A
 Scientific Skills y Stop Slop. El 22 nov 2026 llegaron Make Interfaces Feel Better (detalles finos de interfaz:
 animaciones, alineación óptica, radios concéntricos, sombras, zonas de clic) y Loopy (bucles de hacer, comprobar y
 corregir con un final claro; solo publica un bucle en Loop Library si el usuario lo pide), y después Claude SEO (auditoría SEO a fondo, 29
-habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
+habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). El 25 nov 2026 (v1.34.0) llegó vgpu (`vercel-labs/vgpu`, MIT), la librería WebGPU de Vercel pensada para agentes: efectos 3D, luz y shaders (lava, cristal, partículas) en webs que se compilan con npm, con su galería y sus órdenes `npx vgpu docs`, `examples` y `check`. Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
 traen algunas (Planning with Files, Taste Skill) no se ejecutan. Una habilidad en la raíz de su repositorio lleva sus
 carpetas (como `references/`), menos las de pruebas y las ocultas; con `only`, si la misma sale copiada en varias
 carpetas, vale la primera. Fuera a propósito: ECC y gstack (marcos con hooks que se solapan con Superpowers), Caveman
@@ -5744,11 +5749,39 @@ plan: va directa al agente que mejor diseña (`bestAgentFor`) con el encargo de 
 Reglas del diseño: un solo `index.html` que se abre sin servidor (fuera solo fuentes de Google Fonts), contenido real
 (nunca «lorem ipsum»; lo de ejemplo se marca), una dirección visual propia del tema, claro y oscuro, adaptable al ancho,
 foco visible, contraste legible y «reducir movimiento»; si el agente tiene «principios-ux-animacion» o «Impeccable», las
-sigue. Antes de entregar hace una captura (1440×900, o 390×844 en móvil) y arregla lo que se corte o se salga.
+sigue. Sin «cara de IA» (1.34.0, sale de un reel con una lista de 18 puntos): fuera degradados morados, brillos
+radiales, texto con degradado, insignias de adorno, emojis como iconos y más de 2 botones de acción; dentro letra
+legible, beneficios primero, textos concretos, un solo acento, espaciado de 4 en 4 px, jerarquía clara, una cosa
+principal por pantalla, esquinas iguales, cristal solo donde ayuda, tarjetas que se leen de un vistazo, señales de lo
+que se puede pulsar e imágenes de calidad. Antes de entregar hace una captura (1440×900, o 390×844 en móvil), repasa
+esas dos listas y arregla lo que se corte, se salga o no las cumpla.
 
 Todo queda en `diseno/<nombre>-<id>/`: `index.html`, `NOTAS.md` (decisiones y qué es de ejemplo) y `portada.png`. Se
 abre en la vista previa del chat. Si el proyecto tiene `cliente-ideal.md`, se diseña para esa persona. Órbita tiene la
 orden en su lista del «/».
+
+### Juegos para el navegador (`/juego`)
+
+**«/juego [móvil] de qué va»** hace un juego pequeño, original y jugable en el navegador: «/juego un zorro que salta entre
+nubes recogiendo estrellas», «/juego móvil naves que esquivan rocas», o adjuntando un boceto. También vale `/game`,
+`/videojuego` o `/minijuego`. Con «móvil» se piensa primero para el teléfono (vertical y táctil).
+
+Sale de un reel de **OhMyGame** (github.com/WhiteTowerAI/ohmygame, Apache-2.0), un estudio para hacer juegos con IA
+donde el agente juega lo que hizo para comprobar que funciona. kywai no lo instala ni copia su código: toma esa idea y la
+hace con sus agentes. No pasa por el plan: va directa al agente que mejor programa juegos (`bestAgentFor`) con el
+encargo de `src/main/game.ts`:
+1. Escribe `DISENO.md` (la idea, los controles, cómo se gana y cómo se pierde).
+2. Hace el juego en un solo `index.html` que se abre sin servidor (canvas 2D, o three.js por CDN si es 3D), con el arte
+   hecho en código y sonidos con WebAudio: pantalla de inicio, partidas de 1 a 3 minutos, puntuación, pausa, fin y
+   «jugar otra vez». Todo inventado: nada copiado de juegos que existen.
+3. **Lo prueba jugando**: lo abre con un navegador sin ventana, juega unos 30 segundos con teclas o clics automáticos y
+   comprueba que no hay errores, que la puntuación cambia, que se puede perder y que se puede volver a jugar. Arregla y
+   repite hasta que va. Lo apunta en `PRUEBA.md`.
+4. Guarda `portada.png`, una captura en plena partida (1280×720, o 390×844 en móvil).
+
+Todo queda en `juego/<nombre>-<id>/` y el juego se abre en la vista previa del chat. Si el agente tiene la habilidad de
+videojuegos del paquete de serie (o «vgpu» para efectos), la sigue. Quien coordina también la lanza cuando pides «hazme un
+juego de…» con tus palabras. Órbita tiene la orden en su lista del «/».
 
 ### Crear una extensión con una frase (`/extension`)
 
@@ -6307,6 +6340,18 @@ proyecto y marca con «(supuesto)» lo que se inventa. Si ya existe, la pone al 
 editar el archivo a mano. Desde que existe, la leen solos los guiones de `/video` (también los de estilo de película),
 las órdenes `/ig-…`, el `/turno-noche` y el texto de `/instagram`: el gancho nombra un problema o un deseo suyo, con sus
 palabras. Código: `src/main/idealCustomer.ts` (+ test).
+
+**«Comenta PALABRA y te mando el enlace» (`/instagram palabra`, 1.34.0).** Muchos reels acaban con «comenta X y te
+mando el enlace». «/instagram palabra KYWAI https://kywai.app» lo activa: cada 10 minutos, mientras kywai está abierto,
+mira los comentarios de las 10 últimas publicaciones y a quien comente esa palabra (suelta, sin importar mayúsculas ni
+tildes) le manda por privado «¡Gracias por comentar! Aquí tienes el enlace: …». Una vez por comentario, como mucho 20
+por vuelta, nunca a la propia cuenta y solo a comentarios hechos después de activarlo (nadie que comentó hace meses
+recibe nada). «/instagram palabra» dice la palabra, el enlace, cuántos lleva y el último fallo; «/instagram palabra
+quitar» lo apaga. Usa la «respuesta privada» de la API de Instagram (una por comentario, en los 7 días siguientes), así
+que hace falta la cuenta conectada con el **token de Meta** (opciones avanzadas) con el permiso de mensajes
+(`instagram_business_manage_messages`, o `instagram_manage_messages` con un token de Facebook); con solo Zernio o Apps
+conectadas no funciona y lo dice. Sale de los reels de Prism y vgpu que acaban así. Código: `keywordComments`,
+`privateReply` y `parseKeywordRequest` en `src/main/instagram.ts` y `checkInstagramKeyword` en `orchestratorSocial.ts`.
 
 ### El TikTok de kywai (`/tiktok`)
 
@@ -10091,6 +10136,19 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   nada de `lib/`, `store/` ni `ui/` que se cargue al abrir puede importar `three` ni `scene/*` con Three.
 - **Texturas en WebP (1.31.0).** Las siete imágenes grandes del Fondo marino y del Refugio Kywai son WebP (calidad
   90): 3,4 MB en vez de 23 MB, sin diferencia visible.
+- **El 3D no recompila a mitad de uso (1.34.1).** Cuando el último material que usa un sombreador se suelta, three
+  borra su programa de la tarjeta gráfica, y el siguiente material igual tiene que compilarlo otra vez: un parón de
+  toda la ventana (más largo en Windows). Pasaba con cada archivo que viajaba entre agentes, al entrar o salir un
+  becario (cambian los puestos y se rehacían las pistas del suelo) y cuando la calidad automática cambiaba el
+  suavizado (se rehacían los efectos). Ahora los materiales de los archivos que viajan se reutilizan
+  (`takePacketMats`/`givePacketMats` en `scene/Transfers.tsx`), las pistas sueltan sus materiales viejos cuando los
+  nuevos ya se dibujan (`scene/disposeSoon.ts`), `scene/Circuits.tsx` solo rehace la forma de las pistas y el
+  suavizado ya no lo cambia el ajuste automático (`sceneQuality`). Medido en modo demo: de 14 compilaciones en 36 s a
+  2 (las de un becario que aparece por primera vez).
+- **Efectos más ligeros en Normal (1.34.1).** En Normal (y en Automática, que llega como mucho a Normal) el suavizado
+  de bordes va a ×2 y el brillo (bloom) se calcula a media resolución (`msaa` y `bloomScale` en `scene/quality.ts`).
+  Medido: los efectos eran más de la mitad del trabajo de la tarjeta gráfica en cada fotograma y el suavizado ×4,
+  algo más de un tercio; a la vista casi no hay diferencia. «Máxima» sigue con ×4 y el brillo a resolución entera.
 - **Música sin comprobaciones de más.** Mientras el audio está en pausa (sin música sonando), el programador de la
   música mira una vez por segundo en vez de 20 (`schedule` en `lib/audio.ts`).
 - **El 3D en reposo.** Si durante un minuto ningún agente trabaja, piensa ni espera, no suena música y no mueves
@@ -10105,7 +10163,7 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   equipo entraba en la calidad máxima, porque el navegador nunca dice que hay más de 8 GB de memoria, y la
   tarjeta gráfica iba a tope. Mientras lo usas, Automática baja si los fotogramas no llegan y vuelve a subir.
   Las otras tres no se mueven solas. Ese ajuste solo cambia lo que sale barato de cambiar (resolución,
-  partículas, estructuras y suavizado). El brillo (bloom) y las luces de los puestos no se quitan ni se ponen sobre
+  partículas y estructuras). El brillo (bloom), su suavizado y las luces de los puestos no se quitan ni se ponen sobre
   la marcha: hacerlo obligaba a recompilar todos los materiales de golpe y daba un tirón justo cuando el equipo ya
   iba justo (`sceneQuality` y `qualityRange` en `scene/quality.ts`; la elección se guarda en
   `ai-cowork.sceneQuality`).
