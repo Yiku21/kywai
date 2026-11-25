@@ -6560,6 +6560,17 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
   `/video` dice antes de empezar qué le falta a tu equipo (`FILM_MISSING_TEXT` en `src/shared/videoPreflight.ts`).
 - **Sin relevo inútil**: si el equipo dice que no puede o no está conectado, la tarea falla una vez con el motivo
   (`noRelay` en el resultado); solo un corte a mitad del envío se vuelve a intentar con otro agente.
+- **El aviso del selector dice la verdad** (`onDeviceNote` en `src/shared/videoPreflight.ts`, 25 nov 2026). Con «en tu
+  equipo» elegido y el equipo conectado pero sin poder hacerlo, antes decía «Tu equipo no está conectado» (el selector
+  solo recibía el nombre del equipo si podía hacerlo) y Yil buscó el fallo en la conexión. Ahora `checkVideoChoice`
+  devuelve también `connected` (el equipo conectado aunque no pueda) y `filmsMissing`, y dice «MacBook-Pro está
+  conectado, pero no puede hacer este vídeo tal cual:» con lo que le falta.
+- **Instalar el director con un clic**: si lo que falta es el agente y el selector se ve en la app de escritorio de ESE
+  equipo (`coworkClient.info().device` igual al equipo conectado), salen **«Instalar Claude Code»** e **«Instalar
+  Codex»**. La app pregunta antes con una ventana nativa (Instalar o Cancelar; IPC `client:installFilmDirector` en
+  `src/main/client.ts`), lo instala con el instalador oficial (`installTool`), abre la ventana para iniciar sesión
+  (`openLogin`) y avisa a la nube (`forgetDeviceStudio` + `nudge`); el selector vuelve a mirar a los 4 s. En el
+  navegador u otro equipo no hay botón: el aviso dice qué instalar.
 
 **Antes de empezar: ¿se puede hacer aquí?** (21 nov 2026, `src/shared/videoPreflight.ts`). Un sketch con los robots se
 quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
