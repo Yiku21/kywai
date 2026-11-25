@@ -4807,6 +4807,15 @@ sitios ven lo mismo.
   archivos enviados a la vez y mandar 50 al día.
 - **Quitar** deja de ser amigos y borra la conversación para los dos. No se le avisa. También borra los archivos.
 - **Avisarme por correo de las solicitudes nuevas** se puede apagar.
+- **Aviso de mensajes nuevos** (desde la 1.35.0): cuando un amigo te escribe o te manda una solicitud, el número rojo
+  del botón **Amigos** sube y late un momento, y suena la **marimba de amigos** (tres golpes de madera que suben,
+  distinta de la campanita de «Te necesita»). Se mira cada 10 segundos, y cada 30 con kywai minimizado o en otra
+  pestaña. Va por el canal de **efectos**: si los silencias o bajas su volumen, también calla o baja; y respeta el
+  «Silencio de noche» de los avisos. No suena por lo que ya esperaba al abrir kywai, ni por la conversación que tienes
+  abierta delante, y varios mensajes seguidos suenan una vez. Con kywai en segundo plano, la app de escritorio enseña
+  además un aviso de Windows o del Mac con el nombre del amigo (nunca el texto); al pulsarlo se abre su conversación.
+  En el navegador, la pestaña lleva delante el número («(2) kywai») y el sonido solo puede sonar después de un primer
+  clic en la página.
 - Límites: 300 amigos, 30 solicitudes sin responder, 20 solicitudes al día, mensajes de hasta 2.000 caracteres y 30
   mensajes por minuto.
 
@@ -4816,7 +4825,9 @@ En la instalación propia (self host) no hay cuentas, así que el botón no sale
 kywai-cloud). La app los pide desde el servidor de tu espacio (`src/main/friends.ts`) a
 `https://cuenta.kywai.app/api/amigos`, con el mismo secreto de espacio que usa la voz incluida (`KYWAI_VOZ_URL` y
 `KYWAI_VOZ_SECRETO`). Si no están, `friendsState` responde `available: false` y el botón no aparece. El panel es
-`src/renderer/src/ui/sidebar/FriendsDialog.tsx`. Los archivos pasan por el servidor del espacio sin guardarse en él:
+`src/renderer/src/ui/sidebar/FriendsDialog.tsx`; el número del botón, la marimba y el aviso del sistema los lleva
+`src/renderer/src/lib/friendsAlert.ts` (compara los `sin_leer` de cada amigo y las solicitudes entre una mirada y la
+siguiente; el sonido es `friendMessage` en `lib/audio.ts`). Los archivos pasan por el servidor del espacio sin guardarse en él:
 `POST /api/amigos-archivo/<ID>?nombre=…` reenvía el cuerpo al portal y `GET /api/amigos-archivo/<ID>/<n>` reenvía la
 descarga (`webServer.ts`). El portal los guarda en `amigos-archivos/` y los sirve siempre con CSP `sandbox` y `nosniff`.
 
