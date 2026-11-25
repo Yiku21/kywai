@@ -106,7 +106,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Idioma](#idioma)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
-  - [Música (YouTube, Audius, radios y Spotifast)](#música-youtube-audius-radios-y-spotifast)
+  - [Música (YouTube, radios y ytm-rs)](#música-youtube-radios-y-ytm-rs)
   - [Expresiones de los robots](#expresiones-de-los-robots)
   - [Modo Demo](#modo-demo)
   - [Rendimiento](#rendimiento)
@@ -809,7 +809,7 @@ recuadros que lo corten:
   de código y los botones rojos usan los colores del tema; antes tenían un azul oscuro fijo y con un tema claro las
   letras oscuras no se leían.
 - **Controles de la cámara** (acercar, alejar, centrar) flotando abajo a la derecha en la tableta.
-- **Música sin anuncios:** ☰ → Música abre las radios de SomaFM y Audius con buscador y volumen. Mientras suena
+- **Música sin anuncios:** ☰ → Música abre las radios de SomaFM con buscador y volumen. Mientras suena
   queda un reproductor pequeño en la barra de arriba; se para al salir de la app.
 - **Ajustes en pestañas:** General (idioma, tema, tacto y mundo 3D), Agentes (planes de Hermes, ver el equipo), Conexión
   (ordenador, servidor y este móvil) y Acerca de (actualizaciones de Órbita y apoyar kywai).
@@ -1380,6 +1380,44 @@ cuando habla, crece y mengua como si fuera su voz. Debajo, «Silenciar micro» y
   minutos. Cuando llega el resultado, la llamada se abre sola, te lo lee y vuelve a escucharte. Con varios encargos
   se recoge otra vez tras cada resultado hasta que acaba el último. «Hablar» la vuelve a abrir cuando quieras.
 - Mientras hablas con ella, el altavoz no lee las respuestas (lo hace la voz a su manera).
+
+**Micrófono abierto o pulsar para hablar (1.32.0).** En ⚙ → Ajustes → General → «Hablar con kywai», **«Cómo te
+escucha»** tiene dos opciones; se recuerda en cada dispositivo:
+
+- **Micrófono abierto** (como siempre): hablas cuando quieras, sabe sola cuándo has terminado y, si hablas mientras
+  contesta, se calla.
+- **Pulsar para hablar**: solo te oye mientras mantienes la **tecla para hablar** (F8 de serie). Al soltarla, contesta.
+  Sin la tecla no le llega nada de audio, así que el ruido de fondo, la tele u otra persona ni la interrumpen ni la
+  hacen contestar. Si pulsas mientras habla, se calla y te escucha. «Cambiar…» espera a que pulses la tecla o la
+  combinación que quieras (Esc lo deja): vale una tecla de función sola (F1–F24, Inicio, Fin…) o cualquier tecla con
+  Ctrl, Alt, Mayús o ⌘; una letra sola no, porque escribiría en el chat, y tampoco Ctrl+Alt+Espacio, que es la del
+  dictado. En la llamada también está el botón **«Mantén para hablar»** (ratón o dedo) y el estado dice «Lista: mantén
+  F8 para hablar», «Te escucho… suelta para enviar» o «Hablando… pulsa F8 para interrumpirla».
+- **No gasta minutos esperando**: con pulsar para hablar, si en 15 segundos nadie habla ni pulsa y la voz no tiene nada
+  que contar, la conexión con Gemini se pone en pausa guardando por dónde iba (como mientras el equipo trabaja) y el
+  estado dice «En pausa: mantén F8 para hablar (no gasta minutos)». Ese rato no cuenta en los minutos de kywai Cloud.
+  Al pulsar la tecla vuelve sola en un momento con la misma conversación; lo que dices mientras se abre se guarda
+  (hasta unos 6 segundos) y le llega igual. Si llega un aviso del equipo, también vuelve para contártelo.
+- **Con kywai en segundo plano** (solo la app de escritorio, también en modo cliente y con kywai Cloud): con
+  «También con kywai en segundo plano» encendido, la tecla funciona aunque estés en otra aplicación, solo mientras dura
+  la llamada. Para ver cuándo sueltas la tecla fuera de kywai se usa **uiohook-napi** (MIT); el motor solo avisa de esa
+  tecla y de ninguna otra, y la pieza se para al colgar. En el Mac pide el permiso de **Accesibilidad** (el mismo que el
+  dictado para pegar; macOS lo pregunta la primera vez). Si no puede (sin ese permiso, Linux con Wayland o la pieza no
+  carga), fuera de kywai la tecla hace de **interruptor**: una pulsación abre el micro y la siguiente envía, y Ajustes
+  lo dice durante la llamada. Con kywai delante, siempre se mantiene. Si otra aplicación ya tiene la tecla, Ajustes
+  pide elegir otra. En el navegador (web y kywai Cloud desde el navegador) la tecla solo vale con la pestaña delante: el
+  navegador no da las teclas de otras aplicaciones.
+- **En Órbita**, debajo del estado de la llamada, «Pulsar para hablar» / «Micrófono abierto» cambia el modo (se recuerda
+  en el móvil) y, con pulsar para hablar, el botón «Mantén para hablar» hace lo mismo que la tecla, también la pausa
+  que no gasta minutos.
+
+Por dentro: con pulsar para hablar el setup lleva `realtimeInputConfig.automaticActivityDetection.disabled` y, al pulsar
+y soltar, se mandan `activityStart` y `activityEnd` (`liveSetup` con `pushToTalk` en `src/shared/liveVoice.ts`; la
+tecla, en `src/shared/pushToTalk.ts`; la llamada, `pressTalk`/`releaseTalk`/`sleepIfIdle` en
+`src/renderer/src/lib/liveVoice.ts`; Ajustes, `ListenSettings` en `SettingsDialog.tsx`). La tecla fuera de kywai:
+`src/main/pushToTalk.ts` (IPC `ptt:watch` y evento `ptt:key`, en `src/preload/index.ts` y `src/preload/client.ts`). En
+Órbita: `press`/`release`/`changePushToTalk` en `LiveVoice.kt`, `LiveListenRow` en `LiveVoiceUi.kt` y la preferencia
+`livePushToTalk`. Los proveedores que vengan después (OpenAI Realtime, Groq) usarán el mismo ajuste.
 
 **Con qué funciona.** Usa **Gemini Live** de Google (modelo `gemini-3.8-live`). Hace falta una clave de Gemini:
 
@@ -4906,6 +4944,11 @@ reinició su espacio (06:49Z, apuntado como «boton» en el servidor) porque `em
   cambió lo elegido). Si se cierra la app, se empieza otro.
 Probado de punta a punta con el espacio reiniciándose a mitad y chats ya mandados cambiados: termina sin volver a empezar.
 
+**Esperar a que el espacio compruebe sin tope fijo (1.31.1).** 25 nov, Elizabeth con la 1.31.0: la subida y «terminar» fueron bien, pero tras ~47 min de «Tu espacio comprueba cada archivo…» el Mac dijo «Tu espacio tarda demasiado en terminar» mientras el espacio seguía desempaquetando (16 GB y ~1 millón de archivos tardan más). Y «Volver a intentarlo» abría otro paso, lo que borraba lo que el espacio estaba comprobando. Ahora:
+- El Mac espera mientras el espacio conteste («comprobando», «colocando»), sin tope. Solo se rinde si el espacio no contesta nada en 30 min.
+- «Volver a intentarlo» después de subir entero sigue esperando el mismo paso (`finishing` en mudanzaEnvio.ts), no vuelve a subir.
+- El espacio no abre otro paso (409, «aún está terminando la mudanza anterior») mientras uno se comprueba o espera a colocarse (`inProgress()` en mudanzaNube.ts).
+
 **«Terminar» con muchísimos archivos y la causa real de un corte (1.31.0).** 25 nov: la mudanza de Elizabeth subía los 1898 trozos enteros y aun así salía «Tu espacio se reinició a mitad de la subida». El espacio no se había reiniciado: lo que fallaba era la última petición, «terminar», que llevaba dentro la lista de TODOS los archivos de una vez; con muchísimos archivos esa petición no entraba (el espacio corta las de más de 256 MB; reproducido con 1 millón de archivos: «terminar» de 315 MB, 31 intentos y «se reinició») y la app la repetía 30 veces en ~8 minutos y lo explicaba como un reinicio. Ahora:
 - La lista de archivos va a trozos de ~8 MB (`PUT /api/mudanza/<id>/lista/<n>`) y «terminar» solo dice cuántos (`listParts`). Un espacio de antes contesta 404 a esa ruta y la lista va entera, como antes.
 - «terminar» tiene 10 minutos para contestar (antes 60 s).
@@ -7829,6 +7872,12 @@ cuando cae «dentro» de un proyecto.
 - El orden se guarda en el servidor (`orden-barra.json` en la carpeta de trabajo). Lo nuevo (un proyecto o chat
   recién creado) sale arriba hasta que lo muevas. Un cliente conectado a un servidor sin esta versión sigue
   ordenando por fecha.
+- **Los proyectos se quedan en su sitio** (desde la 1.32.1): con *Tu orden*, un proyecto solo cambia de puesto
+  cuando tú lo arrastras. La primera vez que se abre la barra se guarda el orden que se ve en ese momento, y cada
+  proyecto nuevo se fija arriba al aparecer (`completeOrder` en `sidebar/dragOrder.ts`). Antes, abrir un chat de otro
+  proyecto (o que un agente trabajara en él) lo subía al primer puesto. Además, **abrir un chat ya no cuenta como
+  actividad** del proyecto (`openConversation` guarda con `scheduleSave(id, false)`), así que tampoco lo mueve con
+  *Lo más reciente primero* ni cambia el filtro *Esta semana*.
 - Un chat arrastrado fuera de la barra lleva también el tipo `application/x-kywai-chat`
   (`{ projectId, conversationId, title }`) para que otras zonas de la ventana puedan recibirlo.
 
@@ -8779,6 +8828,39 @@ no cabe se desplaza dentro de ella.
 fixed`), su `return` va con `toBody(...)`. Las pruebas que la monten buscan en `document.body`, no en el `div` donde
 se monta.
 
+### Ventanas que se agrandan (estirar, maximizar y recordar el tamaño)
+
+Desde la 1.32.0 (25 nov 2026, pedido por Yil: «quiero ver más menú a la vez») **Ajustes** y las demás ventanas largas
+se agrandan:
+
+- **Estirar** desde cualquier borde o esquina: al acercar el ratón cambia el cursor, el borde se ilumina mientras
+  arrastras y en la esquina sale el tamaño (por ejemplo «1240 × 860»). Las ventanas centradas crecen por los dos lados
+  para que el borde siga al ratón; las que van arriba (Buscar, Historial, Amigos, Importar) crecen hacia abajo.
+- **Maximizar** con el botón junto a la ✕ (o con doble clic en el título); el mismo botón (**Restaurar tamaño**) la
+  devuelve al tamaño que tenía.
+- **Recuerda el tamaño** de cada ventana en este dispositivo. Con **doble clic en una esquina** vuelve al tamaño de
+  siempre.
+- Nunca queda más pequeña que su tamaño de siempre ni se sale de la ventana de kywai. En pantallas de 700 px o menos
+  (móvil) no hay asas ni botón: ahí las ventanas ya ocupan toda la pantalla.
+- **El contenido se adapta.** En Ajustes, cuando la zona de la derecha pasa de 860 px de ancho, las tarjetas y las
+  secciones plegables van en **dos columnas** (los títulos y textos sueltos siguen a lo ancho). En las demás ventanas
+  las listas, tablas y cuadrículas simplemente ganan sitio.
+
+Ventanas que lo tienen: Ajustes, Uso y coste, Cómo rinde cada agente, Novedades, Acceso desde otros dispositivos,
+Archivos del servidor, Añadir un agente, Buscar (sin botón de maximizar, solo bordes), Historial, Amigos, Importar de
+otras apps, la galería de apps y el editor de plantillas del chat, el modelo de Hermes y la traza de una tarea. Los
+avisos cortos («¿Seguro?», desinstalar, copia de seguridad, reportar un problema) se quedan como estaban.
+
+Código: `src/renderer/src/ui/common/ResizableWin.tsx` (`useResizableWin`, `MaxButton`, `titleDoubleClick`) y su CSS.
+Las asas son una capa invisible del tamaño de la ventana dentro del fondo oscuro (no dentro de la ventana, que muchas
+desplazan su contenido); se colocan con `offsetLeft/offsetTop` para no moverse con la animación de entrada. El tamaño
+se guarda en `localStorage` como `kywai.ventana.<id>`. Las dos columnas de Ajustes son una consulta de contenedor
+(`@container ajustes`) en `SettingsDialog.module.css` (`.panel`).
+
+**Regla para ventanas nuevas largas:** `const rz = useResizableWin('<id>')` arriba del componente (antes de cualquier
+`return null`), `ref={rz.ref}` y `style={rz.style}` en la tarjeta, `<MaxButton rz={rz} />` justo antes de la ✕,
+`onDoubleClick={titleDoubleClick(rz)}` en la cabecera y `{rz.grips}` como último hijo del fondo oscuro.
+
 ### Ancho del chat y ventanas pequeñas
 
 El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva
@@ -9206,7 +9288,7 @@ sílaba mientras balbucea y, cuando calla, lo que queda sale deprisa. Con las vo
 Tienen **su propio volumen y su propio silencio**, del todo aparte de la música: en ⚙ → Ajustes → General hay tres
 interruptores, cada uno con su volumen y sin tocar a los otros:
 
-- **«Música de fondo»**: la música ambiental de kywai y la que pongas en el panel de Música (YouTube, Audius, radios).
+- **«Música de fondo»**: la música ambiental de kywai y la que pongas en el panel de Música (YouTube, radios).
 - **«Efectos y avisos»**: los sonidos de la interfaz y de las tareas (empieza, termina, falla, clics) y el timbre de
   «Te necesita». Se puede quitar la música y seguir oyendo los avisos.
 - **«Voces de los agentes»**: lo que dicen en el chat.
@@ -9219,16 +9301,19 @@ Se recuerda en cada dispositivo.
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de
 los agentes»**, con su propio volumen; no dependen de «Sonidos», cada uno se apaga por su lado.
 
-### Música (YouTube, Audius, radios y Spotifast)
+### Música (YouTube, radios y ytm-rs)
 
-El botón **Música** del espacio digital abre un reproductor con cuatro pestañas encima del buscador (se recuerda la
+El botón **Música** del espacio digital abre un reproductor con tres pestañas encima del buscador (se recuerda la
 última elegida):
 - **YouTube:** canciones y artistas de YouTube Music, en su reproductor oficial. Tiene sus anuncios.
-- **Audius:** música que suben los propios artistas para que se escuche gratis. Sin anuncios y sin cuenta. Solo
-  salen las canciones que se pueden escuchar enteras sin pagar.
 - **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
-- **Spotifast:** Spotify con tu cuenta Premium, a través de la app [Spotifast](https://spotifast.rocks) (ver más abajo).
+- **ytm-rs:** YouTube Music sin anuncios y con letras, a través de la app [ytm-rs](https://github.com/grapedjuice/ytm-rs)
+  (ver más abajo). Sustituye desde la 1.33.0 a la pestaña Spotifast (Spotify), que ya no está.
+
+La pestaña **Audius** se quitó en la 1.33.0 (lo pidió Yil). Las canciones de Audius que quedaran en la cola salen
+de ella al abrir kywai, y quien la tuviera elegida vuelve a la pestaña YouTube. Órbita deja de enseñarla; un Órbita
+antiguo que aún la pida recibe la lista vacía.
 
 **Vídeo flotante:** con un vídeo de YouTube sonando, el botón de imagen en imagen de la cabecera del panel lo saca a
 una ventanita propia para verlo mientras trabajas en otra cosa. Sigue en el segundo en que iba y con el reproductor
@@ -9241,7 +9326,7 @@ oficial de YouTube (no se descarga nada).
   las ventanas emergentes de la página).
 - Su barra tiene pausa, siguiente y «Volver a kywai». Cerrarla (o pulsar Esc en ella) devuelve el vídeo al panel,
   donde mientras tanto sale «Traer aquí». La barra, el minirreproductor y la cola siguen mandando como siempre.
-- Solo flotan los vídeos de YouTube: al pasar a Audius o a una radio, o al cerrar la música, vuelve al panel.
+- Solo flotan los vídeos de YouTube: al pasar a una radio, o al cerrar la música, vuelve al panel.
 - Recuerda su sitio y tamaño en cada equipo.
   Código: `src/renderer/src/lib/floatingVideo.ts` (la ventana), `src/main/floatingVideo.ts` (su forma en la app) y
   `src/shared/floatingVideo.ts`.
@@ -9278,32 +9363,43 @@ la página para iniciarla); con Premium no hay anuncios. «Dejar de usarla» vue
 sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para borrarla.
   Código: `src/main/youtubeAccount.ts`, `lib/youtubeAccount.ts` y `ui/space/YoutubeAccountRow.tsx`.
 
-**Spotifast** es una app de escritorio gratis y de código abierto (licencia MIT, de Carmine Paolino) para escuchar
-Spotify. kywai no la lleva dentro ni reproduce nada de Spotify: la maneja desde fuera con las órdenes de mando a
-distancia que trae la propia Spotifast (`spotifast play-pause`, `spotifast now-playing --raw`…). Por eso:
-- **Hay que instalarla** en el equipo donde corre kywai (el servidor, si entras desde la web o el móvil). Si no está,
-  la pestaña ofrece «Instalar Spotifast» (su página de descarga) y «Ya la he instalado». kywai la encuentra en
-  `/Applications/Spotifast.app` (o `~/Applications`) en el Mac, en `%LOCALAPPDATA%\Programs\Spotifast` en Windows y
-  en el PATH o como Flatpak (`rocks.spotifast.Spotifast`) en Linux.
-- **La primera vez se configura en ella:** pide crear tu propia app gratis de Spotify (Client ID) e iniciar sesión.
-  Para que suene hace falta **Spotify Premium**.
-- **Cerrada:** sale «Abrir Spotifast». Buscar o pegar un enlace también la abren solos.
-- **Buscar:** eliges qué buscar (canción, artista, álbum o lista) y «Poner» hace sonar lo que mejor encaje. Un enlace
-  de Spotify (`open.spotify.com/…` o `spotify:…`) suena tal cual.
-- **Mientras suena:** carátula, canción, artista, dónde suena (este equipo o un altavoz de Spotify Connect), posición,
-  atrás / pausa / adelante y el volumen de Spotifast. Se actualiza cada 2 segundos mientras la pestaña está abierta.
-  «Ver Spotifast» trae su ventana delante.
-- **No se mezcla con lo demás:** al poner algo en Spotifast se pausa lo que sonara en kywai. Las luces del espacio
-  no oyen el sonido de Spotifast (sale de otra app).
+**ytm-rs** es una app de escritorio gratis y de código abierto (licencia GPL-3.0, de grapedjuice) para escuchar
+YouTube Music en Windows, Mac y Linux, sin navegador por dentro. kywai no la lleva dentro ni reproduce nada con ella: la
+maneja desde fuera con su mando a distancia local, el que trae para los Stream Deck (un WebSocket en
+`ws://127.0.0.1:26540` que solo atiende a programas del propio equipo y rechaza a los navegadores). Por eso:
+- **Hay que instalarla** en tu equipo (descargas en su página de versiones). Si no está, la pestaña ofrece «Instalar
+  ytm-rs», «Cómo se instala» y «Ya la he instalado». kywai la encuentra en `/Applications/ytm-rs.app` (o
+  `~/Applications`) en el Mac, en `%LOCALAPPDATA%\Programs\ytm-rs` (o `Archivos de programa\ytm-rs`) en Windows y en
+  `~/.local/lib/ytm-rs` o el PATH en Linux. En el Mac no está firmada por Apple: la primera vez se abre con clic derecho
+  › Abrir.
+- **Hay que encender su mando una vez:** en ytm-rs, Ajustes › Conexiones › **Stream Deck**. Sin eso, la pestaña dice
+  «ytm-rs está abierta, pero no deja que la manejen» y explica dónde está el interruptor.
+- **Cerrada:** sale «Abrir ytm-rs». «Ver ytm-rs» trae su ventana delante.
+- **Mientras suena:** carátula, canción, artista, álbum, posición, aleatorio, atrás / pausa / adelante, repetir (lista
+  o canción), me gusta y el volumen de ytm-rs. Se lee cada segundo mientras la pestaña está abierta y la posición
+  avanza sola entre lectura y lectura.
+- **Letra:** debajo sale la letra de la canción, sincronizada línea a línea (la que suena, resaltada y en el centro) o
+  tal cual si no hay versión con tiempos. Viene de [LRCLib](https://lrclib.net), una base de letras abierta y gratis:
+  solo se le manda el título, el artista, el álbum y la duración. «Ocultar» la pliega. Se guarda en memoria un rato.
+- **Buscar y elegir canciones** se hace en la ventana de ytm-rs: su mando de hoy no sabe poner una canción concreta.
+  kywai ya está listo para cuando lo sepa: si ytm-rs anuncia en su mando las órdenes `play`, `queue` y `seek`, la
+  pestaña enseña sola un buscador de YouTube Music («Poner» y «+» a la cola) y deja mover la posición.
+- **Dónde suena:** en la app de escritorio, en ese ordenador. En el **cliente** de escritorio (conectado a tu servidor o
+  a **kywai cloud**), en el ordenador donde estás, no en el servidor. En kywai desde el navegador, en el ordenador donde
+  corre kywai; en kywai cloud desde el navegador no se puede (el servidor no tiene altavoces) y la pestaña lo dice.
+- **No se mezcla con lo demás:** al darle a reproducir en ytm-rs se pausa lo que sonara en kywai. Las luces del espacio
+  no oyen el sonido de ytm-rs (sale de otra app).
 
-Spotifast usa por dentro librespot y partes no públicas de Spotify, y no está afiliada a Spotify: es cosa de cada
-persona instalarla y usarla con su cuenta. kywai solo le manda órdenes, siempre con argumentos sueltos (sin shell) y
-comprobados: enlaces solo de Spotify y búsquedas de hasta 200 letras. Código: `src/main/spotifast.ts` (buscar la app,
-abrirla y mandarle órdenes), `@shared/spotifast` (acciones, enlaces y lectura de lo que suena) y
-`ui/space/SpotifastBox.tsx` (la pestaña). Órbita todavía no tiene esta pestaña.
+ytm-rs es un cliente no oficial de YouTube Music: usa la API interna de su web, suena sin anuncios aunque no haya
+Premium y deja descargar canciones, cosas que las condiciones de YouTube no permiten. kywai no la lleva dentro, no
+descarga nada y solo le manda órdenes fijas (sin texto del usuario): es cosa de cada persona instalarla y usarla con su
+cuenta. Si YouTube cambia algo, ytm-rs puede dejar de sonar hasta que su autor lo arregle. Código: `src/main/ytmrs.ts`
+(buscar la app, abrirla y hablar con su mando), `@shared/ytmrs` (acciones, órdenes y lectura de lo que suena),
+`src/main/lyrics.ts` y `@shared/lyrics` (letras), y `ui/space/YtmrsBox.tsx` (la pestaña). El cliente la maneja con
+`client:ytmrs` (`src/main/client.ts`). Órbita todavía no tiene esta pestaña.
 
-Audius y las radios suenan en el reproductor de audio de kywai, directamente desde sus servidores públicos
-(api.audius.co y somafm.com). En el sitio del vídeo se ve la carátula y quién la hizo. Una radio no tiene duración
+Las radios suenan en el reproductor de audio de kywai, directamente desde los servidores públicos de SomaFM
+(somafm.com). En el sitio del vídeo se ve el logo de la radio. Una radio no tiene duración
 ni se puede saltar dentro de ella, y no se le busca el BPM (cambia de canción sola).
 
 Lo que hace el reproductor en cualquier fuente:
@@ -9314,7 +9410,7 @@ Lo que hace el reproductor en cualquier fuente:
 
 YouTube suena en su reproductor oficial, que tiene que estar a la vista. Va aislado en su propio marco, sin ningún
 script de YouTube en la ventana de kywai. No se descarga ni se saca el audio de YouTube ni de ningún otro
-servicio: por eso no se le pueden quitar los anuncios (para eso están Audius y las radios).
+servicio: por eso no se le pueden quitar los anuncios (para eso están las radios y ytm-rs).
 
 **Minimizar:** con una canción sonando, el botón «Música» (o Esc, o el icono de minimizar) lo deja pequeño en una
 esquina: el vídeo, la canción y atrás / pausa / adelante. Sigue sonando. «Música» otra vez lo abre entero, y la ×
@@ -9325,8 +9421,8 @@ vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
 **Volumen en el reproductor pequeño:** la tarjeta y la barra llevan un altavoz junto a los botones. Al pasar el ratón
 por encima sale el deslizador con el porcentaje; un clic en el altavoz silencia o vuelve a dar sonido (en el móvil, el
 primer toque enseña el deslizador y el segundo silencia). Mover el deslizador con el sonido quitado lo activa otra vez.
-Es el mismo volumen de «música y efectos» de la cabecera y de Ajustes → General, así que vale igual para YouTube,
-Audius y las radios.
+Es el mismo volumen de «música y efectos» de la cabecera y de Ajustes → General, así que vale igual para YouTube
+y las radios.
 
 **Luces con el sonido real (sin micrófono):** en la app de escritorio, kywai escucha lo que suena en su propia
 ventana y detecta los golpes:
@@ -9335,7 +9431,7 @@ ventana y detecta los golpes:
 - **Siempre a tiempo:** también con intros, directos y cambios de ritmo.
 - **Nada guardado:** no se graba nada.
 
-Con **Audius y las radios** no hace falta nada de eso: su audio llega directamente a kywai y las luces lo
+Con **las radios** no hace falta nada de eso: su audio llega directamente a kywai y las luces lo
 escuchan tal cual, también desde el navegador y sin compartir la pestaña.
 
 Con YouTube se activa solo al poner música y se puede apagar en «Luces al ritmo». Desde el navegador del PC, el botón
@@ -9352,7 +9448,7 @@ presentarse como app. Por eso, para oírlo todo en otro equipo, mejor el cliente
 - **Si tampoco hay:** pasa a la siguiente. Tras tres seguidas que no suenan, se para y ofrece abrirla en YouTube
   Music.
 
-Si una canción de Audius o una radio no llega (sin conexión, o el servidor no responde), pasa a la siguiente de la
+Si una radio no llega (sin conexión, o el servidor no responde), pasa a la siguiente de la
 cola y ofrece abrirla en su web. Desde el navegador, SomaFM puede rechazar sus radios según la dirección desde la
 que se abre kywai (en una prueba desde «localhost» las rechazó); en la app de escritorio suenan.
 
@@ -9732,6 +9828,20 @@ suscripciones no gasta créditos. Se ven y se recargan en Mi cuenta → **Crédi
   pagados · 15 $ devueltos»); las cuentas de administración salen «0 $ · No paga». También va en «Descargar
   estadísticas (CSV)». Los pagos se apuntan al llegar cada aviso de Stripe y lo cobrado antes se recupera una vez, así
   que el panel no espera a Stripe al abrirse (`portal/pagos.py`).
+- **Cambiar el plan de una cuenta desde el panel (25 nov 2026, solo administración):** en Mi cuenta → Administrar
+  cuentas, la columna «Suscripción» dice el plan de cada cuenta y tiene dos selectores y «Cambiar»: el plan (Cloud, Pro
+  o Pro Max) y el cobro. El primer clic enseña qué pasará y el segundo, «Confirmar el cambio», lo hace.
+  - **«Cambiar también el cobro»:** el plan nuevo vale al momento y Stripe cobra el precio nuevo **desde la próxima
+    renovación**, subiendo o bajando. Nunca se carga nada al momento, porque no lo ha pedido la persona.
+  - **«Regalo, sin tocar el cobro»:** kywai da el plan y Stripe sigue cobrando lo mismo. La fila lo marca «Regalo» y
+    dice lo que paga («Paga kywai Cloud»). El regalo se acaba si la persona cambia de plan en Plan y pagos (sube o baja
+    respecto a lo que paga de verdad), si se elige el mismo plan con «Cambiar también el cobro» o al volver al plan pagado.
+  - En los dos casos los créditos del mes se ajustan (subir da la diferencia, bajar no quita lo dado), la RAM y los
+    procesadores cambian en un minuto sin reiniciar el espacio, queda en «Últimas acciones de administración» y la
+    persona recibe un correo. No se puede bajar a un plan en el que no caben sus archivos, ni cambiar una cuenta sin
+    plan activo. Las cuentas de administración siguen en Pro Max sin mensualidad, sin selector. La capacidad del panel
+    ya enseña la real (nunca menos de lo que trae el plan). Código: `portal/admin.py` (`/cuenta/admin/<cuenta>/plan`) y
+    `portal/creditos.py` (`stripe_set_plan`, `gift_plan`, tabla `plan_regalo`).
 - El código vive en el portal de kywai Cloud (repo Kywai-Cloud, `portal/creditos.py`). La app solo lee del portal el
   saldo y los precios para enseñarlos en «Crea tu agente».
 - Las imágenes se guardan en la carpeta de datos, en `aspecto-agentes/<agente>/` (`<expresión>.png` de 512 px y
@@ -9932,7 +10042,7 @@ hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo co
 
 ### Vida entre compañeros
 
-**Cuando suena música**, los agentes libres permanecen despiertos y su etiqueta cambia a **Bailando**. Los pasos y saltitos siguen el reloj del reproductor de YouTube, Audius o radio, y los golpes de audio cuando están disponibles; también siguen el pulso de la música ambiental sintetizada. Sin BPM conocido, se balancean suavemente y responden a los golpes detectados. El interruptor de luces musicales es independiente. Al parar toda la música vuelven a su comportamiento habitual; si al pausar una canción sigue sonando la música ambiental, siguen bailando con ella. El trabajo real, escribir en el chat y **Reducir efectos** tienen prioridad.
+**Cuando suena música**, los agentes libres permanecen despiertos y su etiqueta cambia a **Bailando**. Los pasos y saltitos siguen el reloj del reproductor de YouTube o de la radio, y los golpes de audio cuando están disponibles; también siguen el pulso de la música ambiental sintetizada. Sin BPM conocido, se balancean suavemente y responden a los golpes detectados. El interruptor de luces musicales es independiente. Al parar toda la música vuelven a su comportamiento habitual; si al pausar una canción sigue sonando la música ambiental, siguen bailando con ella. El trabajo real, escribir en el chat y **Reducir efectos** tienen prioridad.
 
 El repertorio incluye **bailes compartidos**, con pasos, saltitos y un giro; **juegos de imitación**, donde un compañero copia la inclinación, el guiño o el salto del otro con un pequeño retraso; **choques de antenas**, acercándose y celebrando con un destello; y **visitas de ánimo**, con un corazón luminoso y una sonrisa para el compañero más cansado que esté libre. Los ánimos cambian su expresión, no la cuota ni el cansancio real que informa el agente.
 
