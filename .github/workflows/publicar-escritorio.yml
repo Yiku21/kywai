@@ -1,7 +1,8 @@
 # Publica kywai de escritorio en las Releases de este repositorio (el escaparate público Yiku21/kywai).
 #
-# El código de la app vive en un repositorio PRIVADO (Yiku21/kywai-original). Cada 10 minutos este flujo mira si su
-# master tiene algo nuevo; si lo tiene:
+# El código de la app vive en un repositorio PRIVADO (Yiku21/kywai-original). Una vez al día (9:00 UTC, las 3 de la
+# madrugada en México centro) este flujo mira si su master tiene algo nuevo; si lo tiene, sale UNA versión con todo lo
+# fusionado ese día (regla de Yil, 25 nov 2026: una versión al día). Para publicar antes, «Run workflow» a mano:
 #   1. Copia aquí lo que es público de verdad: la APK de Órbita (android/release), el MANUAL, docs/mods, la LICENSE y
 #      los instaladores de una línea. Nada más del código entra en este repositorio.
 #   2. Si cambió algo de la app (no solo Órbita o documentos), añade un commit vacío por cada título de commit nuevo
@@ -20,7 +21,7 @@ name: Publicar escritorio
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0 9 * * *'
   workflow_dispatch:
     inputs:
       forzar:
