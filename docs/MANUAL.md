@@ -4818,6 +4818,15 @@ la propia app tiene una versión nueva y la pone con un botón, y la ventana Act
 que la app del ordenador se actualiza aparte (cliente: Ajustes → Acerca de → «Actualizar este equipo»).
 ### Modelo recomendado según tu equipo (agente local)
 
+**Archivos que cambian mientras sube (25 nov).** La self host sigue viva durante horas de subida: un archivo puede borrarse,
+encogerse o no dejarse leer (macOS sin permiso, iCloud sin descargar) entre que se miró y que le toca. Antes eso paraba la
+subida entera con un error (`ENOENT…` o «Un archivo cambió mientras se copiaba»), que es lo que dejó a una usuaria con 6 GB
+de 15,6 subidos. Ahora `packRecords` abre cada archivo y toma su tamaño en ese momento; lo que no se puede abrir se salta,
+lo que encoge mientras se lee se completa con ceros, y la ventana dice cuántos archivos fueron. Además, la lista de lo que
+se lleva ya no usa `push(...lista)`, que reventaba la pila con más de ~120.000 archivos. Probado de punta a punta con 16 GB
+y 200.000 archivos, y con archivos borrados a mitad (el código anterior se paraba en seco con `ENOENT`). El portal ya no
+para la mudanza por la cuota «usada» (incluye trozos de un intento anterior): solo si no cabría ni con el espacio vacío.
+
 Antes de elegir modelo, la configuración del agente local (su indicador de cuota) mira **el equipo donde va a correr**:
 este mismo o, en kywai Cloud, el PC que presta sus modelos. Enseña en una línea la RAM, la tarjeta gráfica (NVIDIA con su
 memoria, o el chip de Apple con memoria unificada) y el disco libre, y recomienda el **modelo de Ollama más capaz que va
