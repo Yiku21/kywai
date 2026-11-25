@@ -1242,8 +1242,12 @@ apaga. Al empezar una nota de voz se calla solo.
 
 La voz se elige en ⚙ → Ajustes → General → **«Voz para leer las respuestas»**: son las mismas voces de los vídeos
 (Álvaro, Jorge y Carmen en español; las de inglés; y las de ElevenLabs, Gemini, Voicebox o VoiceStudio si las
-tienes), cada una con ▶ para oír una muestra. En español hay además trece voces que funcionan **en tu equipo, sin
-internet**: cuatro **ligeras de KittenTTS** (Lucía, Carmen, Javier y Diego, salen las primeras), seis de Piper (Dave,
+tienes), cada una con ▶ para oír una muestra. La lista va **agrupada por motor**, con un título en cada grupo
+(«Español · KittenTTS», «Español · Piper», «Español · Kokoro», «Español · Edge», «Español · macOS»…): primero las
+que funcionan en tu equipo sin internet y, delante de todas, el motor de la voz que lee por defecto en ese idioma
+(KittenTTS en español, Kokoro en inglés); detrás, Edge y las del Mac, y al final las de Gemini, ElevenLabs o
+VoiceStudio. No hay un selector de motor aparte: al elegir una voz eliges también su motor. En español hay además trece voces que funcionan **en tu equipo, sin
+internet**: cuatro **ligeras de KittenTTS** (Lucía, Carmen, Javier y Diego), seis de Piper (Dave,
 Mateo y Lucía de España; Aldo y Claudia de México; Daniela de Argentina) y tres de Kokoro (Dora, Álex y Santa). Las
 de KittenTTS usan un solo modelo pequeño (KittenTTS 2 mini, de KittenML, licencia Apache 2.0) de unos 90 MB para las
 cuatro: se baja la primera vez que eliges una (a `estudio-video/kitten/`; kywai instala `kittenml` solo, sin torch ni
@@ -4841,6 +4845,20 @@ reinició su espacio (06:49Z, apuntado como «boton» en el servidor) porque `em
 - El paso abierto se guarda en memoria aunque la subida se pare con un error: «Volver a intentarlo» sigue con él (si no
   cambió lo elegido). Si se cierra la app, se empieza otro.
 Probado de punta a punta con el espacio reiniciándose a mitad y chats ya mandados cambiados: termina sin volver a empezar.
+
+**Fusionar o reemplazar (1.30.64).** Yil, 25 nov: al pasar de self host a la nube la ventana pregunta qué hacer con lo
+que ya hay en el espacio.
+- **Fusionar** (la de siempre, marcada por defecto): llega todo y se queda lo de la nube. Si un archivo está en los dos
+  sitios, gana el que llega y el de la nube va a la copia previa; ajustes y claves se juntan.
+- **Reemplazar**: pide marcar «Entiendo que lo de la nube se sustituye por lo de aquí». El modo viaja en `empezar`
+  (`mode`), se guarda en `plan.json` y se aplica al colocar, cuando la subida ya llegó entera y se comprobó: antes de
+  `placeMove`, `clearForReplace` aparta a `copia-previa` (mismas raíces del paquete: `datos/`, `secretos/`, `workspace/`,
+  `hermes/`, más `proyectos/` para las carpetas de `~/proyectos` y una copia de `ajustes/config.json`) todo lo que una
+  mudanza llevaría. Se queda lo que es del propio espacio: el acceso web, la cara y la carpeta de proyectos de los ajustes,
+  `mobile-key`, `web-cert`, las instalaciones del estudio de vídeo y los archivos de datos que no viajan. Deja
+  `reemplazo.json` en la copia previa para no repetirse si kywai se reinicia colocando. Las claves que llegan no se juntan
+  con las de la nube (las de la nube quedan en la copia previa). Cuenta, créditos y plan no se tocan (viven en Mi cuenta).
+- Sin `mode` (una self host anterior) es fusionar. Cambiar de modo abre otro paso (es parte del plan de la subida).
 
 Antes de elegir modelo, la configuración del agente local (su indicador de cuota) mira **el equipo donde va a correr**:
 este mismo o, en kywai Cloud, el PC que presta sus modelos. Enseña en una línea la RAM, la tarjeta gráfica (NVIDIA con su
@@ -9573,6 +9591,12 @@ suscripciones no gasta créditos. Se ven y se recargan en Mi cuenta → **Crédi
   conserva su espacio y sus archivos y elige su plan real en Plan y pagos («Elegir mi plan»); pasado el plazo
   (`--dias`, 7 por defecto) el espacio se pausa sin borrar nada y vuelve al pagar. No pagan las cuentas de
   administración. Detalle en `portal/DEPLOY.md` de Kywai-Cloud («Pasar a pagos reales»).
+- **«$ gastado» en el panel de cuentas (25 nov 2026, solo administración):** Mi cuenta → Administrar cuentas tiene una
+  columna con lo que ha pagado cada cuenta en Stripe: cada mes de suscripción (también subidas de plan y GB extra) y
+  cada recarga de créditos, **menos lo devuelto**. Debajo sale el desglose («20 $ de plan · 25 $ de créditos» o «15 $
+  pagados · 15 $ devueltos»); las cuentas de administración salen «0 $ · No paga». También va en «Descargar
+  estadísticas (CSV)». Los pagos se apuntan al llegar cada aviso de Stripe y lo cobrado antes se recupera una vez, así
+  que el panel no espera a Stripe al abrirse (`portal/pagos.py`).
 - El código vive en el portal de kywai Cloud (repo Kywai-Cloud, `portal/creditos.py`). La app solo lee del portal el
   saldo y los precios para enseñarlos en «Crea tu agente».
 - Las imágenes se guardan en la carpeta de datos, en `aspecto-agentes/<agente>/` (`<expresión>.png` de 512 px y
