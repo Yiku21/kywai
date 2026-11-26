@@ -137,12 +137,7 @@ html[data-theme="light"] .cielo { background: radial-gradient(ellipse 90% 34% at
 .logo-zoom { position: relative; width: clamp(190px, 26vw, 300px); aspect-ratio: 1; display: grid; place-items: center; }
 .logo-zoom img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 34px rgba(74,146,255,.45)) drop-shadow(0 0 90px rgba(31,202,133,.18)); animation: giro-logo 28s linear infinite; }
 @keyframes giro-logo { to { transform: rotate(360deg); } }
-.logo-ring { position: absolute; left: 50%; top: 50%; width: 128%; height: 128%; transform: translate(-50%, -50%) rotate(-90deg); overflow: visible; pointer-events: none; }
-.logo-ring .ring-base { fill: none; stroke: rgba(255,255,255,.14); stroke-width: .5; }
-.logo-ring .ring-arc { fill: none; stroke: url(#anillo); stroke-width: .8; stroke-linecap: round; stroke-dasharray: 22 78; transform-origin: 50% 50%; animation: anillo 14s linear infinite; filter: drop-shadow(0 0 1.2px rgba(74,146,255,.9)); }
-:root[data-theme="light"] .logo-ring .ring-base { stroke: rgba(30,50,100,.22); }
-@keyframes anillo { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .logo-ring .ring-arc, .logo-zoom img { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .logo-zoom img { animation: none; } }
 
 /* agentes a todo el ancho, sin tarjeta */
 .agentes-section { padding-top: clamp(28px, 6vw, 70px); overflow: hidden; }
@@ -263,3 +258,9 @@ body:not(.page-inicio) .page-intro .overview-links.jump { gap: 8px; }
 .pq-formas .text-link, .pq-ver .text-link { justify-self: start; font-size: 14px; color: var(--blue); }
 .pq-ver { text-align: center; margin: clamp(28px, 4vw, 44px) 0 0; }
 .pq-ver .text-link { justify-self: center; }
+
+/* Logo de la portada: al bajar se acerca hasta desaparecer (lo activa espacio.js; sin JS o con movimiento reducido queda quieto) */
+.logo-stage.logo-anim { min-height: 0; height: 230vh; padding: 0; display: block; align-content: start; overflow: clip; }
+.logo-stage.logo-anim .logo-sticky { position: sticky; top: var(--logo-top, 64px); height: calc(100vh - var(--logo-top, 64px)); display: grid; align-content: center; justify-items: center; gap: 26px; overflow: visible; }
+.logo-stage.logo-anim .logo-zoom { transform: scale(calc(1 + 9 * var(--lp, 0) * var(--lp, 0))); opacity: calc(1 - clamp(0, (var(--lp, 0) - .5) * 2.2, 1)); will-change: transform, opacity; }
+.logo-stage.logo-anim .eyebrow { opacity: calc(1 - clamp(0, var(--lp, 0) * 4, 1)); }
