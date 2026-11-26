@@ -6625,12 +6625,18 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
-- **Con el selector de cuatro pasos** (escritorio, web y Órbita): al escribir `/video` se abre encima del cuadro un panel con
-  **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
-  robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
-  uno de los 80 estilos de película con su muestra, o uno de los 9 aspectos de «Imágenes con IA», que puedes
-  probar antes con tu escena) y **4. Voz** (automática o una concreta, con ▶ para oírla).
-  Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
+- **Con el selector en desplegables** (escritorio, web y Órbita; desde la 1.43.0): al escribir `/video` se abre encima del
+  cuadro un panel con **Duración** (Reel, Vídeo o Largo), **Tipo de vídeo** (rápido con texto animado, dibujos con
+  presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D» o «Sorpréndeme»), **Personaje** (ninguno, los
+  robots de kywai, los que hayas creado o «Agregar personaje»), **Estilo y aspecto** (el de kywai, o uno de los estilos de
+  película con su muestra, o uno de los aspectos de «Imágenes con IA», que puedes probar antes con tu escena), **Voz**
+  (automática o una concreta, con ▶ para oírla) y **Opciones** (diálogo, repasar el guion, estructura de reel, «Hacerlo
+  en mi equipo»…; en Órbita no hay Opciones). **Cada sección es un desplegable**: la cabecera muestra lo elegido
+  («Duración · Reel», «Voz · Álvaro»), solo hay una abierta a la vez (al empezar, la primera que falta por decidir, o
+  Duración si todo va por defecto), y un punto de aviso en la cabecera dice que esa sección trae una nota de lo que este
+  equipo puede o no hacer. Se maneja con el teclado (Enter o Espacio abren, flechas arriba y abajo cambian de cabecera) y
+  la animación respeta «reducir movimiento». Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz»
+  más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
@@ -6639,6 +6645,54 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **De un mensaje**: el botón **«Crear vídeo de esto»** bajo cualquier respuesta con texto, o escribir «créame un vídeo
   de esto» (usa la última respuesta del chat).
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
+
+**Duración: Reel, Vídeo y Largo (1.43.0).** La primera fila del selector elige cuánto dura. La marca de texto es
+`duracion:video` o `duracion:largo` (con o sin tilde, en cualquier sitio de las marcas; el selector la pone la primera);
+**sin marca es un Reel**, y un Reel sale exactamente igual que antes (la prueba `videoReelUnchanged.test.ts` guarda las
+huellas de sus encargos y de cómo se lee su guion).
+
+| | Reel (por defecto) | Vídeo | Largo |
+|---|---|---|---|
+| Dura | 30 a 100 s | 2 a 4 min | 5 a 10 min |
+| Escenas | de 5 a 9 (tope 10) | de 12 a 24 (tope 30) | de 32 a 60 (tope 80) |
+| Narración por escena | 1 frase de 8 a 20 palabras | 2 o 3 frases, de 18 a 40 palabras (8 a 12 s) | igual que Vídeo |
+| Formato por defecto | el que se pida (vertical en Charla, Sketch y Escenario) | horizontal 16:9 | horizontal 16:9 |
+| Guion | una sola respuesta del agente | por capítulos (de 3 a 5) | por capítulos (de 6 a 10) |
+| Imágenes | hasta 3 planos por escena | una por escena | una por escena |
+| FreeVideo / Manim | 3 / 3 escenas | 4 / 3 | 8 / 6 |
+
+- **Vertical solo si se pide** («vertical» o «9:16»; en Vídeo y Largo una palabra suelta como «reels» o «TikTok» en el tema
+  no lo cambia).
+- **Tipos que valen**: rápido, presentador, mixto y Escenario 3D (con el aviso de abajo). **Solo en Reel**: «Charla y
+  tutorial», «Sketch de humor», «Sorpréndeme», los estilos de película de la biblioteca y la estructura «Reel en 3 pasos».
+  Si se piden con una duración larga no se bloquea nada: el selector enseña la nota «Solo en Reel», el chat lo dice al
+  empezar y el vídeo sale como rápido con el estilo de kywai (`longChoice` en `src/shared/videoPreflight.ts`).
+- **Escenario 3D en Vídeo y Largo**: se permite, con un aviso visible del tiempo (Blender pinta unos 2 s por fotograma a
+  24 fps, unos 45 s de pintado por segundo de vídeo: un Vídeo, de 1 h 36 min a 3 h 12 min; un Largo, de 4 h a 8 h). Nunca se
+  preselecciona al elegir Largo y Hermes no lo elige por su cuenta.
+- **Estimación de tiempo** debajo de la fila Duración (`estimateVideoTime` en `src/shared/videoLength.ts`; Órbita tiene su
+  copia en `VideoTimes.kt`): suma el guion, la voz de cada escena, las imágenes (con Gemini, Draw Things o ComfyUI unos 14 s
+  cada una; con el motor gratis, una cada 46 s) y el montaje (unos 0,5 s por segundo de vídeo, medido en un Mac mini).
+  Con el motor gratis un Largo tarda más de una hora; el selector dice qué manda en el tiempo.
+- **Guion por capítulos** (`src/main/videoLongScript.ts`): un guion de 60 escenas no cabe en una respuesta del agente, así
+  que son varias llamadas. Primero el **esquema** (título, aspecto común y de 3 a 10 capítulos, cada uno con una línea de
+  qué cuenta y cuántas escenas lleva); después **un capítulo por llamada**, con el esquema entero, los titulares de lo ya
+  escrito y las últimas frases dichas, para que enlace y no se repita. El primer capítulo abre con el gancho, los del medio
+  avanzan con algo nuevo y el último cierra con las ideas clave y una llamada a la acción. Cada respuesta se valida (número
+  de escenas, narraciones ni muy cortas ni pasadas) y, si no vale, el mismo agente la repite una vez con el motivo y luego
+  pasa a otro, como en un Reel. En el chat sale el esquema («Esquema de …: 7 capítulos») y la tarea muestra «Escribiendo el
+  guion: capítulo 3 de 7».
+- **Si se corta, se retoma.** El esquema y los capítulos ya escritos viven en la tarea (`Task.video.long`): tras un cierre de
+  kywai o un fallo, el guion sigue por el capítulo que falte. El montaje usa una carpeta de trabajo fija (`Task.video.renderDir`):
+  las imágenes ya dibujadas se reutilizan y las voces ya hechas con el mismo texto y la misma voz tampoco se repiten
+  (`savedVoice` en `src/main/videoLongWork.ts`).
+- **Disco y memoria**: antes de empezar se mira el espacio libre (2 GB para un Vídeo, 4 GB para un Largo) y, si falta, se dice
+  y no se empieza; las voces se unen una detrás de otra con ffmpeg (no con un `amix` de decenas de entradas); el tope de
+  tiempo de las imágenes (`longImagesMaxMs` en `imagePlan.ts`) y el del montaje (`renderTimeoutMs`) crecen con la duración;
+  y al terminar se borran las voces, la música, la mezcla y el vídeo intermedio de la carpeta de trabajo (`cleanLongWork`):
+  quedan el guion y las imágenes.
+- **Para Hermes** (`src/main/coordinatorGuide.ts`): «un vídeo de 5 minutos / completo / largo / tipo YouTube» es
+  `duracion:largo`, «de 2-3 minutos» es `duracion:video`, y un Reel sigue siendo lo por defecto.
 
 **Reels y vídeos siempre por el estudio, nunca como tarea a mano (1.5.4).** Un vídeo o un reel lo monta el Estudio de
 vídeo en minutos. Si quien coordina lo encarga como una tarea normal («Producir vídeo de lanzamiento…»: un agente que
@@ -7675,7 +7729,7 @@ Las que no llevan nada detrás (`/model`, `/uso`, `/puedo`, `/nuevo`) se hacen n
 el cuadro para que escribas lo de detrás. Al escribir **«@»** sale la lista de agentes, cada uno con su modelo a la
 derecha, para hablarle directamente.
 
-**Quién firma el trabajo de una orden.** Cuando una orden de kywai (`/crecer`, `/video`, `/seo`, `/marketing`, `/instagram`…) hace trabajar a un agente, sus mensajes en el chat salen firmados **«kywai · con Claude»** (o el agente que sea) y con la cotorra de kywai, no solo «Claude»: la orden es de kywai y el agente es quien la hace en tu equipo. `/directo` y `@Agente` no cambian: ahí eliges tú al agente y sale con su nombre. Para programadores: el motor marca esos mensajes con `viaKywai` (`pushMessage` en `src/main/orchestrator.ts`, con `isKywaiOrder` de `src/shared/chatCommands.ts`) y `AgentMessage` (`Messages.tsx`) los dibuja con `AgentAvatar kywai`.
+**Quién firma el trabajo de una orden.** Cuando una orden de kywai (`/crecer`, `/video`, `/seo`, `/marketing`, `/instagram`…) hace trabajar a un agente, sus mensajes en el chat salen firmados **«kywai · con Claude»** (o el agente que sea) y con la cotorra de kywai, no solo «Claude»: la orden es de kywai y el agente es quien la hace en tu equipo. En el espacio 3D y 2D, mientras un agente hace la orden, kywai / Hermes sale también trabajando («Coordinando…») y queda libre al acabar. `/directo` y `@Agente` no cambian: ahí eliges tú al agente y sale con su nombre. Para programadores: el motor marca esos mensajes con `viaKywai` (`pushMessage` en `src/main/orchestrator.ts`, con `isKywaiOrder` de `src/shared/chatCommands.ts`) y `AgentMessage` (`Messages.tsx`) los dibuja con `AgentAvatar kywai`; `coordinateOrder` / `orderEnded` (mismo archivo del motor) ponen a quien coordina «trabajando» mientras dura la orden.
 
 Una plantilla o un mod con el nombre de una orden de kywai no sale en la lista (manda la de kywai). En Órbita,
 `/uso` abre «Uso y coste», `/nuevo` abre un chat nuevo y `/recuerda` lo anota el servidor (contesta en el chat, sin
@@ -9155,6 +9209,24 @@ coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer
 quedarían menos de 160 px, o al chat menos de 180); el espacio cerrado es `spaceHidden` en el store y se guarda en
 `ai-cowork.spaceHidden`. El panel cerrado sigue montado (la música sigue sonando) pero sin sitio ni visibilidad.
 
+### Ayuda y guía (todas las funciones, las órdenes «/» y «Por qué kywai»)
+
+**⚙ → «Ayuda y guía…»** (justo antes de «Ver la introducción») abre una ventana que se puede agrandar, con tres pestañas
+y un buscador (sin tildes ni mayúsculas, y que también encuentra por lo escrito en español):
+
+- **Funciones**: un apartado desplegable por función, en 11 grupos (equipo de agentes, hablar con kywai, tu PC y la nube,
+  proyectos, amigos, contenido, conexiones…). Cada uno dice qué es y cómo se usa, paso a paso; si solo existe en kywai
+  Cloud lo marca, y el botón **Abrirlo** lleva a su sección de Ajustes (o a Amigos) cuando existe en ese equipo.
+- **Órdenes «/»**: las 53 órdenes del chat, agrupadas (vídeo y contenido, crear, código, redes, kywai), con sus
+  argumentos y alias. Sale de la misma lista del «/» del chat (`BUILTIN_COMMANDS`), así que una orden nueva aparece sola;
+  `ayuda.test.ts` falla si una orden no está en ningún grupo.
+- **Por qué kywai**: diez ventajas reales y tres comparaciones generales (asistentes como Claude o ChatGPT, editores
+  como Cursor, agentes autónomos como Manus). Solo van cosas que existen hoy y se pueden comprobar en la app.
+
+Los textos viven en **`src/shared/ayuda.ts`** (en los 6 idiomas; la fuente única para que la web diga lo mismo), el
+diálogo en `src/renderer/src/ui/header/HelpDialog.tsx` y su estado en `useCowork.helpOpen`. Cuando una función nueva se
+note, añade su entrada en `AYUDA_FUNCIONES` con sus pasos reales (comprobados en el código, no inventados).
+
 ### Idioma
 
 La interfaz está en **español**, **inglés**, **portugués**, **francés**, **chino** (simplificado) e **hindi**. ⚙ → **Ajustes…** → General →
@@ -9532,8 +9604,12 @@ los agentes»**, con su propio volumen; no dependen de «Sonidos», cada uno se 
 
 ### Música (YouTube, radios y ytm-rs)
 
-El botón **Música** del espacio digital abre un reproductor con tres pestañas encima del buscador (se recuerda la
-última elegida):
+El botón **Música** del espacio digital abre un reproductor con tres fuentes (se recuerda la última elegida). Desde la
+1.42.0 no hay barra de pestañas: la fuente elegida sale junto al título «Música» como una etiqueta con una flecha, y al
+pulsarla se abre una tarjetita con las otras dos y lo que es cada una (Esc o pulsar fuera la cierra). El icono **«i»**
+de la cabecera guarda lo que antes ocupaba el pie del panel (de dónde sale el sonido de ytm-rs con el enlace a su
+código, y cómo se sincronizan las luces): se lee al dejar el ratón encima, o pulsándolo en pantallas táctiles.
+Código: `SourcePicker` e `InfoTip` en `ui/space/MusicPanel.tsx`. Las fuentes:
 - **YouTube:** canciones y artistas de YouTube Music, en su reproductor oficial. Tiene sus anuncios.
 - **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
@@ -9595,11 +9671,15 @@ sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para 
 **ytm-rs** es una app de escritorio gratis y de código abierto (licencia GPL-3.0, de grapedjuice) para escuchar
 YouTube Music en Windows, Mac y Linux. **Desde la 1.36.0 kywai la lleva por dentro**: nadie tiene que instalarla ni
 abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y abrir su app»).
-- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.1`) compilada en el fork público
+- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.2`) compilada en el fork público
   [Yiku21/ytm-rs](https://github.com/Yiku21/ytm-rs). El fork añade a su mando las órdenes que necesita kywai (poner una
   canción, la cola, la posición, la letra, abrir su ventana y cerrarse) y un modo «por dentro» (`YTM_EMBEDDED`: arranca
   sin ventana, la × la esconde y no se actualiza sola). Su código está en esa etiqueta del fork, como pide la GPL, y la
   pestaña enlaza a él.
+  - **Ventana negra (arreglada en la 1.41.1, `v0.4.0-kywai.2`):** eframe enseña la ventana tras dibujar el primer
+    cuadro aunque se pida escondida, y en Windows salía una ventana negra vacía al encender ytm-rs. Ahora, en modo
+    `YTM_EMBEDDED`, los primeros cuadros la vuelven a esconder (`start_hidden` en el fork) hasta que kywai pide
+    «Abrir su ventana». Al cambiar de etiqueta, kywai descarga la copia nueva y borra la vieja; los datos se quedan.
 - **Primera vez:** la pestaña explica qué es y ofrece **«Activar ytm-rs»**: kywai descarga el paquete portable de su
   sistema de la Release del fork (unos 20 MB), comprueba su huella SHA256 (`YTMRS_ASSETS`; si no coincide no se usa) y
   lo deja en la carpeta de datos de kywai (`ytm-rs/<versión>/`). Mientras, dice cuánto lleva. Sus datos (sesión,
@@ -9665,6 +9745,16 @@ esquina: el vídeo, la canción y atrás / pausa / adelante. Sigue sonando. «M�
 lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra con solo atrás / pausa / adelante y el
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
+
+**Letra y vídeo de ytm-rs (desde la 1.42.0):** en la fila de botones de ytm-rs, el micrófono (junto al corazón)
+enseña u oculta la letra; oculta no ocupa sitio (antes quedaba la caja con «Ver»), y se recuerda en el equipo. En la
+carátula, **«Ver el vídeo»** pone el videoclip de esa canción en su sitio: el reproductor oficial de YouTube, aislado
+como el de la pestaña YouTube, **sin sonido** (el sonido sigue saliendo de ytm-rs) y al compás: cada segundo se compara
+con la posición de ytm-rs y, si se separa más de 1,5 s, se recoloca; pausa, sigue y cambia de canción con ytm-rs.
+Debajo quedan la canción, «Abrir su ventana» y **«Carátula»**, que lo quita. Si YouTube no deja verlo incrustado
+(error 150 en la web, por ejemplo), vuelve la carátula con un aviso. Es el vídeo del mismo ID que suena: en canciones
+sin videoclip (pistas de audio de YouTube Music) se ve su imagen fija. Código: `YtmrsVideo` en `ui/space/YtmrsBox.tsx`
+(usa `createEmbedPlayer` con `muted`, que añade `mute=1`).
 
 **Minimizar ytm-rs (desde la 1.40.0):** en la pestaña ytm-rs, el icono de minimizar (junto a la ×, o Esc) deja la
 música en una barra abajo a la izquierda del espacio con la carátula (la canción al pasar el ratón), atrás / pausa /
