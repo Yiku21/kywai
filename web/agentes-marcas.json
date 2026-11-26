@@ -250,5 +250,47 @@
     "source": "https://ollama.com/public/apple-touch-icon.png",
     "website": "https://ollama.com/",
     "bytes": 5579
+  },
+  {
+    "id": "nvidia",
+    "path": "web/assets/agentes/nvidia.ico",
+    "source": "https://www.nvidia.com/favicon.ico",
+    "website": "https://build.nvidia.com/",
+    "bytes": 25214
+  },
+  {
+    "id": "codewhale",
+    "path": "web/assets/agentes/codewhale.svg",
+    "source": "https://github.com/codewhale-hq/Codewhale",
+    "website": "https://github.com/codewhale-hq/Codewhale",
+    "bytes": 10369
+  },
+  {
+    "id": "deepseek-harness",
+    "path": "web/assets/agentes/deepseek.ico",
+    "source": "https://www.deepseek.com/favicon.ico",
+    "website": "https://www.deepseek.com/",
+    "bytes": 209762
+  },
+  {
+    "id": "claude-deepseek",
+    "path": "web/assets/agentes/deepseek.ico",
+    "source": "https://www.deepseek.com/favicon.ico",
+    "website": "https://www.deepseek.com/",
+    "bytes": 209762
+  },
+  {
+    "id": "claude-kimi",
+    "path": "web/assets/agentes/kimi.ico",
+    "source": "https://www.kimi.com/favicon.ico",
+    "website": "https://www.kimi.com/code/docs/en/",
+    "bytes": 15086
+  },
+  {
+    "id": "claude-glm",
+    "path": "web/assets/agentes/claude.svg",
+    "source": "https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/cd02a42d9-Vq_H3mgS.svg",
+    "website": "https://docs.claude.com/en/docs/claude-code/llm-gateway",
+    "bytes": 2558
   }
 ]

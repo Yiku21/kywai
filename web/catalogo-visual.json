@@ -691,7 +691,7 @@
           "account": "需要一个模型提供方（OmniRoute、Nous Portal、OpenRouter 或其他账户）。"
         },
         "hi": {
-          "summary": "समन्वयक: काम की योजना बनाकर दूसरों में बाँटता है, सेशनों के पार मेमोरी के साथ।",
+          "summary": "कोऑर्डिनेटर: योजना बनाता है और काम दूसरों में बाँटता है, सेशनों के पार मेमोरी के साथ।",
           "account": "एक मॉडल प्रदाता चाहिए (OmniRoute, Nous Portal, OpenRouter या कोई दूसरा खाता)।"
         }
       }
@@ -725,8 +725,8 @@
           "account": "使用你的 Claude 订阅（Pro 或 Max）。"
         },
         "hi": {
-          "summary": "डिज़ाइन, लेखन और उच्च गुणवत्ता वाला कोड।",
-          "account": "आपकी Claude सब्सक्रिप्शन (Pro या Max) के साथ।"
+          "summary": "डिज़ाइन, कॉपी और उच्च गुणवत्ता वाला कोड।",
+          "account": "आपकी Claude सदस्यता (Pro या Max) के साथ।"
         }
       }
     },
@@ -759,7 +759,7 @@
           "account": "使用你的 ChatGPT 账户。"
         },
         "hi": {
-          "summary": "प्रोग्रामिंग और तकनीकी काम; अकेला जो तस्वीरें बनाता है।",
+          "summary": "प्रोग्रामिंग और तकनीकी काम; अकेला जो छवियाँ बनाता है।",
           "account": "आपके ChatGPT खाते के साथ।"
         }
       }
@@ -793,8 +793,8 @@
           "account": "使用 Google AI Studio 的 API 密钥（免费）或 Gemini Code Assist 企业账户。自 2026 年 6 月起，个人 Google 账户改用 Antigravity CLI。"
         },
         "hi": {
-          "summary": "विश्लेषण, खोज और लंबे दस्तावेज़।",
-          "account": "Google AI Studio API कुंजी (मुफ़्त) या Gemini Code Assist बिज़नेस खाते के साथ। जून 2026 से निजी Google खाते Antigravity CLI इस्तेमाल करते हैं।"
+          "summary": "विश्लेषण, शोध और लंबे दस्तावेज़।",
+          "account": "Google AI Studio API कुंजी (मुफ़्त) या Gemini Code Assist व्यावसायिक खाते के साथ। जून 2026 से निजी Google खाते Antigravity CLI इस्तेमाल करते हैं।"
         }
       }
     },
@@ -827,8 +827,8 @@
           "account": "使用你的 Muse Code 订阅（Meta 账户）。"
         },
         "hi": {
-          "summary": "वीडियो, और जब दूसरों का कोटा ख़त्म हो जाए तब बैकअप।",
-          "account": "आपकी Muse Code सब्सक्रिप्शन (Meta खाता) के साथ।"
+          "summary": "वीडियो, और दूसरों का कोटा ख़त्म होने पर बैकअप।",
+          "account": "आपकी Muse Code सदस्यता (Meta खाता) के साथ।"
         }
       }
     },
@@ -861,8 +861,42 @@
           "account": "仅支持 API 密钥（OpenAI、Anthropic、Google、OpenRouter…）：不使用你的 ChatGPT 或 Claude 订阅。"
         },
         "hi": {
-          "summary": "AI के साथ जोड़ी में प्रोग्रामिंग: आपके चुने मॉडल से आपकी रिपॉज़िटरी की फ़ाइलें बदलता है।",
-          "account": "केवल API कुंजियों के साथ (OpenAI, Anthropic, Google, OpenRouter…): यह आपकी ChatGPT या Claude सब्सक्रिप्शन इस्तेमाल नहीं करता।"
+          "summary": "AI के साथ पेयर प्रोग्रामिंग: आपके चुने मॉडल से आपकी रिपॉज़िटरी की फ़ाइलें संपादित करता है।",
+          "account": "केवल API कुंजियों से (OpenAI, Anthropic, Google, OpenRouter…): यह आपकी ChatGPT या Claude सदस्यता इस्तेमाल नहीं करता।"
+        }
+      }
+    },
+    {
+      "id": "claude-deepseek",
+      "name": "Claude Code + DeepSeek",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://docs.claude.com/en/docs/claude-code/llm-gateway",
+      "text": {
+        "es": {
+          "summary": "Claude Code con DeepSeek-V4.1-Flash por detrás: las mismas herramientas, pagando por uso a precio de DeepSeek.",
+          "account": "Con una clave de API de DeepSeek (pago por uso, muy barato). No usa tu suscripción de Claude."
+        },
+        "en": {
+          "summary": "Claude Code backed by DeepSeek-V4.1-Flash: the same tools, pay-as-you-go at DeepSeek prices.",
+          "account": "With a DeepSeek API key (pay-as-you-go, very cheap). It doesn't use your Claude subscription."
+        },
+        "pt": {
+          "summary": "Claude Code com o DeepSeek-V4.1-Flash por trás: as mesmas ferramentas, pagando pelo uso a preço da DeepSeek.",
+          "account": "Com uma chave de API da DeepSeek (pagamento por uso, muito barato). Não usa sua assinatura do Claude."
+        },
+        "fr": {
+          "summary": "Claude Code propulsé par DeepSeek-V4.1-Flash : les mêmes outils, à l'usage, au prix de DeepSeek.",
+          "account": "Avec une clé API DeepSeek (à l'usage, très bon marché). N'utilise pas votre abonnement Claude."
+        },
+        "zh": {
+          "summary": "后台使用 DeepSeek-V4.1-Flash 的 Claude Code：工具不变，按 DeepSeek 价格按量付费。",
+          "account": "使用 DeepSeek API 密钥（按量付费，非常便宜）。不占用你的 Claude 订阅。"
+        },
+        "hi": {
+          "summary": "DeepSeek-V4.1-Flash पर चलने वाला Claude Code: वही टूल, DeepSeek की कीमतों पर जितना इस्तेमाल उतना भुगतान।",
+          "account": "DeepSeek API कुंजी के साथ (जितना इस्तेमाल उतना भुगतान, बहुत सस्ता)। यह आपकी Claude सदस्यता इस्तेमाल नहीं करता।"
         }
       }
     },
@@ -875,28 +909,164 @@
       "docs": "https://aider.chat/docs/llms/deepseek.html",
       "text": {
         "es": {
-          "summary": "Los modelos de DeepSeek como agente de código, a través de Aider (DeepSeek no tiene programa de terminal propio).",
+          "summary": "Los modelos de DeepSeek como agente de código, a través de Aider: edita los archivos de tu repositorio.",
           "account": "Con una clave de API de DeepSeek (pago por uso, muy barato): DeepSeek no tiene suscripción mensual."
         },
         "en": {
-          "summary": "DeepSeek's models as a coding agent, through Aider (DeepSeek has no terminal program of its own).",
+          "summary": "DeepSeek's models as a coding agent, through Aider: it edits the files in your repository.",
           "account": "With a DeepSeek API key (pay as you go, very cheap): DeepSeek has no monthly subscription."
         },
         "pt": {
-          "summary": "Os modelos do DeepSeek como agente de código, via Aider (o DeepSeek não tem programa de terminal próprio).",
+          "summary": "Os modelos do DeepSeek como agente de código, via Aider: edita os arquivos do seu repositório.",
           "account": "Com uma chave de API do DeepSeek (pague pelo uso, muito barato): o DeepSeek não tem assinatura mensal."
         },
         "fr": {
-          "summary": "Les modèles de DeepSeek comme agent de code, via Aider (DeepSeek n'a pas de programme de terminal propre).",
+          "summary": "Les modèles de DeepSeek comme agent de code, via Aider : il modifie les fichiers de ton dépôt.",
           "account": "Avec une clé API DeepSeek (paiement à l'usage, très bon marché) : DeepSeek n'a pas d'abonnement mensuel."
         },
         "zh": {
-          "summary": "通过 Aider 把 DeepSeek 的模型用作编程代理（DeepSeek 没有自己的终端程序）。",
+          "summary": "通过 Aider 把 DeepSeek 的模型用作编程代理：直接修改你仓库里的文件。",
           "account": "使用 DeepSeek API 密钥（按量付费，非常便宜）：DeepSeek 没有月度订阅。"
         },
         "hi": {
-          "summary": "Aider के ज़रिए कोडिंग एजेंट के रूप में DeepSeek के मॉडल (DeepSeek का अपना टर्मिनल प्रोग्राम नहीं है)।",
-          "account": "DeepSeek API कुंजी के साथ (जितना इस्तेमाल उतना भुगतान, बहुत सस्ता): DeepSeek की कोई मासिक सब्सक्रिप्शन नहीं है।"
+          "summary": "Aider के ज़रिए कोडिंग एजेंट के रूप में DeepSeek के मॉडल: यह आपकी रिपॉज़िटरी की फ़ाइलें बदलता है।",
+          "account": "DeepSeek API कुंजी से (जितना इस्तेमाल, उतना भुगतान, बहुत सस्ता): DeepSeek की कोई मासिक सदस्यता नहीं है।"
+        }
+      }
+    },
+    {
+      "id": "deepseek-harness",
+      "name": "DeepSeek Harness",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://www.deepseek.com/en/harness/",
+      "text": {
+        "es": {
+          "summary": "El agente propio de DeepSeek (dsh): todo es un plugin y se amplía desde el chat. Está en versión de prueba.",
+          "account": "Con una clave de API de DeepSeek (pago por uso, muy barato): DeepSeek no tiene suscripción mensual."
+        },
+        "en": {
+          "summary": "DeepSeek's own agent (dsh): everything is a plugin and you extend it from the chat. It's in preview.",
+          "account": "With a DeepSeek API key (pay as you go, very cheap): DeepSeek has no monthly subscription."
+        },
+        "pt": {
+          "summary": "O agente próprio do DeepSeek (dsh): tudo é um plugin e ele se amplia pelo chat. Está em versão de teste.",
+          "account": "Com uma chave de API do DeepSeek (pague pelo uso, muito barato): o DeepSeek não tem assinatura mensal."
+        },
+        "fr": {
+          "summary": "L'agent propre de DeepSeek (dsh) : tout est un plugin et il s'étend depuis le chat. Il est en version d'essai.",
+          "account": "Avec une clé API DeepSeek (paiement à l'usage, très bon marché) : DeepSeek n'a pas d'abonnement mensuel."
+        },
+        "zh": {
+          "summary": "DeepSeek 自己的代理（dsh）：一切都是插件，可在聊天中扩展。目前为预览版。",
+          "account": "使用 DeepSeek API 密钥（按量付费，非常便宜）：DeepSeek 没有月度订阅。"
+        },
+        "hi": {
+          "summary": "DeepSeek का अपना एजेंट (dsh): सब कुछ एक प्लगइन है और आप इसे चैट से बढ़ाते हैं। यह पूर्वावलोकन में है।",
+          "account": "DeepSeek API कुंजी से (जितना इस्तेमाल, उतना भुगतान, बहुत सस्ता): DeepSeek की कोई मासिक सदस्यता नहीं है।"
+        }
+      }
+    },
+    {
+      "id": "claude-kimi",
+      "name": "Claude Code + Kimi",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://docs.claude.com/en/docs/claude-code/llm-gateway",
+      "text": {
+        "es": {
+          "summary": "Claude Code con Kimi K3 de Moonshot por detrás: las mismas herramientas, pagando por uso a Moonshot.",
+          "account": "Con una clave de API de la plataforma de Kimi (pago por uso). No usa tu suscripción de Claude."
+        },
+        "en": {
+          "summary": "Claude Code backed by Moonshot's Kimi K3: the same tools, pay-as-you-go with Moonshot.",
+          "account": "With an API key from the Kimi platform (pay-as-you-go). It doesn't use your Claude subscription."
+        },
+        "pt": {
+          "summary": "Claude Code com o Kimi K3 da Moonshot por trás: as mesmas ferramentas, pagando pelo uso à Moonshot.",
+          "account": "Com uma chave de API da plataforma Kimi (pagamento por uso). Não usa sua assinatura do Claude."
+        },
+        "fr": {
+          "summary": "Claude Code propulsé par Kimi K3 de Moonshot : les mêmes outils, à l'usage chez Moonshot.",
+          "account": "Avec une clé API de la plateforme Kimi (à l'usage). N'utilise pas votre abonnement Claude."
+        },
+        "zh": {
+          "summary": "后台使用 Moonshot Kimi K3 的 Claude Code：工具不变，向 Moonshot 按量付费。",
+          "account": "使用 Kimi 平台的 API 密钥（按量付费）。不占用你的 Claude 订阅。"
+        },
+        "hi": {
+          "summary": "Moonshot के Kimi K3 पर चलने वाला Claude Code: वही टूल, Moonshot के साथ जितना इस्तेमाल उतना भुगतान।",
+          "account": "Kimi प्लेटफ़ॉर्म की API कुंजी के साथ (जितना इस्तेमाल उतना भुगतान)। यह आपकी Claude सदस्यता इस्तेमाल नहीं करता।"
+        }
+      }
+    },
+    {
+      "id": "claude-glm",
+      "name": "Claude Code + GLM",
+      "kind": "cli",
+      "verified": false,
+      "free": false,
+      "docs": "https://docs.claude.com/en/docs/claude-code/llm-gateway",
+      "text": {
+        "es": {
+          "summary": "Claude Code con GLM-5.3 de Z.ai por detrás, con su GLM Coding Plan (desde 18 $ al mes) o pago por uso.",
+          "account": "Con una clave de Z.ai: la del GLM Coding Plan o una de pago por uso (no son intercambiables). No usa tu suscripción de Claude."
+        },
+        "en": {
+          "summary": "Claude Code backed by Z.ai's GLM-5.3, with its GLM Coding Plan (from $18 a month) or pay-as-you-go.",
+          "account": "With a Z.ai key: the GLM Coding Plan one or a pay-as-you-go one (they aren't interchangeable). It doesn't use your Claude subscription."
+        },
+        "pt": {
+          "summary": "Claude Code com o GLM-5.3 da Z.ai por trás, com o GLM Coding Plan (a partir de US$ 18 por mês) ou pagamento por uso.",
+          "account": "Com uma chave da Z.ai: a do GLM Coding Plan ou uma de pagamento por uso (não são intercambiáveis). Não usa sua assinatura do Claude."
+        },
+        "fr": {
+          "summary": "Claude Code propulsé par GLM-5.3 de Z.ai, avec son GLM Coding Plan (dès 18 $ par mois) ou à l'usage.",
+          "account": "Avec une clé Z.ai : celle du GLM Coding Plan ou une clé à l'usage (elles ne sont pas interchangeables). N'utilise pas votre abonnement Claude."
+        },
+        "zh": {
+          "summary": "后台使用 Z.ai GLM-5.3 的 Claude Code，可用 GLM Coding Plan（每月 18 美元起）或按量付费。",
+          "account": "使用 Z.ai 密钥：GLM Coding Plan 的密钥或按量付费密钥（二者不可互换）。不占用你的 Claude 订阅。"
+        },
+        "hi": {
+          "summary": "Z.ai के GLM-5.3 पर चलने वाला Claude Code, इसके GLM Coding Plan (18 $ प्रति माह से) या जितना इस्तेमाल उतना भुगतान के साथ।",
+          "account": "Z.ai कुंजी के साथ: GLM Coding Plan वाली या जितना इस्तेमाल उतना भुगतान वाली (ये आपस में बदली नहीं जा सकतीं)। यह आपकी Claude सदस्यता इस्तेमाल नहीं करता।"
+        }
+      }
+    },
+    {
+      "id": "nvidia",
+      "name": "NVIDIA",
+      "kind": "cli",
+      "verified": true,
+      "free": true,
+      "docs": "https://opencode.ai/docs/providers/",
+      "text": {
+        "es": {
+          "summary": "Los modelos gratis de NVIDIA (Nemotron, GLM, DeepSeek, MiniMax…) como agente de código, a través de OpenCode: el plan B cuando Codex o Claude se quedan sin cuota.",
+          "account": "Con una clave de API gratis de build.nvidia.com (sin tarjeta). No usa tu suscripción de ChatGPT ni de Claude."
+        },
+        "en": {
+          "summary": "NVIDIA's free models (Nemotron, GLM, DeepSeek, MiniMax…) as a coding agent, through OpenCode: plan B when Codex or Claude run out of quota.",
+          "account": "With a free API key from build.nvidia.com (no card). It doesn't use your ChatGPT or Claude subscription."
+        },
+        "pt": {
+          "summary": "Os modelos gratuitos da NVIDIA (Nemotron, GLM, DeepSeek, MiniMax…) como agente de código, através do OpenCode: o plano B quando o Codex ou o Claude ficam sem cota.",
+          "account": "Com uma chave de API gratuita de build.nvidia.com (sem cartão). Não usa sua assinatura do ChatGPT nem do Claude."
+        },
+        "fr": {
+          "summary": "Les modèles gratuits de NVIDIA (Nemotron, GLM, DeepSeek, MiniMax…) comme agent de code, via OpenCode : le plan B quand Codex ou Claude n'ont plus de quota.",
+          "account": "Avec une clé d'API gratuite de build.nvidia.com (sans carte). N'utilise pas ton abonnement ChatGPT ni Claude."
+        },
+        "zh": {
+          "summary": "把 NVIDIA 的免费模型（Nemotron、GLM、DeepSeek、MiniMax…）通过 OpenCode 用作编程智能体：Codex 或 Claude 额度用完时的备用方案。",
+          "account": "使用 build.nvidia.com 的免费 API 密钥（无需银行卡）。不使用你的 ChatGPT 或 Claude 订阅。"
+        },
+        "hi": {
+          "summary": "NVIDIA के मुफ़्त मॉडल (Nemotron, GLM, DeepSeek, MiniMax…) कोडिंग एजेंट के रूप में, OpenCode के ज़रिए: जब Codex या Claude का कोटा ख़त्म हो, तब प्लान B।",
+          "account": "build.nvidia.com की मुफ़्त API कुंजी के साथ (कार्ड नहीं)। यह आपकी ChatGPT या Claude सदस्यता इस्तेमाल नहीं करता।"
         }
       }
     },
@@ -930,7 +1100,7 @@
         },
         "hi": {
           "summary": "टर्मिनल के लिए ओपन-सोर्स कोडिंग एजेंट, कई प्रदाताओं के साथ।",
-          "account": "आपकी ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo या SuperGrok सब्सक्रिप्शन (opencode auth login), या API कुंजियों के साथ।"
+          "account": "आपकी ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo या SuperGrok सदस्यता (opencode auth login), या API कुंजियों से।"
         }
       }
     },
@@ -964,7 +1134,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में GitHub Copilot का कोडिंग एजेंट।",
-          "account": "आपकी GitHub Copilot सब्सक्रिप्शन (copilot login) के साथ।"
+          "account": "आपकी GitHub Copilot सदस्यता (copilot login) से।"
         }
       }
     },
@@ -998,7 +1168,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Cursor का एजेंट।",
-          "account": "आपके Cursor खाते (agent login, ब्राउज़र में) या CURSOR_API_KEY के साथ।"
+          "account": "आपके Cursor खाते (agent login, ब्राउज़र में) या CURSOR_API_KEY से।"
         }
       }
     },
@@ -1032,7 +1202,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Amp (ampcode.com) का कोडिंग एजेंट।",
-          "account": "क्रेडिट या सब्सक्रिप्शन वाले Amp खाते के साथ; स्क्रिप्ट के लिए यह AMP_API_KEY माँगता है।"
+          "account": "क्रेडिट या सदस्यता वाले Amp खाते से; स्क्रिप्ट के लिए यह AMP_API_KEY माँगता है।"
         }
       }
     },
@@ -1066,7 +1236,7 @@
         },
         "hi": {
           "summary": "Agentic AI Foundation (पहले Block) का टूल वाला कोडिंग और ऑटोमेशन एजेंट।",
-          "account": "उनके प्रोग्रामों के ज़रिए आपकी Claude, ChatGPT, Copilot या Cursor सब्सक्रिप्शन, या API कुंजी या लोकल मॉडल इस्तेमाल करता है।"
+          "account": "आपकी Claude, ChatGPT, Copilot या Cursor सदस्यता उनके प्रोग्रामों के ज़रिए, या API कुंजी या लोकल मॉडल इस्तेमाल करता है।"
         }
       }
     },
@@ -1100,7 +1270,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Moonshot AI (Kimi) का कोडिंग एजेंट।",
-          "account": "आपकी Kimi Code सदस्यता के साथ (ब्राउज़र में साइन इन), बिना API कुंजी।"
+          "account": "आपकी Kimi Code सदस्यता (ब्राउज़र में साइन इन) से, बिना API कुंजी।"
         }
       }
     },
@@ -1134,7 +1304,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Mistral का कोडिंग एजेंट।",
-          "account": "आपके Mistral खाते (Le Chat Pro या Team) या Mistral API कुंजी के साथ; लोकल मॉडल के साथ भी।"
+          "account": "आपके Mistral खाते (Le Chat Pro या Team) या Mistral API कुंजी से; लोकल मॉडल के साथ भी।"
         }
       }
     },
@@ -1168,7 +1338,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में xAI (Grok) का कोडिंग एजेंट।",
-          "account": "आपकी SuperGrok या X Premium Plus सब्सक्रिप्शन के साथ (ब्राउज़र में साइन इन), बिना API कुंजी।"
+          "account": "आपकी SuperGrok या X Premium Plus सदस्यता (ब्राउज़र में साइन इन) से, बिना API कुंजी।"
         }
       }
     },
@@ -1202,7 +1372,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में स्वायत्त कोडिंग एजेंट, कई मॉडल प्रदाताओं के साथ।",
-          "account": "आपके Cline खाते या ChatGPT Plus/Pro सब्सक्रिप्शन (ब्राउज़र में साइन इन), या अपनी API कुंजी के साथ।"
+          "account": "आपके Cline खाते या आपकी ChatGPT Plus/Pro सदस्यता (ब्राउज़र में साइन इन), या आपकी अपनी API कुंजी से।"
         }
       }
     },
@@ -1236,7 +1406,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Continue का कोडिंग एजेंट (बीटा)।",
-          "account": "आपके Continue खाते (ब्राउज़र में साइन इन) या Anthropic API कुंजी के साथ; यह Claude या ChatGPT सब्सक्रिप्शन इस्तेमाल नहीं करता।"
+          "account": "आपके Continue खाते (ब्राउज़र में साइन इन) या Anthropic API कुंजी से; यह Claude या ChatGPT सदस्यताएँ इस्तेमाल नहीं करता।"
         }
       }
     },
@@ -1269,8 +1439,8 @@
           "account": "使用你的 OpenHands Cloud 账户（在浏览器中登录）或你自己的 API 密钥。"
         },
         "hi": {
-          "summary": "ओपन-सोर्स सॉफ़्टवेयर डेवलपमेंट एजेंट (OpenHands)।",
-          "account": "आपके OpenHands Cloud खाते (ब्राउज़र में साइन इन) या अपनी API कुंजी के साथ।"
+          "summary": "ओपन-सोर्स सॉफ़्टवेयर विकास एजेंट (OpenHands)।",
+          "account": "आपके OpenHands Cloud खाते (ब्राउज़र में साइन इन) या आपकी अपनी API कुंजी से।"
         }
       }
     },
@@ -1304,7 +1474,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Factory का कोडिंग एजेंट।",
-          "account": "आपके Factory प्लान (Pro या ऊपर) के साथ; headless मोड में यह आपके खाते की FACTORY_API_KEY माँगता है।"
+          "account": "आपके Factory प्लान (Pro या ऊपर) से; headless मोड में यह आपके खाते से FACTORY_API_KEY माँगता है।"
         }
       }
     },
@@ -1338,7 +1508,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Augment का कोडिंग एजेंट (बीटा)।",
-          "account": "आपके Augment प्लान के साथ (ब्राउज़र में साइन इन)।"
+          "account": "आपके Augment प्लान (ब्राउज़र में साइन इन) से।"
         }
       }
     },
@@ -1372,7 +1542,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में JetBrains का कोडिंग एजेंट।",
-          "account": "आपकी JetBrains AI सब्सक्रिप्शन (JetBrains खाता), Junie API कुंजी या अपनी कुंजियों के साथ।"
+          "account": "आपकी JetBrains AI सदस्यता (JetBrains खाता), Junie API कुंजी या आपकी अपनी कुंजियों से।"
         }
       }
     },
@@ -1406,7 +1576,41 @@
         },
         "hi": {
           "summary": "टर्मिनल इंटरफ़ेस वाला Charm का कोडिंग एजेंट।",
-          "account": "आपके GitHub Copilot, ChatGPT या Grok खाते (crush login), Charm Hyper या अपनी API कुंजियों के साथ।"
+          "account": "आपके GitHub Copilot, ChatGPT या Grok खाते (crush login), Charm Hyper या आपकी अपनी API कुंजियों से।"
+        }
+      }
+    },
+    {
+      "id": "codewhale",
+      "name": "Codewhale",
+      "kind": "cli",
+      "verified": true,
+      "free": false,
+      "docs": "https://github.com/codewhale-hq/Codewhale",
+      "text": {
+        "es": {
+          "summary": "Agente de programación en Rust que funciona con más de 40 proveedores; por defecto DeepSeek V4.1 Flash, muy barato.",
+          "account": "Con una clave de DeepSeek (la más barata), de OpenRouter, OpenAI o Anthropic, tu cuenta de ChatGPT (codewhale auth chatgpt) o modelos locales."
+        },
+        "en": {
+          "summary": "Rust coding agent that works with 40+ providers; DeepSeek V4.1 Flash by default, very cheap.",
+          "account": "With a DeepSeek key (the cheapest), OpenRouter, OpenAI or Anthropic, your ChatGPT account (codewhale auth chatgpt) or local models."
+        },
+        "pt": {
+          "summary": "Agente de programação em Rust que funciona com mais de 40 provedores; por padrão DeepSeek V4.1 Flash, muito barato.",
+          "account": "Com uma chave do DeepSeek (a mais barata), OpenRouter, OpenAI ou Anthropic, sua conta do ChatGPT (codewhale auth chatgpt) ou modelos locais."
+        },
+        "fr": {
+          "summary": "Agent de programmation en Rust compatible avec plus de 40 fournisseurs ; DeepSeek V4.1 Flash par défaut, très bon marché.",
+          "account": "Avec une clé DeepSeek (la moins chère), OpenRouter, OpenAI ou Anthropic, votre compte ChatGPT (codewhale auth chatgpt) ou des modèles locaux."
+        },
+        "zh": {
+          "summary": "用 Rust 写的编程智能体，支持 40 多家服务商；默认 DeepSeek V4.1 Flash，非常便宜。",
+          "account": "使用 DeepSeek（最便宜）、OpenRouter、OpenAI 或 Anthropic 的密钥，你的 ChatGPT 账号（codewhale auth chatgpt）或本地模型。"
+        },
+        "hi": {
+          "summary": "Rust में बना कोडिंग एजेंट जो 40 से ज़्यादा प्रदाताओं के साथ चलता है; डिफ़ॉल्ट DeepSeek V4.1 Flash, बहुत सस्ता।",
+          "account": "DeepSeek (सबसे सस्ती), OpenRouter, OpenAI या Anthropic की कुंजी, आपके ChatGPT खाते (codewhale auth chatgpt) या लोकल मॉडल के साथ।"
         }
       }
     },
@@ -1440,7 +1644,7 @@
         },
         "hi": {
           "summary": "लोकल फ़ाइलों, कोड और कमांड के साथ काम करने वाला एजेंट (नया संस्करण, Codex पर आधारित)।",
-          "account": "आपके ChatGPT खाते (ब्राउज़र में साइन इन), API कुंजियों या लोकल मॉडल के साथ।"
+          "account": "आपके ChatGPT खाते (ब्राउज़र में साइन इन), API कुंजियों या लोकल मॉडल से।"
         }
       }
     },
@@ -1474,7 +1678,7 @@
         },
         "hi": {
           "summary": "टर्मिनल से कोड चलाने और फ़ाइलें संभालने के टूल वाला सहायक।",
-          "account": "आपकी ChatGPT Plus/Pro या SuperGrok सब्सक्रिप्शन, या API कुंजियों के साथ (Claude सब्सक्रिप्शन के साथ नहीं)।"
+          "account": "आपकी ChatGPT Plus/Pro या SuperGrok सदस्यता, या API कुंजियों से (Claude सदस्यता से नहीं)।"
         }
       }
     },
@@ -1508,7 +1712,7 @@
         },
         "hi": {
           "summary": "सेशनों के पार स्थायी मेमोरी वाला कोडिंग एजेंट।",
-          "account": "आपके Letta खाते के साथ या, «letta connect» से, आपकी ChatGPT, GitHub Copilot, Kimi, xAI… सब्सक्रिप्शन के साथ"
+          "account": "आपके Letta खाते से या, «letta connect» के साथ, आपकी ChatGPT, GitHub Copilot, Kimi, xAI… सदस्यता से"
         }
       }
     },
@@ -1542,7 +1746,7 @@
         },
         "hi": {
           "summary": "अलग-अलग AI प्रदाताओं वाला कोडिंग एजेंट।",
-          "account": "आपकी Claude Code, Codex (ChatGPT) या GitHub Copilot सब्सक्रिप्शन (forge provider login) या API कुंजियों के साथ।"
+          "account": "आपकी Claude Code, Codex (ChatGPT) या GitHub Copilot सदस्यता (forge provider login) या API कुंजियों से।"
         }
       }
     },
@@ -1576,7 +1780,7 @@
         },
         "hi": {
           "summary": "टूल वाला निजी सहायक (केवल कोड के लिए नहीं), अपने गेटवे के साथ।",
-          "account": "आपकी ChatGPT/Codex या GitHub Copilot सब्सक्रिप्शन, या पहले से साइन-इन Claude प्रोग्राम को दोबारा इस्तेमाल करके; API कुंजियाँ भी।"
+          "account": "आपकी ChatGPT/Codex या GitHub Copilot सदस्यता से, या उस Claude प्रोग्राम को दोबारा इस्तेमाल करके जिसमें आप पहले से साइन इन हैं; API कुंजियों से भी।"
         }
       }
     },
@@ -1610,7 +1814,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में AWS का कोडिंग एजेंट (Kiro, पहले Amazon Q Developer CLI)।",
-          "account": "आपकी Kiro सब्सक्रिप्शन (kiro-cli login, ब्राउज़र में) या headless मोड के लिए KIRO_API_KEY (Pro प्लान या ऊपर) के साथ।"
+          "account": "आपकी Kiro सदस्यता (kiro-cli login, ब्राउज़र में) या headless मोड के लिए KIRO_API_KEY (Pro प्लान या ऊपर) से।"
         }
       }
     },
@@ -1644,7 +1848,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Qwen (Alibaba) का ओपन-सोर्स कोडिंग एजेंट।",
-          "account": "आपके Alibaba Cloud Qwen Coding Plan (उसकी कुंजी और endpoint https://coding.dashscope.aliyuncs.com/v1, या चीन के बाहर coding-intl) या किसी दूसरे प्रदाता (OpenAI, Anthropic, OpenRouter, लोकल मॉडल) के साथ। Qwen खाते से मुफ़्त पहुँच अप्रैल 2026 में बंद हो गई।"
+          "account": "आपके Alibaba Cloud Qwen Coding Plan (इसकी कुंजी और endpoint https://coding.dashscope.aliyuncs.com/v1, या चीन के बाहर coding-intl) या किसी दूसरे प्रदाता (OpenAI, Anthropic, OpenRouter, लोकल मॉडल) से। Qwen खाते वाली मुफ़्त पहुँच अप्रैल 2026 में बंद हुई।"
         }
       }
     },
@@ -1678,7 +1882,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Google Antigravity एजेंट (agy); जून 2026 से यह निजी Google खातों के लिए Gemini CLI की जगह लेता है।",
-          "account": "आपके Google खाते के साथ: साप्ताहिक सीमा के साथ मुफ़्त, या Google AI Pro या Ultra पर ज़्यादा कोटे के साथ (पहली बार agy खोलने पर ब्राउज़र में Google साइन इन)।"
+          "account": "आपके Google खाते से: साप्ताहिक सीमा के साथ मुफ़्त, या Google AI Pro या Ultra पर ज़्यादा कोटा के साथ (agy पहली बार खोलने पर ब्राउज़र में Google साइन-इन)।"
         }
       }
     },
@@ -1711,8 +1915,8 @@
           "account": "使用在你的 Atlassian Cloud 站点开通了 Rovo Dev 的 Atlassian 账户（acli rovodev auth login，需提供邮箱和 API 令牌）。"
         },
         "hi": {
-          "summary": "Atlassian CLI (acli) के अंदर, टर्मिनल में Atlassian का कोडिंग एजेंट (Rovo Dev)।",
-          "account": "आपकी Atlassian Cloud साइट पर Rovo Dev वाले Atlassian खाते के साथ (acli rovodev auth login, आपके ईमेल और API टोकन के साथ)।"
+          "summary": "टर्मिनल में Atlassian का कोडिंग एजेंट (Rovo Dev), Atlassian CLI (acli) के अंदर।",
+          "account": "आपकी Atlassian Cloud साइट पर Rovo Dev वाले आपके Atlassian खाते से (acli rovodev auth login, आपके ईमेल और API टोकन के साथ)।"
         }
       }
     },
@@ -1746,7 +1950,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में MiniMax का कोडिंग एजेंट (mcode)।",
-          "account": "आपके MiniMax खाते (mcode login, ब्राउज़र में) के साथ; आपके जोड़े दूसरे प्रदाताओं के साथ भी।"
+          "account": "आपके MiniMax खाते (mcode login, ब्राउज़र में) से; आपके जोड़े दूसरे प्रदाताओं के साथ भी।"
         }
       }
     },
@@ -1780,7 +1984,7 @@
         },
         "hi": {
           "summary": "टर्मिनल में Qoder (Alibaba) का कोडिंग एजेंट।",
-          "account": "आपके Qoder खाते (qodercli login, ब्राउज़र में) या निजी टोकन QODER_PERSONAL_ACCESS_TOKEN के साथ।"
+          "account": "आपके Qoder खाते (qodercli login, ब्राउज़र में) या निजी टोकन QODER_PERSONAL_ACCESS_TOKEN से।"
         }
       }
     },
@@ -1813,8 +2017,8 @@
           "account": "使用免费模型无需账户；付费模型需要你的 Kilo 账户（kilo auth login），也可以用你自己的 API 密钥。"
         },
         "hi": {
-          "summary": "टर्मिनल में Kilo का ओपन-सोर्स कोडिंग एजेंट, सैकड़ों मॉडलों और कई मुफ़्त मॉडलों के साथ।",
-          "account": "मुफ़्त मॉडलों के लिए किसी खाते की ज़रूरत नहीं; पेड मॉडलों के लिए आपके Kilo खाते (kilo auth login) या अपनी API कुंजियों के साथ।"
+          "summary": "टर्मिनल में Kilo का ओपन-सोर्स कोडिंग एजेंट, सैकड़ों मॉडल और कई मुफ़्त मॉडलों के साथ।",
+          "account": "इसके मुफ़्त मॉडलों के साथ खाते की ज़रूरत नहीं; सशुल्क मॉडलों के लिए आपके Kilo खाते (kilo auth login) से, या आपकी अपनी API कुंजियों से।"
         }
       }
     }
