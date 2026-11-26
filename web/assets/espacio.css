@@ -1,0 +1,101 @@
+/* Cielo de kywai: estrellas de colores y la Tierra detrás de toda la página (assets/espacio.js).
+   Las secciones pasan a ser cristal sobre ese cielo. Sin WebGL2 queda el cielo de CSS (.cielo) y todo se lee igual. */
+
+/* ---------- cielo ---------- */
+html { background: var(--bg); }
+body { background: transparent; }
+.cielo, #espacio { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.cielo { z-index: -2; background:
+  radial-gradient(ellipse 90% 34% at 62% 118%, rgba(74,146,255,.34), rgba(74,146,255,.08) 55%, transparent 72%),
+  radial-gradient(ellipse 60% 26% at 18% 108%, rgba(31,202,133,.14), transparent 70%),
+  radial-gradient(1.2px 1.2px at 12% 18%, rgba(255,255,255,.8), transparent 60%),
+  radial-gradient(1.4px 1.4px at 71% 12%, rgba(160,200,255,.9), transparent 60%),
+  radial-gradient(1px 1px at 33% 41%, rgba(255,255,255,.6), transparent 60%),
+  radial-gradient(1.3px 1.3px at 88% 37%, rgba(255,190,140,.8), transparent 60%),
+  radial-gradient(1px 1px at 52% 27%, rgba(120,230,180,.8), transparent 60%),
+  radial-gradient(1.2px 1.2px at 24% 64%, rgba(255,255,255,.5), transparent 60%),
+  radial-gradient(1px 1px at 79% 71%, rgba(160,200,255,.6), transparent 60%),
+  #030510; }
+#espacio { z-index: -1; }
+html[data-gpu] .cielo { background: #030510; }
+html[data-theme="light"] .cielo { background: radial-gradient(ellipse 90% 34% at 62% 118%, rgba(15,98,217,.16), transparent 70%), linear-gradient(#f6f8fd, #dfe8f7); }
+@media (prefers-color-scheme: light) { html:not([data-theme="dark"]) .cielo { background: radial-gradient(ellipse 90% 34% at 62% 118%, rgba(15,98,217,.16), transparent 70%), linear-gradient(#f6f8fd, #dfe8f7); } }
+
+/* ---------- cristal sobre el cielo ---------- */
+:root {
+  --bg-2: rgba(12, 19, 40, .5);
+  --surface: rgba(14, 22, 46, .62);
+  --line: rgba(150, 175, 230, .22);
+  --muted: #a9b4cf;
+  --glass-blur: blur(14px) saturate(1.1);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --bg-2: rgba(255,255,255,.55); --surface: rgba(255,255,255,.78); --line: rgba(30,50,100,.18); --muted: #4a5572; }
+}
+:root[data-theme="light"] { --bg-2: rgba(255,255,255,.55); --surface: rgba(255,255,255,.78); --line: rgba(30,50,100,.18); --muted: #4a5572; }
+
+.top { background: color-mix(in srgb, var(--bg) 58%, transparent); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+.site-footer { background: color-mix(in srgb, var(--bg) 62%, transparent); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.story-section, .section.why, .download { background: transparent; border-color: var(--line); }
+.advantage-section { border-top-color: var(--line); }
+
+/* tarjetas y cajas: cristal */
+.advantage-grid article, .proof-strip, .story-panels, .story-tabs button, .closing-card, .tour, .tour-shot,
+.pricing-card, .pricing-note, .platform-card, .feature-card, .feature-world, .cloud-apps, .agent-setup, .agent-maker,
+.theme-choice, .device-option-art, .upd-card, .agent-card, .connector-card, .guide, .help-links, .cloud-page .wrap > *,
+.inception-strip, .agent-ribbon, .bento > *, .visual-card, .device-card, .theme-card, .plan-card {
+  background: var(--surface);
+  border-color: var(--line);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+.advantage-grid article, .pricing-card, .feature-card, .agent-card, .connector-card, .closing-card { box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+.advantage-grid article:hover, .pricing-card:hover, .feature-card:hover, .agent-card:hover, .connector-card:hover { border-color: color-mix(in srgb, var(--blue) 55%, var(--line)); }
+:root[data-theme="light"] .advantage-grid article, :root[data-theme="light"] .pricing-card { box-shadow: 0 1px 2px rgba(20,30,60,.05), 0 14px 34px -24px rgba(20,30,60,.3); }
+
+/* menús que flotan: opacos para que se lean */
+.lang ul, .mobile-menu nav, .orbit-tooltip { background: #0b1226; }
+:root[data-theme="light"] .lang ul, :root[data-theme="light"] .mobile-menu nav, :root[data-theme="light"] .orbit-tooltip { background: #fff; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .lang ul, :root:not([data-theme="dark"]) .mobile-menu nav, :root:not([data-theme="dark"]) .orbit-tooltip { background: #fff; } }
+
+/* el brillo de la rejilla antigua del héroe ya no pinta nada propio */
+.hero-v2::before { opacity: .0; }
+
+/* ---------- robots de peluche ---------- */
+.rob { display: block; width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0,0,0,.45)); }
+:root[data-theme="light"] .rob { filter: drop-shadow(0 6px 8px rgba(20,30,60,.3)); }
+.advantage-grid article { position: relative; }
+.advantage-grid .ventaja-rob { position: absolute; top: 16px; right: 16px; width: 56px; height: 56px; }
+.advantage-grid article:nth-child(1) .ventaja-rob { width: 60px; height: 60px; }
+.robrow { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 1.6vw, 18px); max-width: 980px; margin: 18px auto 0; padding: 0; list-style: none; }
+.robrow li { width: clamp(52px, 7vw, 84px); transition: transform .25s; }
+.robrow li:hover { transform: translateY(-6px) scale(1.06); }
+.robrow li img { width: 100%; height: auto; aspect-ratio: 1; }
+.robrow-caption { text-align: center; margin: 56px 0 0; font: 600 13px/1.3 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.cast-row { display: flex; flex-wrap: wrap; gap: clamp(14px, 3vw, 34px); margin: 8px 0 34px; padding: 0; list-style: none; align-items: flex-end; }
+.cast-row li { display: grid; justify-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.cast-row img { width: clamp(64px, 8vw, 96px); height: auto; aspect-ratio: 1; }
+@media (prefers-reduced-motion: reduce) { .robrow li { transition: none; } }
+
+/* Funciones: peluches en las tarjetas */
+.feature-team-art { max-width: 360px; }
+.feature-team-art b { display: inline-flex; align-items: center; gap: 8px; padding: 4px 22px 4px 10px; }
+.feature-team-art b .rob { width: 44px; height: 44px; }
+.feature-team-art span { display: grid; justify-items: center; gap: 2px; padding: 8px 6px; }
+.feature-team-art span .rob { width: 44px; height: 44px; }
+.feature-video-art { grid-template-columns: 76px 80px 1fr; max-width: 420px; }
+.feature-video-art .video-rob { width: 72px; height: 72px; }
+.feature-tile-top { align-items: center; }
+.feature-tile-top .tile-rob { width: 56px; height: 56px; margin-left: auto; margin-right: 12px; }
+/* Agentes: la fila de peluches, con la marca oficial como insignia */
+.agent-cast > div.cast-agent { padding: 18px 10px 14px; gap: 8px; }
+.cast-rob { position: relative; display: block; }
+.cast-rob .rob { width: clamp(72px, 7vw, 96px); height: clamp(72px, 7vw, 96px); }
+.agent-cast .cast-rob .agent-official-logo { position: absolute; right: -10px; bottom: -2px; width: 30px; height: 30px; margin: 0; padding: 5px; border-radius: 9px; box-shadow: 0 4px 10px -4px rgba(0,0,0,.6); }
+@media (max-width: 600px) { .agent-cast .cast-rob .agent-official-logo { width: 26px; height: 26px; padding: 4px; } .feature-video-art { grid-template-columns: 64px 70px 1fr; } }
+.footer-credits{display:block!important}.footer-credits a{display:inline!important}
+
+/* Tema claro: la Tierra se ve suave para que no tape el texto */
+:root[data-theme="light"] #espacio { opacity: .42; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) #espacio { opacity: .42; } }
+:root[data-theme="light"] .hero-v2 .btn-ghost, :root[data-theme="light"] .hero-note { background: var(--surface); }
