@@ -1097,6 +1097,11 @@ en cada vuelta (2 min) aunque haya fusiones esperando. Código: `src/renderer/sr
 clic, `withAskedAt`, si el proceso de la app aún no ha contestado) y la propia barra pregunta `updatePending()` cada 3 s,
 sin depender de que llegue el evento `update.pending`. Un espacio con una versión anterior a la 1.30.30 aún no tiene la
 barra en el aviso: la verá a partir de esa actualización (la página de reinicio de Caddy sí la enseña siempre).
+Desde la 1.38.1 la barra (y las de descarga de modelos locales, en `LocalConfig` y `LocalSetupToast`) lleva los colores de
+la marca kywai —azul, verde y naranja, los de las tres gotas del logo— en vez del morado de Qwen: los tokens `--k-blue`,
+`--k-green`, `--k-orange` y `--k-marca` (degradado) están en `src/renderer/src/styles/tokens.css`, y las barras de
+`common/ui.module.css` los usan con `.trackMarca` + `.fillMarca`. El degradado mide como toda la barra y se descubre
+al avanzar.
 
 Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
 el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
@@ -1974,7 +1979,9 @@ documentación no confirma y pueden necesitar ajustes.
   da lo nuevo a los agentes libres, que empiezan ya, y evita esos archivos (lo que toque a un agente ocupado lo hace
   una copia suya, ver «Varias tareas a la vez por agente»). Si dos tareas coinciden en el tiempo, la segunda trabaja
   en una copia aparte que se integra al terminar (ver «Cambios de cada tarea»). Como mucho trabajan 3 tareas a la vez
-  en todo el equipo (se cambia en Ajustes). Con varias peticiones en marcha, «Detener» deja elegir cuál (o todas).
+  en todo el equipo (se cambia en Ajustes). Con varias peticiones en marcha, «Detener» deja elegir cuál (o todas); ese menú se abre hacia arriba (por encima del cuadro de escribir) y nunca queda
+  cortado por el borde de la ventana: todos los menús flotantes (`ui/common/Popover.tsx`, `placeVertical`) se abren por el
+  lado donde caben y, si ninguno basta, hacen scroll por dentro.
   Si el chat está estrecho, «Detener», la voz en directo y enviar bajan a una fila debajo del texto, dentro del mismo
   cuadro, para que lo que escribes no se quede en una columna de una palabra por línea.
 - **Varias tareas a la vez por agente**: si un agente ya está ocupado y le llega otra tarea (de la misma petición, de
@@ -4664,6 +4671,107 @@ dejen iniciar sesión; las ventanitas de «Entrar con Google» se abren aparte e
 van en un mundo aislado en la página principal; los clics son de ratón de verdad (`sendInputEvent`) en la página y
 simulados dentro de marcos. Los permisos usan `askPermission` con la clave `Navegador:<sitio>`.
 
+### Chats web: los chats gratis dentro del Navegador de kywai (solo kywai Cloud, 1.37.0)
+
+(`src/shared/chatsWeb.ts`, `src/main/browser.ts`, `src/renderer/src/ui/pane/BrowserPane.tsx`; propuesta aprobada por el
+dueño el 26 nov 2026: «que la persona tenga el chat web dentro de kywai, con su propia sesión, sin ir y volver del
+navegador; no vendemos ni ponemos bot».)
+
+En kywai Cloud, la pestaña **Navegador** lleva encima una barra **«Chats web»** con accesos a DeepSeek, Qwen, Kimi,
+Z.ai (GLM), Mistral, Gemini, ChatGPT y Claude. Pulsas uno, entras con tu cuenta y escribes tú, como en una pestaña de
+tu navegador. Es la web oficial, tal cual: kywai no cambia la página ni guarda tu contraseña. La sesión se queda guardada
+en el Navegador de tu espacio (la misma partición que el resto de webs).
+
+- **Los agentes no pueden usar estos chats** (tampoco Hermes). Es un bloqueo técnico, no una promesa: mientras la
+  pestaña está en uno de estos chats, todas las herramientas `navegador_…` (leer, capturar, hacer clic, escribir,
+  teclas, desplazarse, volver) se niegan con una explicación, `navegador_estado` no enseña la página y `navegador_ir`
+  no abre direcciones de esos chats (`noChatWeb()` y `CHAT_WEB_AGENT_BLOCK` en `browser.ts`). Escribir a mano en un chat
+  web es uso normal; que un agente lo haga por debajo es acceso automatizado, y las condiciones de DeepSeek, OpenAI,
+  Anthropic y Z.ai (las que se leyeron) lo prohíben. El bloqueo vale en cualquier instalación, aunque la barra solo
+  salga en la nube: si alguien escribe a mano la dirección de un chat en el Navegador, los agentes tampoco entran. La
+  documentación y las webs de API de esas empresas (`platform.deepseek.com`, `www.kimi.com/code/…`) sí se pueden leer.
+- **«Cerrar sesión de este chat»** borra las cookies y los datos de ese chat y lo vuelve a abrir (`browserClearChat`);
+  las demás webs siguen con su sesión. En Gemini cierra también la sesión de Google de este navegador.
+- **«Hablarle desde el chat de kywai»**: abre el catálogo de agentes con la búsqueda puesta (DeepSeek, Kimi, GLM,
+  Qwen, Mistral…). Es la vía oficial: con su clave de API hablas con ese modelo desde el chat de kywai, sin segunda
+  ventana. No usa el cupo gratis del chat web: la API es una cuenta aparte con saldo propio (DeepSeek: unos 0,75 $ por
+  un millón de tokens de entrada más otro de salida).
+- **Límites sinceros:** algunos chats detectan navegadores incrustados o piden verificación. Desde la nube el navegador
+  sale con la IP del servidor, así que pueden pedir más verificaciones. Cada chat se prueba dentro del Navegador antes
+  de dejarlo en la lista. No es asesoría legal.
+- **Solo kywai Cloud:** la barra sale si el servidor tiene `KYWAI_CLOUD=1` (`BrowserState.chats`); la orden de cerrar
+  sesión de un chat se niega en la self host.
+- **Hermes lo sabe:** `coordinatorGuide.ts` (apartado del navegador) dice qué son, que no puede usarlos y que su vía es la
+  API oficial.
+
+### Webs como API: leer webs sin API con API Anything (solo kywai Cloud, 1.38.0)
+
+(`src/shared/webApi.ts`, `src/main/webApi.ts`, herramientas en `src/main/coworkMcp.ts`, panel
+`src/renderer/src/ui/settings/WebApiPart.tsx`; aprobado por el dueño el 26 nov 2026: «dejarlo solo como algo de kywai
+Cloud».)
+
+**Qué es.** [API Anything](https://github.com/goodnight000/api-anything) (licencia MIT, © 2026 Tianjun Zheng; aviso en
+`THIRD-PARTY-NOTICES.md` y en el propio panel) trae 114 webs y 323 operaciones listas para pedir datos en JSON (vuelos,
+valoraciones, repositorios, artículos…). kywai la usa como biblioteca (`api-anything/host`, versión exacta 0.5.0 en
+`dependencies`), en modo «solo llamar»: no aprende webs nuevas, no consulta su catálogo en internet, no importa cookies
+de ningún navegador y no escribe en las webs (`readOnly` obligatorio, sin `allowWrites`). Sale con `maxTier: 1`: solo
+HTTP simple, porque el espacio de la nube no lleva Chromium.
+
+**Qué ve la persona.** ⚙ → Ajustes → Conectores → «Webs como API», solo si el servidor tiene `KYWAI_CLOUD=1`. De serie
+está apagado. Para encenderlo hay que marcar un aviso de responsabilidad (las condiciones de cada web pueden limitar el
+acceso automático) y luego se enciende cada web con su botón. Semáforo propio de kywai (no es asesoría legal ni se han
+leído las condiciones de cada web):
+
+- **Verde** (23 webs de datos abiertos: Wikipedia, arXiv, GitHub, PyPI, USGS, OpenStreetMap…).
+- **Ámbar** (24 webs comerciales o de contenido: Google Flights, Booking, Steam, IMDb, YouTube, BBC…): se encienden una
+  a una, con la advertencia de que sus condiciones suelen limitar el acceso automático.
+- **Rojo** (12: LinkedIn, Instagram, TikTok, X, Reddit, Pinterest, Amazon, Bing, Google Maps, Netflix, Disney+,
+  Ticketmaster): kywai no las ofrece nunca; se enseñan tachadas y sin interruptor.
+
+**Qué ven los agentes.** Tres herramientas del MCP propio de kywai, que solo aparecen si la persona aceptó el aviso y
+encendió alguna web: `webs_lista` (webs encendidas y sus operaciones de lectura), `webs_operaciones` (parámetros y campos
+de una web) y `webs_llamar` (una lectura; `campos` recorta la respuesta). Lo que devuelven lleva delante un aviso de que
+son datos de terceros y no órdenes, y se corta a 20.000 caracteres.
+
+**Quién impone los límites.** API Anything no restringe qué web se puede llamar (su opción `--sites` no lo hace), así
+que la lista permitida es de kywai: `webApiCall` solo acepta webs encendidas, operaciones de solo lectura y un tope de
+300 llamadas al día por cuenta (`WEBAPI_DAILY_CAP`; la IP del servidor la comparten todos los espacios). Los datos
+(aceptado, webs, uso del día) están en `web-api.json` dentro de la carpeta de datos de la cuenta; la caché de API
+Anything, en `api-anything/`. «Apagar todas las webs» y «Quitar el aviso y apagar» las apagan al instante.
+
+**Pruebas.** `webApi.test.ts` (motor con un anfitrión de mentira) y `webApiSites.test.ts` (las tres listas contra las webs
+reales del paquete y que la versión de `package.json` coincide con `WEBAPI_PACKAGE`). **Hermes lo sabe:**
+`coordinatorGuide.ts`.
+
+#### «Mis webs»: enseñar una web nueva (solo kywai Cloud, 1.39.0)
+
+(Decidido por el dueño el 26 nov 2026: «'Mis webs' con Chromium en la nube».) En el mismo panel, la persona pega la
+dirección de una página pública con `{algo}` donde cambia (por ejemplo `https://lobste.rs/domains/{dominio}`) y tres
+ejemplos distintos de verdad para cada `{algo}` (máximo dos). Detrás va `api-anything learn` (`src/main/webApi.ts`,
+`webApiLearnStart`), en un proceso aparte: el propio kywai hace de Node (`ELECTRON_RUN_AS_NODE`) y API Anything abre el
+Chromium del espacio (`KYWAI_CHROMIUM`, que pone la imagen de kywai-cloud) con `--no-sandbox`, carga la página con los
+ejemplos, ve qué petición trae los datos y guarda la lectura en `api-anything/sites/mia-<servidor>.json`. Tarda unos
+segundos (hasta 2 minutos como mucho) y va en segundo plano: la interfaz pregunta cada 2 s (`webApiStatus().aprendiendo`
+y `.ultimo`). Cuesta al día un máximo de 8 webs nuevas y se guardan como mucho 20 (`WEBAPI_LEARN_DAILY_CAP`,
+`WEBAPI_OWN_MAX`).
+
+Lo que kywai impone antes y después de aprender (porque API Anything no lo impone):
+
+- **Antes:** https, sin usuario ni puerto, lo que cambia solo en la ruta o el `?`, el nombre de servidor tiene que ser
+  público (nada de IP, `.local`, `.internal`…) y no puede ser de una red social, un buscador, Google, la familia Meta,
+  Amazon, un chat web ni de kywai (`webApiHostOk`, `BLOCKED_HOSTS` en `src/shared/webApi.ts`); y todas las IP a las que
+  apunta tienen que ser públicas (`isPublicIp`, comprobado con `dns.lookup`).
+- **Después (`checkLearned`):** se lee lo aprendido y, si algún servidor al que habla (base, petición, página) no pasa la
+  misma comprobación, o no es https, o la operación escribe, o necesita un navegador (`minTier` mayor que 1), se borra la
+  web entera y se cuenta qué pasó. La lectura de comprobación (tercer ejemplo) tiene que haber ido bien.
+- **Siempre:** las llamadas de los agentes a cualquier web de este panel se niegan si el plan dice que usaría una sesión
+  iniciada (`plan.signedIn`). Una web enseñada nace encendida (la persona acaba de pedirla) y se puede apagar o quitar
+  con su ×, que borra todo lo aprendido de ella (`webApiForget`).
+- **Límites sinceros:** una web puede cambiar y dejar de contestar (API Anything intenta repararla sola al llamarla; si
+  no puede, la lectura falla con una razón). Los redireccionamientos y el DNS que cambia a mitad no se pueden cerrar del
+  todo desde aquí; el contenedor no tiene red hacia dentro, pero conviene que el espacio no vea servicios privados del
+  servidor. No es asesoría legal: las condiciones de cada web siguen siendo cosa de quien la enseña.
+
 ### Extensiones: tus servidores MCP para los agentes
 
 En **⚙ → Ajustes → Extensiones** añades servidores MCP (herramientas como Playwright, GitHub, Notion, buscar en la
@@ -4898,6 +5006,19 @@ lo lleva todo a tu espacio de la nube. Esta instalación no se toca: si algo fal
 | Vuelves a entrar | Claude, Codex y Gemini (Mis agentes): copiar su sesión haría que dos equipos se pisaran al renovarla |
 | Nada que hacer | Apps conectadas: ya están en tu cuenta kywai |
 | No se llevan | El código de acceso, los equipos emparejados, la llave del móvil, el registro de accesos y las cachés |
+
+**Claves de API en la nube (25 nov 2026).** En tu equipo, la clave de un agente se guarda con su id (`deepseek`); en la
+nube, como `cloud:<id>`. Antes llegaban con el nombre de tu equipo y la nube no las veía, así que cada agente volvía a
+pedir su clave. Ahora, al arrancar el espacio, `adoptMovedKeys` (`src/main/clavesMudadas.ts`) pasa cada una (y la de
+reserva de OpenRouter de Hermes) a su nombre de la nube, salvo que la nube ya tenga una suya. Claude, Codex y Gemini con
+tu cuenta siguen pidiendo volver a entrar (tabla de arriba).
+
+**Hermes con el OmniRoute de tu equipo, desde la nube.** En «Configura Hermes» → OmniRoute, la ventana enseña el panel
+y la contraseña del OmniRoute de tu ordenador, pero dentro del espacio `localhost:20128` es el OmniRoute del propio
+espacio, que no conoce la clave de tu ordenador («No aceptó esa clave»). Ahora, sin dirección o con `localhost:20128`,
+«Comprobar ahora» y «Guardar y probar» van por el relevo (`127.0.0.1:20129`, `cloudHermesOmniRoute` en
+`src/main/omniroute.ts`) sin clave; si tu ordenador no presta su OmniRoute, la ventana pide encender «Conectar kywai
+cloud con este PC». Una dirección pública se usa tal cual.
 
 **Cómo funciona por dentro.** `src/main/mudanza.ts` (sin Electron, lo usan los dos lados): junta lo que se lleva, lo
 escribe como un paquete de registros `[cabecera][bytes][SHA-256]` y lo parte en trozos de 16 MB cifrados con
@@ -6292,6 +6413,56 @@ voz de la cuenta). Lo que pasa:
 «veinte reels», **hasta 20**, `NIGHT_SHIFT_MAX`) el turno hace una **tanda**: cada reel sale de un vídeo fuente distinto
 y prueba otro tipo de gancho (pregunta, cifra, contradicción, antes y después, error común), para saber antes qué
 funciona. Deja `desmontaje-1.md`, `guion-1.md`, `desmontaje-2.md`… y una orden `/video` por reel.
+
+**El selector de `/crecer` (1.36.0).** Al escribir «/crecer» (o `/turno-noche`, `/maquina`…) sale encima del cuadro un
+selector **en acordeón**, como el de `/video`: al elegir en un paso, ese se pliega con lo elegido y se abre el siguiente (se
+puede volver a abrir cualquiera). Los siete pasos y «Lanzar» (que envía la orden):
+1. **Número de vídeos** (1 a 20, `CRECER_MAX`).
+2. **Tipo de vídeo:** rápido, presentador, mixto, charla o sketch, y una tarjeta **«Todos»** que da un tipo distinto a cada
+   vídeo de la tanda (sin «Sorpréndeme» ni «Escenario 3D», que deciden o tardan demasiado).
+3. **Personaje:** ninguno, los robots de kywai o los tuyos (para crear uno nuevo, `/video`).
+4. **Estilo de animación:** el catálogo de `/video` (películas, aspectos de imágenes con IA), «Lo elige el agente» (como
+   antes: uno de los estilos de kywai para reels) y una tarjeta **«Aleatorio»**: cada vídeo toma un estilo distinto al azar
+   entre todos los que hay (los de película, menos los que piden material real, más los aspectos de imágenes con IA y el
+   estilo de kywai), sin repetir hasta que se acaban.
+   **Varios estilos a mano:** con más de un vídeo, el paso deja **marcar varios estilos, hasta tantos como vídeos** (películas y
+   aspectos; se pulsa «Listo»): la tanda reparte los vídeos solo entre los marcados, sin repetir hasta que se acaban (marca
+   `estilos:watercolor+ink-wash+plastilina`). Con menos estilos que vídeos, se reparten entre ellos.
+5. **Voces:** automática, **«Aleatoria»** (una distinta del idioma elegido en cada vídeo) o una concreta, con ▶ para oírla.
+   Al elegir una voz con idioma, el paso 6 se pone en ese idioma.
+6. **Idioma** de los vídeos y de todos sus textos (gancho, subtítulos, rótulos): los de la app y los de las voces que haya.
+   Sin una voz que lo fije, la orden lleva «en francés» (`videoLang` lo entiende desde la 1.36.0).
+7. **Dónde hacerlos:** en kywai cloud, «En la nube» o «En mi equipo» (el equipo conectado, `equipo:si`); en la app de
+   escritorio, «En este ordenador». Si falta algo (el estudio de vídeo, el agente que dirige las películas…), lo dice y
+   ofrece «Instalarlo solo» (misma comprobación que `/video`, `checkVideoChoice`).
+
+Lo elegido va **en el texto como marcas** (`tipo:todos`, `personaje:…`, `estilo:aleatorio` o `estilo:<película>`,
+`aspecto:…`, `voz:aleatoria` o `voz:<id>`, `idioma:fr`, `equipo:si`, más «5 reels»), así que también vale escribirlo a mano,
+desde la web o en una rutina («/rutina cada día a las 3:00: /crecer tipo:todos estilo:aleatorio 5 reels IA»). Sin marcas todo
+sigue como antes (el agente elige el estilo). Con marcas, el agente solo escribe el tema y el guion de cada reel; **kywai pone
+en cada orden «/video …» el tipo, el personaje, el estilo y la voz** en lugar de lo que escribiera el agente
+(`applyReelOverride`) y reparte lo aleatorio entre los vídeos con `planReels` (`src/shared/crecerChoice.ts`, con pruebas). El
+reparto solo usa lo que este equipo puede hacer (`src/main/crecerPlan.ts`: misma comprobación que `/video` y, con
+`equipo:si`, lo que sabe hacer el equipo conectado); lo que aun así no salga va en **versión ligera** y el chat lo dice. En el
+chat sale el «Reparto de la tanda» (tipo, estilo y voz de cada vídeo). Los vídeos llegan a la **mesa de revisión** de siempre
+(portada de cada reel, un «Ve» y a la tabla de publicación): no se publica nada sin tu visto bueno salvo con «Publicar sin
+preguntar». Código: `CrecerPicker.tsx` (interfaz, enganchada en `Composer.tsx`), `crecerChoice.ts`, `crecerPlan.ts`,
+`nightShift.ts` y `completeNightShift` en el orquestador. Órbita (Android) no tiene el selector: las marcas escritas a mano
+valen igual.
+
+**Aprende qué estilos y voces funcionan (1.36.0).** Cada reel que sale de «/crecer» apunta en el registro de la máquina
+(`instagram/maquina.json`) con qué se hizo: tipo, estilo (la **familia**: la categoría de la película, el aspecto de
+imágenes o «Estilo de kywai»), voz e idioma (`traits`, de `Task.video` por `postNightShiftReel` → `sendInstagram` →
+`recordPublishedReel`; las segundas vidas no cuentan). Cuando llegan los números (`/instagram resultados` o el refresco
+automático), `updateTastes` (`reelMachine.ts`, lo puro en `src/shared/reelTastes.ts`, con pruebas) compara la **mediana de
+vistas de cada familia y de cada voz con la mediana de toda la cuenta** y lo guarda en `instagram/gustos.json`. Con menos de
+3 reels con números un grupo sale como «pocos datos» y no cuenta; «los que mejor funcionan» son los que tienen datos y
+superan la mediana (como mucho 3). Sale en la sección «Qué funciona» de `resultados.md` y en el mapa de reels de
+`/instagram resultados`. En el selector, los pasos 4 (estilo) y 5 (voz) tienen una tarjeta **«Los que mejor funcionan»**
+(solo si ya hay datos; marcas `estilo:populares` / `voz:populares`): `planReels` reparte 7 de cada 10 vídeos entre lo popular
+(que el equipo pueda hacer) y 3 entre lo demás, para seguir probando cosas nuevas. Sin datos, «populares» se comporta como
+«aleatorio» y el chat lo dice. Cuando el agente elige el estilo (sin marcas de estilo), el encargo lleva esa lista como regla
+(`learned` en `nightShiftPrompt`). El selector la lee con `api.reelTastes()`.
 
 **La máquina de reels (1.23.0–1.23.3).** Lo que enseñaba un vídeo de una «máquina de reels» hecha con Claude (50 reels,
 un «Ve», 5 al día, los ganadores a todas las redes y cada tanda aprende de la anterior), hecho con kywai y solo para
@@ -9364,8 +9535,8 @@ El botón **Música** del espacio digital abre un reproductor con tres pestañas
 - **YouTube:** canciones y artistas de YouTube Music, en su reproductor oficial. Tiene sus anuncios.
 - **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
-- **ytm-rs:** YouTube Music sin anuncios y con letras, a través de la app [ytm-rs](https://github.com/grapedjuice/ytm-rs)
-  (ver más abajo). Sustituye desde la 1.33.0 a la pestaña Spotifast (Spotify), que ya no está.
+- **ytm-rs:** YouTube Music sin anuncios y con letras, con la app [ytm-rs](https://github.com/grapedjuice/ytm-rs) que
+  kywai lleva por dentro desde la 1.36.0 (ver más abajo). Sustituye desde la 1.33.0 a la pestaña Spotifast (Spotify).
 
 La pestaña **Audius** se quitó en la 1.33.0 (lo pidió Yil). Las canciones de Audius que quedaran en la cola salen
 de ella al abrir kywai, y quien la tuviera elegida vuelve a la pestaña YouTube. Órbita deja de enseñarla; un Órbita
@@ -9420,39 +9591,58 @@ sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para 
   Código: `src/main/youtubeAccount.ts`, `lib/youtubeAccount.ts` y `ui/space/YoutubeAccountRow.tsx`.
 
 **ytm-rs** es una app de escritorio gratis y de código abierto (licencia GPL-3.0, de grapedjuice) para escuchar
-YouTube Music en Windows, Mac y Linux, sin navegador por dentro. kywai no la lleva dentro ni reproduce nada con ella: la
-maneja desde fuera con su mando a distancia local, el que trae para los Stream Deck (un WebSocket en
-`ws://127.0.0.1:26540` que solo atiende a programas del propio equipo y rechaza a los navegadores). Por eso:
-- **Hay que instalarla** en tu equipo (descargas en su página de versiones). Si no está, la pestaña ofrece «Instalar
-  ytm-rs», «Cómo se instala» y «Ya la he instalado». kywai la encuentra en `/Applications/ytm-rs.app` (o
-  `~/Applications`) en el Mac, en `%LOCALAPPDATA%\Programs\ytm-rs` (o `Archivos de programa\ytm-rs`) en Windows y en
-  `~/.local/lib/ytm-rs` o el PATH en Linux. En el Mac no está firmada por Apple: la primera vez se abre con clic derecho
-  › Abrir.
-- **Hay que encender su mando una vez:** en ytm-rs, Ajustes › Conexiones › **Stream Deck**. Sin eso, la pestaña dice
-  «ytm-rs está abierta, pero no deja que la manejen» y explica dónde está el interruptor.
-- **Cerrada:** sale «Abrir ytm-rs». «Ver ytm-rs» trae su ventana delante.
-- **Mientras suena:** carátula, canción, artista, álbum, posición, aleatorio, atrás / pausa / adelante, repetir (lista
-  o canción), me gusta y el volumen de ytm-rs. Se lee cada segundo mientras la pestaña está abierta y la posición
-  avanza sola entre lectura y lectura.
-- **Letra:** debajo sale la letra de la canción, sincronizada línea a línea (la que suena, resaltada y en el centro) o
-  tal cual si no hay versión con tiempos. Viene de [LRCLib](https://lrclib.net), una base de letras abierta y gratis:
-  solo se le manda el título, el artista, el álbum y la duración. «Ocultar» la pliega. Se guarda en memoria un rato.
-- **Buscar y elegir canciones** se hace en la ventana de ytm-rs: su mando de hoy no sabe poner una canción concreta.
-  kywai ya está listo para cuando lo sepa: si ytm-rs anuncia en su mando las órdenes `play`, `queue` y `seek`, la
-  pestaña enseña sola un buscador de YouTube Music («Poner» y «+» a la cola) y deja mover la posición.
+YouTube Music en Windows, Mac y Linux. **Desde la 1.36.0 kywai la lleva por dentro**: nadie tiene que instalarla ni
+abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y abrir su app»).
+- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.1`) compilada en el fork público
+  [Yiku21/ytm-rs](https://github.com/Yiku21/ytm-rs). El fork añade a su mando las órdenes que necesita kywai (poner una
+  canción, la cola, la posición, la letra, abrir su ventana y cerrarse) y un modo «por dentro» (`YTM_EMBEDDED`: arranca
+  sin ventana, la × la esconde y no se actualiza sola). Su código está en esa etiqueta del fork, como pide la GPL, y la
+  pestaña enlaza a él.
+- **Primera vez:** la pestaña explica qué es y ofrece **«Activar ytm-rs»**: kywai descarga el paquete portable de su
+  sistema de la Release del fork (unos 20 MB), comprueba su huella SHA256 (`YTMRS_ASSETS`; si no coincide no se usa) y
+  lo deja en la carpeta de datos de kywai (`ytm-rs/<versión>/`). Mientras, dice cuánto lleva. Sus datos (sesión,
+  biblioteca, ajustes) van aparte, en `ytm-rs/datos`, y se conservan al cambiar de versión.
+- **Encendida:** kywai la abre escondida con su mando en `127.0.0.1:26541` (no el 26540 de ytm-rs, para no chocar con
+  un ytm-rs que la persona tenga por su cuenta) y sin las claves del entorno de kywai. Al volver a abrir la pestaña se
+  enciende sola. Al cerrar kywai le pide que se cierre (guarda lo que sonaba).
+- **La pestaña es el reproductor:** buscador de YouTube Music («Poner» y «+» a la cola), carátula, canción, artista,
+  álbum, posición (se puede mover), aleatorio, atrás / pausa / adelante, repetir (lista o canción), me gusta, volumen y
+  la letra. Se lee cada segundo mientras la pestaña está abierta y la posición avanza sola entre lectura y lectura.
+- **«Abrir su ventana»** enseña la ventana de ytm-rs: para entrar con tu cuenta de YouTube, ver tu biblioteca o sus
+  ajustes. Cerrarla la vuelve a esconder; la música sigue.
+- **Letra (karaoke, desde la 1.35.0):** debajo sale la letra como en la app de ytm-rs: grande, con la línea que suena
+  en el centro y cada palabra iluminándose al cantarla; las demás, atenuadas y fundidas arriba y abajo. Si la fuente da
+  el tiempo de cada palabra se usa ese; si solo da el de cada línea (lo normal en LRCLib), kywai reparte la línea a lo
+  largo de su tiempo según lo larga que es cada palabra. Sin versión con tiempos, sale tal cual.
+  - **De dónde sale:** si el mando de ytm-rs sabe la orden `lyrics`, la misma letra que enseña ytm-rs (palabra a palabra
+    cuando la tiene, con su traducción). Si no, de [LRCLib](https://lrclib.net), una base de letras abierta y gratis: solo
+    se le manda el título, el artista, el álbum y la duración. Al pie dice de dónde viene.
+  - **Traducción:** debajo de cada línea, al idioma de kywai. Se pide primero al traductor de Unison (betterlyrics.org) y,
+    si no contesta, al traductor público de Google, los mismos que usa ytm-rs; solo se manda el texto de la letra, y los
+    estribillos una vez. En la app de escritorio y en el cliente se pide desde tu ordenador (`client:lyrics`), porque
+    Google frena a los servidores; en kywai cloud desde el navegador puede no salir. Si ya está en tu idioma no se
+    traduce. «Sin traducción» la quita y «Traducir» la vuelve a poner (se recuerda en ese equipo).
+  - **Saltar:** tocar una línea salta a ese momento.
+  - «Ocultar» la pliega. La letra y su traducción se guardan en memoria un rato.
+  - Código: `ui/space/KaraokeLyrics.tsx` (la vista), `@shared/lyrics` (`timedWords`, `wordProgress`,
+    `fromYtmrsLyrics`), `src/main/lyrics.ts` y `src/main/lyricsTranslate.ts`.
 - **Dónde suena:** en la app de escritorio, en ese ordenador. En el **cliente** de escritorio (conectado a tu servidor o
-  a **kywai cloud**), en el ordenador donde estás, no en el servidor. En kywai desde el navegador, en el ordenador donde
-  corre kywai; en kywai cloud desde el navegador no se puede (el servidor no tiene altavoces) y la pestaña lo dice.
-- **No se mezcla con lo demás:** al darle a reproducir en ytm-rs se pausa lo que sonara en kywai. Las luces del espacio
-  no oyen el sonido de ytm-rs (sale de otra app).
+  a **kywai cloud**), en el ordenador donde estás (`client:ytmrs`), no en el servidor. En el servidor de kywai cloud no
+  hay copia (`KYWAI_CLOUD`) y la pestaña dice que se abra desde la app de escritorio. Sistemas con versión: Windows (x64
+  y ARM), Mac (Apple y Intel) y Linux x64. Si el cliente de escritorio es anterior a la 1.36.0 (su estado no trae
+  `supported`), la pestaña pide actualizarlo en vez de enseñar un «Activar ytm-rs» que no haría nada (desde la 1.38.1).
+- **No se mezcla con lo demás:** al poner algo en ytm-rs se pausa lo que sonara en kywai. Las luces del espacio no oyen
+  el sonido de ytm-rs (sale de otro programa).
+- **Nueva versión de ytm-rs:** en el fork, rama de kywai, Actions › Release › «Run workflow» con `kywai_tag`
+  (`v<versión>-kywai.<n>`): compila y publica los portables como prerelease con esa etiqueta. Luego se cambian
+  `YTMRS_TAG` y las huellas de `YTMRS_ASSETS` en kywai.
 
-ytm-rs es un cliente no oficial de YouTube Music: usa la API interna de su web, suena sin anuncios aunque no haya
-Premium y deja descargar canciones, cosas que las condiciones de YouTube no permiten. kywai no la lleva dentro, no
-descarga nada y solo le manda órdenes fijas (sin texto del usuario): es cosa de cada persona instalarla y usarla con su
-cuenta. Si YouTube cambia algo, ytm-rs puede dejar de sonar hasta que su autor lo arregle. Código: `src/main/ytmrs.ts`
-(buscar la app, abrirla y hablar con su mando), `@shared/ytmrs` (acciones, órdenes y lectura de lo que suena),
-`src/main/lyrics.ts` y `@shared/lyrics` (letras), y `ui/space/YtmrsBox.tsx` (la pestaña). El cliente la maneja con
-`client:ytmrs` (`src/main/client.ts`). Órbita todavía no tiene esta pestaña.
+ytm-rs es un cliente no oficial de YouTube Music: usa la API interna de su web y suena sin anuncios aunque no haya
+Premium, cosas que las condiciones de YouTube no permiten. Llevarla dentro fue decisión de Yil, avisado de ello. kywai
+solo le manda órdenes fijas (sin texto del usuario). Si YouTube cambia algo, ytm-rs puede dejar de sonar hasta que se
+publique una versión nueva. Código: `src/main/ytmrs.ts` (descargar, abrir y hablar con su mando), `@shared/ytmrs`
+(acciones, órdenes y lectura de lo que suena), `src/main/lyrics.ts` y `@shared/lyrics` (letras), y
+`ui/space/YtmrsBox.tsx` (la pestaña). Órbita todavía no tiene esta pestaña.
 
 Las radios suenan en el reproductor de audio de kywai, directamente desde los servidores públicos de SomaFM
 (somafm.com). En el sitio del vídeo se ve el logo de la radio. Una radio no tiene duración
@@ -10160,6 +10350,14 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   de bordes va a ×2 y el brillo (bloom) se calcula a media resolución (`msaa` y `bloomScale` en `scene/quality.ts`).
   Medido: los efectos eran más de la mitad del trabajo de la tarjeta gráfica en cada fotograma y el suavizado ×4,
   algo más de un tercio; a la vista casi no hay diferencia. «Máxima» sigue con ×4 y el brillo a resolución entera.
+- **Los vídeos y las imágenes no frenan la interfaz (1.39.2).** Los programas pesados que kywai lanza de fondo (ComfyUI
+  y, en el estudio de vídeo, ffmpeg, las voces y los renders: todo lo que pasa por `runJob` de `longJob.ts`) arrancan con
+  prioridad por debajo de la normal (`lowPriority.ts`; el programa hijo hereda la prioridad de su padre). Medido el
+  26 nov en un PC Windows de 24 hilos con una tanda de vídeos: ComfyUI en modo CPU (~13 hilos) y el script del estudio
+  (~4 hilos) llevaban la CPU al 91-97 % con prioridad normal, la misma que la ventana de kywai, y el chat daba saltos con
+  la tarjeta gráfica al 0 %. Con prioridad baja el sistema atiende primero a la interfaz; los vídeos tardan casi lo
+  mismo si el equipo está libre. `runJob` acepta `priority: 'normal'` para algo que de verdad tenga prisa, y
+  `KYWAI_JOBS_NORMAL_PRIORITY=1` lo apaga todo. Los agentes (Claude Code, Codex…) no se tocan: casi no usan CPU.
 - **Música sin comprobaciones de más.** Mientras el audio está en pausa (sin música sonando), el programador de la
   música mira una vez por segundo en vez de 20 (`schedule` en `lib/audio.ts`).
 - **El 3D en reposo.** Si durante un minuto ningún agente trabaja, piensa ni espera, no suena música y no mueves
