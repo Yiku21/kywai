@@ -1653,6 +1653,15 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     (de Anthropic o de OpenAI) en la app, guardada cifrada en el equipo y pasada solo a su programa
     (`ANTHROPIC_API_KEY`; Codex `CODEX_API_KEY`, probado con `codex exec`); sin clave siguen con la cuenta. En la nube
     Codex también acepta su clave de OpenAI.
+  - **«Sesión de Claude expirada» ya dice la causa** (1.43.1, `runClaude` en `main/agents/claude.ts`). Claude Code lee
+    `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` y `CLAUDE_CODE_OAUTH_TOKEN` ANTES que la sesión de la cuenta: una clave
+    vieja en el entorno del equipo (Windows la guarda por usuario o por máquina y un programa ya abierto no se entera de
+    que se quitó) hacía fallar `/video` y `/crecer` aunque `claude` en una terminal nueva entrara bien. Si Claude falla
+    por la sesión y esas variables vienen del entorno (no las puso kywai: `strayLoginVars`), se repite UNA vez sin ellas,
+    con la sesión que está iniciada en `claude`. Si aun así falla, el aviso añade «Lo que respondió Claude Code»
+    (`RunAgentResult.cause`: el código HTTP y el mensaje reales, y qué variables o `ANTHROPIC_BASE_URL` de
+    `~/.claude/settings.json` lo desvían; `authCause`), nunca la clave. Las películas de la nube en el equipo (`/video`
+    con estilo, `filmOnDevice.ts`) lo enseñan tal cual.
   - **«Otra dirección» para Aider, Qwen Code, Goose y gptme** (`shared/agentEndpoint.ts`, `main/agentEndpoint.ts`):
     como Hermes, se conectan a cualquier servicio compatible con OpenAI: OpenRouter, OmniRoute
     (`http://127.0.0.1:20128/v1`), el Ollama del equipo (solo en la app; LM Studio cambiando el puerto a 1234) o una
@@ -9606,7 +9615,9 @@ los agentes»**, con su propio volumen; no dependen de «Sonidos», cada uno se 
 
 El botón **Música** del espacio digital abre un reproductor con tres fuentes (se recuerda la última elegida). Desde la
 1.42.0 no hay barra de pestañas: la fuente elegida sale junto al título «Música» como una etiqueta con una flecha, y al
-pulsarla se abre una tarjetita con las otras dos y lo que es cada una (Esc o pulsar fuera la cierra). El icono **«i»**
+pulsarla se abre una tarjetita con las otras dos y lo que es cada una (Esc o pulsar fuera la cierra). Desde la 1.43.2 la cabecera ya no
+dice «Música» (basta la nota musical) y el buscador va recogido: la **lupa** junto a la fuente lo saca (con el botón
+«Buscar») y lo vuelve a guardar. El icono **«i»**
 de la cabecera guarda lo que antes ocupaba el pie del panel (de dónde sale el sonido de ytm-rs con el enlace a su
 código, y cómo se sincronizan las luces): se lee al dejar el ratón encima, o pulsándolo en pantallas táctiles.
 Código: `SourcePicker` e `InfoTip` en `ui/space/MusicPanel.tsx`. Las fuentes:
@@ -9755,6 +9766,14 @@ Debajo quedan la canción, «Abrir su ventana» y **«Carátula»**, que lo quit
 (error 150 en la web, por ejemplo), vuelve la carátula con un aviso. Es el vídeo del mismo ID que suena: en canciones
 sin videoclip (pistas de audio de YouTube Music) se ve su imagen fija. Código: `YtmrsVideo` en `ui/space/YtmrsBox.tsx`
 (usa `createEmbedPlayer` con `muted`, que añade `mute=1`).
+
+**La letra al ritmo (arreglado en la 1.43.2):** ytm-rs solo avisa de su posición al cambiar de segundo, así que lo que
+lee kywai puede tener casi un segundo. Desde la 1.43.2 el estado trae `positionAgeMs` (hace cuánto llegó esa posición,
+en `src/main/ytmrs.ts`) y el reloj de la letra (`useSongClock`) mira cada lectura una sola vez, calcula dónde va ytm-rs
+de verdad y corrige las diferencias pequeñas poco a poco; solo recoloca de golpe si se separa más de 0,6 s (buscar,
+cortes). Antes cada lectura vieja tiraba el reloj hacia atrás y la letra iba y venía. Además, la letra se centra
+midiendo dentro de su lista: con `offsetTop` (que contaba desde el panel) bajaba muchísimo y dejaba la línea que suena
+fuera de la vista.
 
 **Minimizar ytm-rs (desde la 1.40.0):** en la pestaña ytm-rs, el icono de minimizar (junto a la ×, o Esc) deja la
 música en una barra abajo a la izquierda del espacio con la carátula (la canción al pasar el ratón), atrás / pausa /
