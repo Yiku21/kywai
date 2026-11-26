@@ -1105,7 +1105,8 @@ Desde la 1.38.1 la barra (y las de descarga de modelos locales, en `LocalConfig`
 la marca kywai —azul, verde y naranja, los de las tres gotas del logo— en vez del morado de Qwen: los tokens `--k-blue`,
 `--k-green`, `--k-orange` y `--k-marca` (degradado) están en `src/renderer/src/styles/tokens.css`, y las barras de
 `common/ui.module.css` los usan con `.trackMarca` + `.fillMarca`. El degradado mide como toda la barra y se descubre
-al avanzar.
+al avanzar. Desde la 1.49.1 el aviso «Hay una versión nueva de kywai» (`CloudUpdateToast`, con los estilos de
+`LocalSetupToast.module.css`) también deja el morado: el icono, su fondo y el borde del aviso son azul kywai (`--k-blue`).
 
 Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
 el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
@@ -9834,7 +9835,7 @@ sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para 
 **ytm-rs** es una app de escritorio gratis y de código abierto (licencia GPL-3.0, de grapedjuice) para escuchar
 YouTube Music en Windows, Mac y Linux. **Desde la 1.36.0 kywai la lleva por dentro**: nadie tiene que instalarla ni
 abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y abrir su app»).
-- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.2`) compilada en el fork público
+- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.3`) compilada en el fork público
   [Yiku21/ytm-rs](https://github.com/Yiku21/ytm-rs). El fork añade a su mando las órdenes que necesita kywai (poner una
   canción, la cola, la posición, la letra, abrir su ventana y cerrarse) y un modo «por dentro» (`YTM_EMBEDDED`: arranca
   sin ventana, la × la esconde y no se actualiza sola). Su código está en esa etiqueta del fork, como pide la GPL, y la
@@ -9843,6 +9844,12 @@ abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y ab
     cuadro aunque se pida escondida, y en Windows salía una ventana negra vacía al encender ytm-rs. Ahora, en modo
     `YTM_EMBEDDED`, los primeros cuadros la vuelven a esconder (`start_hidden` en el fork) hasta que kywai pide
     «Abrir su ventana». Al cambiar de etiqueta, kywai descarga la copia nueva y borra la vieja; los datos se quedan.
+  - **Sin icono en el Dock del Mac (arreglado en la 1.49.2, `v0.4.0-kywai.3`):** al encender ytm-rs su icono rojo se
+    quedaba abajo en el Dock del Mac, como si fuera una app abierta aparte. Ahora, en modo `YTM_EMBEDDED`, el fork
+    arranca el bucle de ventanas (winit) como app «accesoria» (`ActivationPolicy::Accessory` en `src/main.rs`): suena
+    de fondo sin icono en el Dock ni barra de menús, y «Abrir su ventana» la sigue enseñando. Las copias del Mac de esa
+    etiqueta se compilan en el Mac mini (los equipos Mac de GitHub no salían) y la Release las sube desde la rama que
+    dice `KYWAI_MAC_PREBUILT`; están firmadas sin cuenta de Apple, como las anteriores.
 - **Primera vez:** la pestaña explica qué es y ofrece **«Activar ytm-rs»**: kywai descarga el paquete portable de su
   sistema de la Release del fork (unos 20 MB), comprueba su huella SHA256 (`YTMRS_ASSETS`; si no coincide no se usa) y
   lo deja en la carpeta de datos de kywai (`ytm-rs/<versión>/`). Mientras, dice cuánto lleva. Sus datos (sesión,
