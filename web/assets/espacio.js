@@ -56,19 +56,20 @@ if(gl){var vs=sh(VS,gl.VERTEX_SHADER),fs=sh(FS,gl.FRAGMENT_SHADER);if(vs&&fs){va
   if(gl.getProgramParameter(pr,gl.LINK_STATUS)){gl.useProgram(pr);U={r:gl.getUniformLocation(pr,'uRes'),t:gl.getUniformLocation(pr,'uT'),x:gl.getUniformLocation(pr,'uX'),v:gl.getUniformLocation(pr,'uV'),rot:gl.getUniformLocation(pr,'uRot'),ld:gl.getUniformLocation(pr,'uLd'),lt:gl.getUniformLocation(pr,'uLt'),d:gl.getUniformLocation(pr,'uD'),m:gl.getUniformLocation(pr,'uM')};gl.bindVertexArray(gl.createVertexArray())}}}
 /* Sin WebGL2, con «reducir movimiento» o con ahorro de datos: queda el cielo de CSS (html[data-nogpu]) y la página se ve igual de bien. */
 if(!U){cv.style.display='none';doc.setAttribute('data-nogpu','');return}
-doc.setAttribute('data-gpu','');
+/* La Tierra aparece (data-gpu, con un fundido) solo cuando sus dos texturas han llegado: mientras tanto se ve el cielo de CSS. */
 var base=cv.getAttribute('data-base')||'';
-var texOK=0,ldv=0,rotv=0;
+var texOK=0,texFail=0,ldv=0,rotv=0;
 function mkTex(unit,uri,px){var tx=gl.createTexture();gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,tx);
  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(px));
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
  var im=new Image();im.decoding='async';
+ im.onerror=function(){texFail=1;cv.style.display='none';doc.setAttribute('data-nogpu','')};
  im.onload=function(){var src=im,mx=gl.getParameter(gl.MAX_TEXTURE_SIZE);
   if(im.width>mx){var k=mx/im.width,cc=document.createElement('canvas');cc.width=mx;cc.height=Math.round(im.height*k);cc.getContext('2d').drawImage(im,0,0,cc.width,cc.height);src=cc}
   gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,tx);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.generateMipmap(gl.TEXTURE_2D);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   var an=gl.getExtension('EXT_texture_filter_anisotropic');if(an)gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,gl.getParameter(an.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
-  texOK++};
+  texOK++;if(texOK>=2)doc.setAttribute('data-gpu','')};
  im.src=uri}
 gl.uniform1i(U.d,0);gl.uniform1i(U.m,1);
 mkTex(0,base+'assets/espacio/'+cv.getAttribute('data-dia'),[6,18,50,255]);mkTex(1,base+'assets/espacio/'+cv.getAttribute('data-mascara'),[255,0,0,255]);
@@ -89,7 +90,7 @@ function draw(now){
   if(window.__lt===undefined)window.__lt=ltT;window.__lt+=(ltT-window.__lt)*(1-Math.exp(-dt*5));gl.uniform1f(U.lt,window.__lt);
   gl.uniform1f(U.ld,.15+.85*ldv);gl.drawArrays(gl.TRIANGLES,0,3)}
 var vis=true;
-function frame(now){if(!vis||document.hidden){requestAnimationFrame(frame);return}requestAnimationFrame(frame);draw(now)}
+function frame(now){if(texFail)return;if(!vis||document.hidden||texOK<2){last=0;requestAnimationFrame(frame);return}requestAnimationFrame(frame);draw(now)}
 addEventListener('pointermove',function(e){tx=(e.clientX/innerWidth)*2-1},{passive:true});
 document.addEventListener('visibilitychange',function(){last=0});
 requestAnimationFrame(frame);
