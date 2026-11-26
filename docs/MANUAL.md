@@ -7675,6 +7675,8 @@ Las que no llevan nada detrás (`/model`, `/uso`, `/puedo`, `/nuevo`) se hacen n
 el cuadro para que escribas lo de detrás. Al escribir **«@»** sale la lista de agentes, cada uno con su modelo a la
 derecha, para hablarle directamente.
 
+**Quién firma el trabajo de una orden.** Cuando una orden de kywai (`/crecer`, `/video`, `/seo`, `/marketing`, `/instagram`…) hace trabajar a un agente, sus mensajes en el chat salen firmados **«kywai · con Claude»** (o el agente que sea) y con la cotorra de kywai, no solo «Claude»: la orden es de kywai y el agente es quien la hace en tu equipo. `/directo` y `@Agente` no cambian: ahí eliges tú al agente y sale con su nombre. Para programadores: el motor marca esos mensajes con `viaKywai` (`pushMessage` en `src/main/orchestrator.ts`, con `isKywaiOrder` de `src/shared/chatCommands.ts`) y `AgentMessage` (`Messages.tsx`) los dibuja con `AgentAvatar kywai`.
+
 Una plantilla o un mod con el nombre de una orden de kywai no sale en la lista (manda la de kywai). En Órbita,
 `/uso` abre «Uso y coste», `/nuevo` abre un chat nuevo y `/recuerda` lo anota el servidor (contesta en el chat, sin
 pasar por Hermes).
@@ -9664,6 +9666,13 @@ lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra co
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
 
+**Minimizar ytm-rs (desde la 1.40.0):** en la pestaña ytm-rs, el icono de minimizar (junto a la ×, o Esc) deja la
+música en una barra abajo a la izquierda del espacio con la carátula (la canción al pasar el ratón), atrás / pausa /
+adelante, me gusta (el corazón se rellena; otro clic lo quita) y el volumen de ytm-rs (altavoz con su deslizador, que
+se manda al soltar; un clic en el altavoz lo silencia y lo devuelve a como estaba). Ampliar vuelve a la pestaña y la ×
+cierra y pausa ytm-rs. Al minimizar se pausa lo que sonara en el reproductor de kywai, para no oír dos cosas. Código:
+`YtmrsBar` y `PopVolume` en `ui/space/MusicPanel.tsx`.
+
 **Volumen en el reproductor pequeño:** la tarjeta y la barra llevan un altavoz junto a los botones. Al pasar el ratón
 por encima sale el deslizador con el porcentaje; un clic en el altavoz silencia o vuelve a dar sonido (en el móvil, el
 primer toque enseña el deslizador y el segundo silencia). Mover el deslizador con el sonido quitado lo activa otra vez.
@@ -10358,6 +10367,13 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   la tarjeta gráfica al 0 %. Con prioridad baja el sistema atiende primero a la interfaz; los vídeos tardan casi lo
   mismo si el equipo está libre. `runJob` acepta `priority: 'normal'` para algo que de verdad tenga prisa, y
   `KYWAI_JOBS_NORMAL_PRIORITY=1` lo apaga todo. Los agentes (Claude Code, Codex…) no se tocan: casi no usan CPU.
+- **Los ojos de los peluches ya no frenan la interfaz con un monitor rápido (1.39.3).** El seguimiento del puntero de
+  `PlushAvatar.tsx` leía la posición de todos los peluches (`getBoundingClientRect`, ~130 en la pantalla de Yil) en
+  cada movimiento del ratón. Como el resto de la interfaz ensucia el layout a cada fotograma, cada lectura obligaba a
+  recalcular el layout de ~11.000 nodos: medido el 26 nov en un PC Windows con un monitor de 240 Hz, el 89 % del
+  tiempo del hilo de la interfaz estaba en esa llamada (renderizador al 100 % de un núcleo con el PC libre) y el chat
+  iba a tirones. Ahora las posiciones se guardan (`lib/plushLook.ts`) y solo se releen cada 400 ms, o cada 100 ms
+  tras un scroll o un cambio de tamaño: como mucho unos cuatro recálculos por segundo en vez de uno por fotograma.
 - **Música sin comprobaciones de más.** Mientras el audio está en pausa (sin música sonando), el programador de la
   música mira una vez por segundo en vez de 20 (`schedule` en `lib/audio.ts`).
 - **El 3D en reposo.** Si durante un minuto ningún agente trabaja, piensa ni espera, no suena música y no mueves
