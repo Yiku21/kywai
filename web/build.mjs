@@ -9,6 +9,7 @@ import { PAGINAS, SECCIONES } from './secciones.mjs'
 import { PRECIOS } from './precios.mjs'
 import { PRESENTACION } from './presentacion.mjs'
 import { ESCAPARATE, renderEscaparate } from './escaparate.mjs'
+import { renderPorque } from './porque.mjs'
 import { GUIAS, renderGuias } from './guias.mjs'
 import { COMPOSIO } from './composio.mjs'
 import { VISUALES, renderVisual } from './visuales.mjs'
@@ -128,7 +129,7 @@ for(const idioma of IDIOMAS) {
     // Portada 1.0: recorrido por las pantallas, sello y franja «Lo nuevo en la 1.0» (recorrido.mjs).
     const {tour,badge}=renderRecorrido({r:recorrido,lang:idioma.code,base,esc,badgeUrl:url('actualizaciones')})
     const values={...Object.fromEntries(Object.entries(presentation).map(([k,v])=>['home.'+k,esc(v)])),...Object.fromEntries(Object.entries(t).map(([k,v])=>[k,esc(v)])),...Object.fromEntries(Object.entries(s).filter(([,v])=>typeof v==='string').map(([k,v])=>['site.'+k,esc(v)])),
-      'site.features':esc(label('funciones')),'meta.title':esc(title),'meta.desc':esc(description),'nav.account':esc(s.account),accountUrl:cuenta,lang:idioma.hreflang,langLabel:idioma.label,ogLocale:idioma.og,base,home:url('inicio'),img:idioma.code,site:SITIO,canonical:SITIO+dir,releases:RELEASES,hreflangs,langLinks,logoDefs,logoViewBox,logoRatio:`${logoW} / ${logoH}`,pageId:pagina.id,downloadUrl:url('descargas'),pricingUrl:url('precios'),agentRibbon,tour,releaseBadge:badge,navigation,footer,
+      'site.features':esc(label('funciones')),'meta.title':esc(title),'meta.desc':esc(description),'nav.account':esc(s.account),accountUrl:cuenta,lang:idioma.hreflang,langLabel:idioma.label,ogLocale:idioma.og,base,home:url('inicio'),img:idioma.code,site:SITIO,canonical:SITIO+dir,releases:RELEASES,hreflangs,langLinks,logoDefs,logoViewBox,logoRatio:`${logoW} / ${logoH}`,pageId:pagina.id,downloadUrl:url('descargas'),pricingUrl:url('precios'),agentRibbon,tour,porque:renderPorque({lang:idioma.code,esc,funcionesUrl:url('funciones')}),releaseBadge:badge,navigation,footer,
       siteConfig:json({lang:idioma.code,translations:langs,hashLinks,downloadUrl:url('descargas'),forLabel:t['hero.ctaFor']}),
       jsonld:json({'@context':'https://schema.org','@type':pagina.id==='inicio'?'SoftwareApplication':'WebPage',name:title,url:SITIO+dir,description,inLanguage:idioma.hreflang,...(pagina.id==='inicio'?{applicationCategory:'DeveloperApplication',operatingSystem:'Windows, macOS, Linux, Android',license:'https://github.com/Yiku21/kywai/blob/master/LICENSE',isAccessibleForFree:true,downloadUrl:RELEASES,codeRepository:'https://github.com/Yiku21/kywai'}:{})})}
     let html=plantilla.replace('{{content}}',content)

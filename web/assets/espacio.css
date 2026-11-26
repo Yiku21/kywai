@@ -253,3 +253,13 @@ body:not(.page-inicio) .page-intro .overview-links.jump { gap: 8px; }
 .kofi { background: var(--blue); color: var(--btn-fg); }
 .give article.monthly { border-color: color-mix(in srgb, var(--blue) 65%, transparent); box-shadow: 0 18px 44px -30px var(--blue); }
 .give .monthly .tag { background: var(--blue); color: var(--btn-fg); }
+
+/* Portada: «Por qué kywai» y «Pídelo como quieras» (reutilizan las tarjetas de Funciones) */
+.pq-section .fx-head { margin-top: 0; }
+.pq-grid { align-items: stretch; }
+.pq-frente { margin-top: clamp(40px, 6vw, 72px); }
+.pq-frente > .eyebrow { text-align: center; margin: 0 0 18px; }
+.pq-formas .fx-card { grid-template-rows: auto auto 1fr auto; }
+.pq-formas .text-link, .pq-ver .text-link { justify-self: start; font-size: 14px; color: var(--blue); }
+.pq-ver { text-align: center; margin: clamp(28px, 4vw, 44px) 0 0; }
+.pq-ver .text-link { justify-self: center; }
