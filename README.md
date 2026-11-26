@@ -1,13 +1,13 @@
 <p align="center"><img src="web/assets/og.png" alt="kywai" width="720"></p>
 
-<h1 align="center">kywai 1.28</h1>
+<h1 align="center">kywai 1.35</h1>
 
 <p align="center"><b>Un equipo de agentes de IA que trabaja por ti.</b><br>Le dejas una tarea y vuelves a un resultado.</p>
 
 <p align="center">
   <a href="https://github.com/Yiku21/kywai/releases/latest"><img alt="Descargar" src="https://img.shields.io/badge/descargar-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-1f5eff"></a>
   <a href="https://github.com/Yiku21/kywai/releases/latest"><img alt="Órbita para Android" src="https://img.shields.io/badge/Android-%C3%93rbita-1fca85"></a>
-  <a href="https://kywai.app/es/agentes/"><img alt="36 agentes" src="https://img.shields.io/badge/agentes-36-7a4cff"></a>
+  <a href="https://kywai.app/es/agentes/"><img alt="42 agentes" src="https://img.shields.io/badge/agentes-42-7a4cff"></a>
   <a href="https://kywai.app"><img alt="kywai.app" src="https://img.shields.io/badge/web-kywai.app-0a0e1a"></a>
 </p>
 
@@ -45,18 +45,19 @@ kywai junta los agentes que ya usas (Claude Code, Codex, Gemini, modelos locales
 | Revisar la seguridad de tu app | `/seguridad`: dos pasadas y 33 ataques reales antes de publicar |
 | Conectar tus apps | Pestaña «Conectores»: 1.740 apps, y tú decides si solo leen o pueden actuar |
 | Repetir un trabajo cada semana | Rutinas por horario, por evento o por carpeta, y un objetivo del equipo que sigue por turnos |
-| Usar tu suscripción, tu clave o un modelo local | 36 agentes compatibles y modelos locales instalados en un clic |
+| Usar tu suscripción, tu clave o un modelo local | 42 agentes compatibles (Antigravity CLI, NVIDIA gratis, Codewhale…) y modelos locales instalados en un clic |
 | Tenerlo encendido siempre | kywai Cloud, con Mi cuenta para agentes, consumo y créditos, y Órbita en Android |
 
-## Lo nuevo en la 1.28
+## Lo nuevo hasta la 1.35
 
-- **Los peluches son el estilo de kywai:** un robot de fieltro para cada agente, con 18 acabados (galaxia, neón, perla…).
-- **Tu ordenador:** los agentes leen cada botón por su nombre; lo ves en vivo con «Parar» a mano.
-- **Máquina de reels:** `/crecer 20 reels`, tabla de publicación, mapa de reels y segunda vida del reel ganador.
-- **`/seguridad`** con 33 ataques reales, en dos pasadas.
-- **Conectores:** tus apps con su estado y un clic para conectarlas.
-- **Película de producto:** tu app en el Escenario 3D a partir de tus capturas.
-- Y además: objetivo del equipo, rutinas que primero observan, silencio de noche, tope de gasto por agente y miniaturas en el chat.
+- **Ventanas a tu medida:** Ajustes y las demás ventanas se estiran desde cualquier borde o se maximizan, y cada una recuerda su tamaño.
+- **Pulsar para hablar:** en «Hablar con kywai» solo te oye mientras mantienes F8 (o la tecla que elijas), también en segundo plano.
+- **Música con ytm-rs:** YouTube Music sin anuncios manejado desde kywai, con la letra como un karaoke y traducida.
+- **Amigos que suenan:** un aviso con marimba propia y una notificación del sistema cuando un amigo te escribe.
+- **`/diseno` y `/juego`:** diseños sin «cara de IA» y juegos pequeños que el agente prueba jugando antes de dártelos; también `/seo` y `/marketing`.
+- **Más fluido y ligero:** el 3D ya no da tirones, la app abre antes y la descarga pesa unos 20 MB menos.
+- **kywai Cloud:** Hermes usa primero tu Claude o tu ChatGPT, y «Pasar a kywai cloud» aguanta muchísimos archivos.
+- Y desde la 1.28: peluches con 18 acabados, «Tu ordenador», máquina de reels (`/crecer`), `/seguridad` con 33 ataques y Conectores con 1.740 apps.
 
 Todas las notas: [versiones publicadas](https://github.com/Yiku21/kywai/releases).
 
@@ -80,7 +81,7 @@ Manual: [docs/MANUAL.md](docs/MANUAL.md) · Guías: [kywai.app/es/guias](https:/
 
 ### English
 
-**kywai 1.28: an AI agent team that works for you.** kywai brings the agents you already use into one coordinated team: the coordinator splits the work, and you watch the plan, the tasks, the files and your agents (now felt plushies with 18 finishes) at work in 3D or 2D. They can use the programs on your computer while you watch live, run a reel machine for Instagram and TikTok, check your app's security with 33 real attacks and connect to 1,740 apps. Create videos, voices and images, run routines, talk to it from Slack, Teams or your Android phone, or keep it running 24/7 with kywai Cloud. Website, guides and downloads at **[kywai.app](https://kywai.app)**.
+**kywai 1.35: an AI agent team that works for you.** kywai brings the agents you already use into one coordinated team: the coordinator splits the work, and you watch the plan, the tasks, the files and your agents (now felt plushies with 18 finishes) at work in 3D or 2D. They can use the programs on your computer while you watch live, run a reel machine for Instagram and TikTok, check your app's security with 33 real attacks, make designs and small games from the chat and connect to 1,740 apps. Create videos, voices and images, run routines, talk to it from Slack, Teams or your Android phone, or keep it running 24/7 with kywai Cloud. Website, guides and downloads at **[kywai.app](https://kywai.app)**.
 
 <p><img src="web/assets/img/recorrido/en/chat.webp" alt="kywai chat and 3D space with the plushie agents" width="720"></p>
 

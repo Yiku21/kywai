@@ -1,8 +1,13 @@
-// Portada (kywai 1.28): recorrido por las pantallas de kywai (capturas reales) y franja «Lo nuevo en la 1.28».
+// Portada: recorrido por las pantallas de kywai (capturas reales) y franja «Lo nuevo» (tarjetas hasta NOVEDADES_HASTA).
 // Las capturas viven en assets/img/recorrido/<es|en>/ (el resto de idiomas usa las inglesas); las de SOLO_ES son de la app
 // instalada y solo existen en español. «estudio» y «ordenador» son tarjetas HTML (no salen en el modo demo) y Órbita usa
 // assets/img/movil-chat.jpg. Todos los agentes salen como peluches, el estilo de kywai desde la 1.26.4.
-export const VERSION_WEB = '1.28'
+import { readFileSync } from 'node:fs'
+// El sello de la portada sale de la versión que se descarga (descargas.json lo pone al día solo cada día): ya no se queda fija.
+const _descargas = JSON.parse(readFileSync(new URL('./descargas.json', import.meta.url), 'utf8'))
+export const VERSION_WEB = (_descargas.assets.map(a => /kywai-(\d+\.\d+)\.\d+/.exec(a.name)?.[1]).find(Boolean)) || '1.35'
+// «Lo nuevo» se escribe a mano: hasta qué versión llegan las tarjetas de abajo (al subirla, repasa también las tarjetas).
+export const NOVEDADES_HASTA = '1.35'
 export const PANTALLAS = ['chat', 'peluches', '3d', '2d', 'tablero', 'miniaturas', 'estudio', 'conectores', 'ordenador', 'temas', 'nube', 'orbita']
 const SOLO_ES = ['miniaturas', 'conectores']
 const ENTERAS = ['peluches', 'miniaturas', 'conectores']
@@ -28,16 +33,16 @@ export const RECORRIDO = {
     studio: [['/video', 'un vídeo de 30 s para presentar la tienda'], ['/crecer', '20 reels para que nos descubra gente nueva'], ['/video', 'película de producto de mi app, con estas capturas']],
     engines: 'Generar con', engineNames: ['Mi ChatGPT', 'Modelos locales', 'Nube'], studioNote: 'Ejemplos de órdenes del estudio.',
     pc: { title: 'Claude está usando tu ordenador', step: 'Escribiendo «Lista de la compra» en el Bloc de notas…', stop: 'Parar', note: 'Ejemplo de lo que ves mientras un agente usa tu PC.' },
-    newKicker: 'Lo nuevo en la 1.28', newTitle: 'Lo último que ha llegado a kywai.', allNotes: 'Todas las notas de la versión',
+    newKicker: 'Lo nuevo hasta la {v}', newTitle: 'Lo último que ha llegado a kywai.', allNotes: 'Todas las notas de la versión',
     news: [
-      ['Los peluches son el estilo de kywai', 'Un robot de fieltro para cada agente en el chat, las fichas, el 2D y el 3D, con 18 acabados: galaxia, neón, perla…'],
-      ['Tu ordenador, en manos de tus agentes', 'Leen cada botón por su nombre, lo ves en vivo con «Parar» a mano y funciona también desde la web o el móvil.'],
-      ['Máquina de reels', '«/crecer 20 reels»: revisas la tanda en una rejilla, salen solos a su mejor hora y el mapa de reels copia lo que gana.'],
-      ['«/seguridad» con 33 ataques reales', 'Revisa tu app en dos pasadas y te dice qué arreglar antes de publicarla.'],
-      ['Conectores', 'Gmail, GitHub, Notion y 1.740 apps más: conectar, desconectar y «Puede actuar» con un clic.'],
-      ['Película de producto', 'Tu app en el Escenario 3D a partir de tus capturas, con guion, fotograma y prueba de 4 s antes de pintarla entera.'],
+      ['Ventanas a tu medida', 'Estira Ajustes y las demás ventanas desde cualquier borde o maximízalas; cada una recuerda su tamaño.'],
+      ['Pulsar para hablar', 'En «Hablar con kywai» solo te oye mientras mantienes F8 (o la tecla que elijas), también con kywai en segundo plano.'],
+      ['Música con ytm-rs y letras', 'YouTube Music sin anuncios, manejado desde kywai, con la letra como un karaoke y traducida a tu idioma.'],
+      ['Amigos que suenan', 'Cuando un amigo te escribe, el número late, suena una marimba propia y sale un aviso del sistema con su nombre.'],
+      ['«/diseno» y «/juego»', 'Diseños sin «cara de IA» y juegos pequeños que el agente prueba jugando antes de dártelos.'],
+      ['Más fluido y ligero', 'El 3D ya no da tirones, kywai abre antes y la descarga pesa unos 20 MB menos.'],
     ],
-    newMore: 'Y además: objetivo del equipo por turnos, rutinas que primero observan, silencio de noche y tope de gasto por agente.',
+    newMore: 'Y además: en kywai Cloud, Hermes usa primero tu Claude o tu ChatGPT; «Pasar a kywai cloud» aguanta muchísimos archivos; «comenta la palabra y te mando el enlace» en Instagram; «/seo» y «/marketing».',
   },
   en: {
     badge: 'Out now', badgeMore: 'See what’s new',
@@ -59,16 +64,16 @@ export const RECORRIDO = {
     studio: [['/video', 'a 30-second video to present the shop'], ['/crecer', '20 reels so new people discover us'], ['/video', 'product film of my app, with these screenshots']],
     engines: 'Create with', engineNames: ['My ChatGPT', 'Local models', 'Cloud'], studioNote: 'Example studio commands.',
     pc: { title: 'Claude is using your computer', step: 'Typing “Shopping list” in Notepad…', stop: 'Stop', note: 'Example of what you see while an agent uses your PC.' },
-    newKicker: 'New in 1.28', newTitle: 'The latest additions to kywai.', allNotes: 'All release notes',
+    newKicker: 'New up to {v}', newTitle: 'The latest additions to kywai.', allNotes: 'All release notes',
     news: [
-      ['Plushies are kywai’s style', 'A felt robot for every agent in the chat, the cards, 2D and 3D, with 18 finishes: galaxy, neon, pearl…'],
-      ['Your computer, in your agents’ hands', 'They read every button by name, you watch live with “Stop” at hand, and it works from the web or your phone too.'],
-      ['Reel machine', '“/crecer 20 reels”: review the batch in a grid, they post at their best time and the reel map copies what wins.'],
-      ['“/seguridad” with 33 real attacks', 'Checks your app in two passes and tells you what to fix before you publish it.'],
-      ['Connectors', 'Gmail, GitHub, Notion and 1,740 more apps: connect, disconnect and “Can act” in one click.'],
-      ['Product film', 'Your app on the 3D Stage from your screenshots, with script, frame and a 4-second test before the full render.'],
+      ['Windows your size', 'Stretch Settings and the other windows from any edge or maximize them; each one remembers its size.'],
+      ['Push to talk', 'In “Talk to kywai” it only hears you while you hold F8 (or the key you choose), even when kywai is in the background.'],
+      ['Music with ytm-rs and lyrics', 'Ad-free YouTube Music controlled from kywai, with karaoke-style lyrics translated into your language.'],
+      ['Friends you can hear', 'When a friend writes, the number pulses, a marimba of its own plays and a system alert shows their name.'],
+      ['“/design” and “/game”', 'Designs without the “AI look” and small games the agent plays to test before handing them over.'],
+      ['Smoother and lighter', 'The 3D no longer stutters, kywai opens sooner and the download is about 20 MB smaller.'],
     ],
-    newMore: 'Also: team goal in shifts, routines that watch first, night-time quiet and a spending cap per agent.',
+    newMore: 'Also: in kywai Cloud, Hermes now uses your Claude or ChatGPT first; “Move to kywai Cloud” copes with huge numbers of files; “comment the word and I’ll send the link” on Instagram; “/seo” and “/marketing”.',
   },
   pt: {
     badge: 'Já disponível', badgeMore: 'Veja as novidades',
@@ -90,16 +95,16 @@ export const RECORRIDO = {
     studio: [['/video', 'um vídeo de 30 s para apresentar a loja'], ['/crecer', '20 reels para gente nova nos descobrir'], ['/video', 'filme de produto do meu app, com estas capturas']],
     engines: 'Gerar com', engineNames: ['Meu ChatGPT', 'Modelos locais', 'Nuvem'], studioNote: 'Exemplos de comandos do estúdio.',
     pc: { title: 'Claude está usando seu computador', step: 'Escrevendo «Lista de compras» no Bloco de notas…', stop: 'Parar', note: 'Exemplo do que você vê enquanto um agente usa seu PC.' },
-    newKicker: 'Novidades da 1.28', newTitle: 'O que acabou de chegar ao kywai.', allNotes: 'Todas as notas da versão',
+    newKicker: 'Novidades até a {v}', newTitle: 'O que acabou de chegar ao kywai.', allNotes: 'Todas as notas da versão',
     news: [
-      ['As pelúcias são o estilo do kywai', 'Um robô de feltro para cada agente no chat, nas fichas, no 2D e no 3D, com 18 acabamentos: galáxia, neon, pérola…'],
-      ['Seu computador nas mãos dos agentes', 'Leem cada botão pelo nome, você vê ao vivo com «Parar» à mão e funciona também pela web ou pelo celular.'],
-      ['Máquina de reels', '«/crecer 20 reels»: revise o lote numa grade, eles saem no melhor horário e o mapa de reels copia o que dá certo.'],
-      ['«/seguridad» com 33 ataques reais', 'Revisa seu app em duas passadas e diz o que corrigir antes de publicar.'],
-      ['Conectores', 'Gmail, GitHub, Notion e mais 1.740 apps: conectar, desconectar e «Pode agir» com um clique.'],
-      ['Filme de produto', 'Seu app no Cenário 3D a partir das suas capturas, com roteiro, quadro e teste de 4 s antes de pintar tudo.'],
+      ['Janelas do seu tamanho', 'Estique Configurações e as outras janelas por qualquer borda ou maximize-as; cada uma lembra do seu tamanho.'],
+      ['Apertar para falar', 'Em “Falar com o kywai”, ele só ouve você enquanto você segura F8 (ou a tecla que escolher), também com o kywai em segundo plano.'],
+      ['Música com ytm-rs e letras', 'YouTube Music sem anúncios, controlado pelo kywai, com a letra em estilo karaokê e traduzida para o seu idioma.'],
+      ['Amigos que se ouvem', 'Quando um amigo escreve, o número pulsa, toca uma marimba própria e aparece um aviso do sistema com o nome dele.'],
+      ['“/diseno” e “/juego”', 'Designs sem “cara de IA” e jogos pequenos que o agente testa jogando antes de entregar.'],
+      ['Mais fluido e leve', 'O 3D não trava mais, o kywai abre mais rápido e o download pesa cerca de 20 MB a menos.'],
     ],
-    newMore: 'E também: objetivo da equipe por turnos, rotinas que primeiro observam, silêncio à noite e teto de gasto por agente.',
+    newMore: 'E também: no kywai Cloud, o Hermes usa primeiro o seu Claude ou ChatGPT; “Passar para o kywai Cloud” aguenta muitíssimos arquivos; “comente a palavra e eu mando o link” no Instagram; “/seo” e “/marketing”.',
   },
   fr: {
     badge: 'Disponible', badgeMore: 'Voir les nouveautés',
@@ -121,16 +126,16 @@ export const RECORRIDO = {
     studio: [['/video', 'une vidéo de 30 s pour présenter la boutique'], ['/crecer', '20 reels pour que de nouvelles personnes nous découvrent'], ['/video', 'film produit de mon app, avec ces captures']],
     engines: 'Créer avec', engineNames: ['Mon ChatGPT', 'Modèles locaux', 'Cloud'], studioNote: 'Exemples de commandes du studio.',
     pc: { title: 'Claude utilise votre ordinateur', step: 'Écrit « Liste de courses » dans le Bloc-notes…', stop: 'Arrêter', note: 'Exemple de ce que vous voyez pendant qu’un agent utilise votre PC.' },
-    newKicker: 'Nouveau dans la 1.28', newTitle: 'Les derniers ajouts à kywai.', allNotes: 'Toutes les notes de version',
+    newKicker: 'Nouveautés jusqu’à la {v}', newTitle: 'Les derniers ajouts à kywai.', allNotes: 'Toutes les notes de version',
     news: [
-      ['Les peluches sont le style de kywai', 'Un robot en feutre pour chaque agent dans le chat, les fiches, la 2D et la 3D, avec 18 finitions : galaxie, néon, perle…'],
-      ['Votre ordinateur, entre les mains de vos agents', 'Ils lisent chaque bouton par son nom, vous regardez en direct avec « Arrêter » à portée et ça marche aussi depuis le web ou le mobile.'],
-      ['Machine à reels', '« /crecer 20 reels » : vérifiez la série dans une grille, ils sortent à la meilleure heure et la carte des reels copie ce qui marche.'],
-      ['« /seguridad » avec 33 attaques réelles', 'Vérifie votre app en deux passes et vous dit quoi corriger avant de la publier.'],
-      ['Connecteurs', 'Gmail, GitHub, Notion et 1 740 autres apps : connecter, déconnecter et « Peut agir » en un clic.'],
-      ['Film produit', 'Votre app sur la Scène 3D à partir de vos captures, avec script, image et essai de 4 s avant le rendu complet.'],
+      ['Des fenêtres à votre taille', 'Étirez les Réglages et les autres fenêtres par n’importe quel bord ou agrandissez-les ; chacune se souvient de sa taille.'],
+      ['Appuyer pour parler', 'Dans « Parler à kywai », il ne vous entend que tant que vous maintenez F8 (ou la touche de votre choix), même en arrière-plan.'],
+      ['Musique avec ytm-rs et paroles', 'YouTube Music sans publicité, piloté depuis kywai, avec des paroles façon karaoké traduites dans votre langue.'],
+      ['Des amis qui se font entendre', 'Quand un ami vous écrit, le chiffre pulse, un marimba bien à lui retentit et une alerte système affiche son nom.'],
+      ['« /diseno » et « /juego »', 'Des designs sans « look d’IA » et de petits jeux que l’agent teste en y jouant avant de vous les remettre.'],
+      ['Plus fluide et plus léger', 'La 3D ne saccade plus, kywai s’ouvre plus vite et le téléchargement pèse environ 20 Mo de moins.'],
     ],
-    newMore: 'Et aussi : objectif d’équipe par relais, routines qui observent d’abord, silence la nuit et plafond de dépenses par agent.',
+    newMore: 'Et aussi : dans kywai Cloud, Hermes utilise d’abord votre Claude ou votre ChatGPT ; « Passer à kywai Cloud » gère un très grand nombre de fichiers ; « commentez le mot et je vous envoie le lien » sur Instagram ; « /seo » et « /marketing ».',
   },
   zh: {
     badge: '现已推出', badgeMore: '查看新功能',
@@ -152,16 +157,16 @@ export const RECORRIDO = {
     studio: [['/video', '做一个 30 秒的店铺介绍视频'], ['/crecer', '20 条短视频，让新的人发现我们'], ['/video', '用这些截图做我的应用的产品影片']],
     engines: '生成方式', engineNames: ['我的 ChatGPT', '本地模型', '云端'], studioNote: '工作室指令示例。',
     pc: { title: 'Claude 正在使用你的电脑', step: '正在记事本里输入“购物清单”…', stop: '停止', note: '智能体使用你的电脑时你看到的画面示例。' },
-    newKicker: '1.28 新功能', newTitle: 'kywai 最新加入的功能。', allNotes: '全部版本说明',
+    newKicker: '截至 {v} 的新功能', newTitle: 'kywai 最新加入的功能。', allNotes: '全部版本说明',
     news: [
-      ['毛绒公仔成为 kywai 的风格', '聊天、卡片、2D 和 3D 中每个智能体都是一个毛毡机器人，有 18 种质感：星系、霓虹、珍珠……'],
-      ['让智能体操作你的电脑', '按名称识别每个按钮，实时观看，“停止”随手可按，也能从网页或手机使用。'],
-      ['短视频工厂', '“/crecer 20 reels”：在网格里检查整批，按最佳时间自动发布，短视频地图会复制表现最好的。'],
-      ['“/seguridad”：33 种真实攻击', '分两轮检查你的应用，告诉你发布前要修什么。'],
-      ['连接器', 'Gmail、GitHub、Notion 等 1,740 个应用：一键连接、断开和“可以操作”。'],
-      ['产品影片', '用你的截图把应用放进 3D 场景，完整渲染前先看脚本、一帧画面和 4 秒试片。'],
+      ['窗口随你调大小', '设置和其他窗口可从任意边缘拖动放大，或一键最大化；每个窗口都会记住自己的大小。'],
+      ['按住说话', '在“与 kywai 对话”中，只有你按住 F8（或你选的按键）时它才会收听，kywai 在后台时也一样。'],
+      ['用 ytm-rs 听音乐、看歌词', '无广告的 YouTube Music 可在 kywai 里控制，歌词像卡拉 OK 一样逐字点亮，并翻译成你的语言。'],
+      ['听得见的好友消息', '好友发来消息时，数字会跳动，响起专属的马林巴琴提示音，系统通知里还会显示对方的名字。'],
+      ['“/diseno”和“/juego”', '没有“AI 味”的设计，以及智能体先亲自玩过再交给你的小游戏。'],
+      ['更流畅、更轻巧', '3D 不再卡顿，kywai 启动更快，下载包小了约 20 MB。'],
     ],
-    newMore: '还有：团队目标轮班推进、先观察再执行的例行任务、夜间静音，以及每个智能体的花费上限。',
+    newMore: '此外：在 kywai Cloud 中，Hermes 会优先使用你的 Claude 或 ChatGPT；“迁移到 kywai Cloud”可处理海量文件；Instagram 上“评论关键词，我私信发你链接”；以及“/seo”和“/marketing”。',
   },
   hi: {
     badge: 'अब उपलब्ध', badgeMore: 'नया क्या है देखें',
@@ -183,20 +188,20 @@ export const RECORRIDO = {
     studio: [['/video', 'दुकान के परिचय के लिए 30 सेकंड का वीडियो'], ['/crecer', '20 रील ताकि नए लोग हमें खोजें'], ['/video', 'इन स्क्रीनशॉट से मेरे ऐप की प्रोडक्ट फ़िल्म']],
     engines: 'इससे बनाएँ', engineNames: ['मेरा ChatGPT', 'लोकल मॉडल', 'क्लाउड'], studioNote: 'स्टूडियो कमांड के उदाहरण।',
     pc: { title: 'Claude आपका कंप्यूटर चला रहा है', step: 'नोटपैड में «खरीदारी की सूची» लिख रहा है…', stop: 'रोकें', note: 'जब कोई एजेंट आपका PC चलाता है तब आप जो देखते हैं उसका उदाहरण।' },
-    newKicker: '1.28 में नया', newTitle: 'kywai में आई नई चीज़ें।', allNotes: 'सभी रिलीज़ नोट्स',
+    newKicker: '{v} तक की नई चीज़ें', newTitle: 'kywai में आई नई चीज़ें।', allNotes: 'सभी रिलीज़ नोट्स',
     news: [
-      ['प्लश खिलौने अब kywai की शैली', 'चैट, कार्ड, 2D और 3D में हर एजेंट के लिए फ़ेल्ट का रोबोट, 18 फ़िनिश के साथ: गैलेक्सी, नियॉन, पर्ल…'],
-      ['आपका कंप्यूटर, आपके एजेंटों के हाथ में', 'वे हर बटन को नाम से पढ़ते हैं, आप «रोकें» हाथ में रखकर लाइव देखते हैं, और यह वेब या फ़ोन से भी चलता है।'],
-      ['रील मशीन', '«/crecer 20 reels»: पूरे बैच को ग्रिड में देखें, वे सबसे अच्छे समय पर पोस्ट होती हैं और रील मैप जीतने वाली रीलों की नकल करता है।'],
-      ['«/seguridad» 33 असली हमलों के साथ', 'आपके ऐप को दो बार जाँचता है और प्रकाशित करने से पहले क्या ठीक करना है बताता है।'],
-      ['कनेक्टर', 'Gmail, GitHub, Notion और 1,740 और ऐप: एक क्लिक में जोड़ें, हटाएँ और «काम कर सकता है»।'],
-      ['प्रोडक्ट फ़िल्म', 'आपके स्क्रीनशॉट से आपका ऐप 3D मंच पर, पूरी फ़िल्म से पहले स्क्रिप्ट, एक फ़्रेम और 4 सेकंड का परीक्षण।'],
+      ['अपने नाप की विंडो', 'सेटिंग और बाकी विंडो को किसी भी किनारे से खींचकर बड़ा करें या मैक्सिमाइज़ करें; हर विंडो अपना आकार याद रखती है।'],
+      ['दबाकर बोलें', '“kywai से बात करें” में वह तभी सुनता है जब आप F8 (या चुनी हुई कुंजी) दबाए रखते हैं, kywai बैकग्राउंड में हो तब भी।'],
+      ['ytm-rs से संगीत और बोल', 'बिना विज्ञापन वाला YouTube Music, kywai से नियंत्रित, कराओके जैसे बोल के साथ जो आपकी भाषा में अनुवादित होते हैं।'],
+      ['सुनाई देने वाले दोस्त', 'दोस्त के लिखने पर संख्या धड़कती है, अपनी मरिम्बा बजती है और सिस्टम सूचना में उसका नाम दिखता है।'],
+      ['“/diseno” और “/juego”', 'बिना “AI वाली छाप” के डिज़ाइन, और छोटे गेम जिन्हें एजेंट खुद खेलकर परखता है, फिर आपको देता है।'],
+      ['ज़्यादा सहज और हल्का', '3D अब अटकता नहीं, kywai जल्दी खुलता है और डाउनलोड लगभग 20 MB छोटा है।'],
     ],
-    newMore: 'और भी: पालियों में टीम का लक्ष्य, पहले देखने वाले रूटीन, रात में शांति और हर एजेंट के लिए खर्च की सीमा।',
+    newMore: 'और भी: kywai Cloud में Hermes पहले आपका Claude या ChatGPT इस्तेमाल करता है; “kywai cloud में जाएँ” बहुत सारी फ़ाइलें संभालता है; Instagram पर “शब्द कमेंट करें, मैं लिंक भेज देता हूँ”; “/seo” और “/marketing”।',
   },
 }
 
-/** El recorrido de 12 pestañas y la franja «Lo nuevo en la 1.28». */
+/** El recorrido de 12 pestañas y la franja «Lo nuevo». */
 export function renderRecorrido({ r, lang, base, esc, releases }) {
   const carpeta = lang === 'es' ? 'es' : 'en'
   const imagen = id => id === 'orbita' ? `${base}assets/img/movil-chat.jpg` : `${base}assets/img/recorrido/${SOLO_ES.includes(id) ? 'es' : carpeta}/${id}.webp`
@@ -211,7 +216,7 @@ export function renderRecorrido({ r, lang, base, esc, releases }) {
     return `<div class="tour-panel" id="tour-${id}" role="tabpanel" aria-labelledby="tour-tab-${id}" tabindex="0"${i ? ' hidden' : ''}><div class="tour-shot tour-shot-${id}${ENTERAS.includes(id) ? ' tour-shot-entera' : ''}">${shot}</div><div class="tour-copy"><h3>${esc(name)}</h3><p>${esc(body)}</p><ul class="tour-chips">${chips.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div></div>`
   }).join('')
   const tour = `<figure class="product-tour" id="video" data-tour><div class="product-stage-bar"><span class="stage-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>${esc(r.kicker)} · ${esc(r.title)}</span><button type="button" class="tour-toggle" data-tour-toggle data-label-pause="${esc(r.pause)}" data-label-play="${esc(r.play)}" aria-label="${esc(r.pause)}" title="${esc(r.pause)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="tour-ico-pause" d="M8 5v14M16 5v14"/><path class="tour-ico-play" d="m8 5 11 7-11 7Z"/></svg></button></div><div class="tour-tabs" role="tablist" aria-label="${esc(r.kicker)}">${tabs}</div>${panels}<figcaption>${esc(r.note)}</figcaption></figure>`
-  const news = `<section class="section news-section" id="novedades"><div class="wrap"><div class="section-head"><p class="eyebrow">${esc(r.newKicker)}</p><h2>${esc(r.newTitle)}</h2></div><div class="news-grid">${r.news.map(([t, b]) => `<article><h3>${esc(t)}</h3><p>${esc(b)}</p></article>`).join('')}</div><p class="news-more">${esc(r.newMore)}</p><a class="text-link" href="${releases}">${esc(r.allNotes)} <span aria-hidden="true">→</span></a></div></section>`
+  const news = `<section class="section news-section" id="novedades"><div class="wrap"><div class="section-head"><p class="eyebrow">${esc(r.newKicker.replace('{v}', NOVEDADES_HASTA))}</p><h2>${esc(r.newTitle)}</h2></div><div class="news-grid">${r.news.map(([t, b]) => `<article><h3>${esc(t)}</h3><p>${esc(b)}</p></article>`).join('')}</div><p class="news-more">${esc(r.newMore)}</p><a class="text-link" href="${releases}">${esc(r.allNotes)} <span aria-hidden="true">→</span></a></div></section>`
   const badge = `<a class="release-badge" href="#novedades"><strong>kywai ${VERSION_WEB}</strong><span>${esc(r.badge)}</span><span class="release-badge-more">${esc(r.badgeMore)} →</span></a>`
   return { tour, news, badge }
 }
