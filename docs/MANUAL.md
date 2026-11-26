@@ -5842,6 +5842,42 @@ de entregar. Entrega en `piezas3d/<pieza>-<id>/`: `pieza.step`, `pieza.stl`, `pi
 `LEEME.md` con medidas, supuestos y cómo imprimirla. No hace armas ni piezas de armas. Órbita tiene la orden en su
 lista del «/».
 
+### Música con Lyria (`/musica`)
+
+**«/musica [segundos] [instrumental] cómo suena»** hace una canción o una pieza de música de fondo de una frase con
+Lyria, el generador de música de Google: «/musica rock suave para un reel de cocina», «/musica 30 s instrumental jazz de
+cafetería», «/musica balada en español sobre el mar». También valen `/cancion`, `/song` y `/music`. Con «instrumental»
+(o «sin voz», «sin letra») sale solo música; sin él, Lyria canta con letra propia en el idioma en que lo escribas. Sin
+duración, sale una canción de un par de minutos (Lyria 3.5); con «2 min» se lo pide en el texto; hasta 30 s se usa
+Lyria 3 Clip, que siempre hace 30 s y es más barato. Dentro del texto valen las etiquetas `[Verse]`, `[Chorus]`… y tu
+propia letra.
+
+Lo hace kywai directamente, sin gastar ningún agente ni pasar por el plan (`sendSong` en el orquestador, `lyriaCompose`
+en `src/main/lyria.ts` y el análisis de la orden en `src/main/songRequest.ts`): guarda el MP3 en `musica/<primeras-palabras>.mp3`
+del proyecto y, si Lyria escribió letra, un `.txt` al lado con la letra y la estructura; quien coordina los deja en el chat
+para escucharlos y dice cuánto tardó y cuánto costó. Usa **tu clave de Gemini** (la misma de las imágenes y de Cine IA, en Ajustes → Multimedia →
+Estudio de vídeo) y **tiene que tener la facturación activada**: Lyria no tiene capa gratis. Precio de Google (26 nov
+2026): 0,08 USD una canción de Lyria 3.5 y 0,04 USD un clip de Lyria 3 Clip; una pieza que sale mal también se cobra.
+Se pide con `POST /v1beta/interactions` (cabeceras `x-goog-api-key` y `Api-Revision: 2026-05-20`, cuerpo `{model, input}`)
+y el audio llega en base64 dentro de `steps → model_output → audio`. La clave nunca va a ningún agente.
+
+Límites: Google no admite pedir la voz de un artista concreto ni letras con derechos de autor (el mensaje lo dice); cada
+pieza lleva una marca de agua SynthID inaudible; no se puede retocar una pieza ya hecha (se pide otra); y los resultados
+varían entre llamadas. **Licencia:** Google no publica una frase de licencia comercial específica para Lyria: la pieza cae
+bajo los términos generales de la API de Gemini (con la facturación activada, tu uso no se usa para mejorar sus
+productos); si vas a monetizar, léelos. **Sin probar contra el servicio real al escribir esto** (no había clave con
+facturación): el formato de la respuesta sigue la documentación de Google y la lectura es tolerante.
+
+**Música de fondo con IA en `/video`.** En Ajustes → Multimedia → Imágenes y vídeos, la casilla **«Música de fondo con IA
+(Lyria de Google) en los vídeos»** (apagada de fábrica: gasta de tu clave de Gemini) cambia los acordes sintetizados de
+siempre por una pieza de Lyria hecha para ese vídeo: instrumental, con el ánimo que eligió el guion («calma», «normal» o
+«energia») y su título, a la duración exacta (se repite si el vídeo es más largo) y con fundidos. Hasta 30 s usa Lyria 3
+Clip (0,04 USD) y si dura más, Lyria 3.5 (0,08 USD). La mezcla de siempre la baja cuando habla la voz. Si Lyria o ffmpeg
+fallan (sin clave, sin facturación, límite…) el vídeo no se pierde: lleva la música sintetizada y el progreso lo dice.
+Código: `src/main/videoMusic.ts` (`aiBackgroundMusic`), llamado desde `renderVideoNow` en `videoStudio.ts`; la preferencia
+es `aiMusic` en `generar-con.json` (`shared/mediaEngines.ts`). Solo vale en el estudio de vídeo (Reel, explicativo,
+charla…); Cine IA y los vídeos hechos en el equipo conectado no la usan.
+
 ### Efectos de sonido (`/sonido`)
 
 **«/sonido [segundos] [bucle] qué suena»** hace un efecto de sonido de una frase con ElevenLabs: «/sonido puerta vieja
@@ -7852,6 +7888,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/sprite [64px] [8 direcciones] personaje` | Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (ver «Sprites de pixel art para juegos») |
 | `/imprimir3d [80 mm] [PETG] pieza` | Una pieza para imprimir en 3D de una foto, un boceto o una descripción, con CAD de medidas exactas, STL y 3MF (ver «Piezas para imprimir en 3D») |
 | `/sonido [5 s] [bucle] qué suena` | Un efecto de sonido de una frase con ElevenLabs, listo para escuchar (ver «Efectos de sonido») |
+| `/musica [30 s] [instrumental] cómo suena` | Una canción o música de fondo de una frase con Lyria de Google, lista para escuchar (ver «Música con Lyria») |
 | `/doblar <idioma>` | El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos (ver «Doblar un vídeo a otro idioma») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
