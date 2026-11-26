@@ -1097,11 +1097,16 @@ en cada vuelta (2 min) aunque haya fusiones esperando. Código: `src/renderer/sr
 clic, `withAskedAt`, si el proceso de la app aún no ha contestado) y la propia barra pregunta `updatePending()` cada 3 s,
 sin depender de que llegue el evento `update.pending`. Un espacio con una versión anterior a la 1.30.30 aún no tiene la
 barra en el aviso: la verá a partir de esa actualización (la página de reinicio de Caddy sí la enseña siempre).
+Desde la 1.48.1 la barra estima 1 minuto en vez de «Unos 4 min» (26 nov 2026; en el servidor se midió espera 3-17 s,
+parada 1-2 s, arranque 3 s, es decir 10-25 s, y se deja un margen). El servidor ya no copia los datos del espacio al actualizar
+(la copia de seguridad es la de cada noche) y atiende el botón cada pocos segundos; el registro del servidor anota
+`PENDIENTE_TIEMPOS` con lo que tardó cada parte.
 Desde la 1.38.1 la barra (y las de descarga de modelos locales, en `LocalConfig` y `LocalSetupToast`) lleva los colores de
 la marca kywai —azul, verde y naranja, los de las tres gotas del logo— en vez del morado de Qwen: los tokens `--k-blue`,
 `--k-green`, `--k-orange` y `--k-marca` (degradado) están en `src/renderer/src/styles/tokens.css`, y las barras de
 `common/ui.module.css` los usan con `.trackMarca` + `.fillMarca`. El degradado mide como toda la barra y se descubre
-al avanzar.
+al avanzar. Desde la 1.49.1 el aviso «Hay una versión nueva de kywai» (`CloudUpdateToast`, con los estilos de
+`LocalSetupToast.module.css`) también deja el morado: el icono, su fondo y el borde del aviso son azul kywai (`--k-blue`).
 
 Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
 el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
@@ -2699,6 +2704,33 @@ primera tarea la prepara en `lote/lista.csv` y las de cada elemento dependen sol
 carpeta `lote/<número>-<nombre-corto>/` para que no se pisen, y la última, «Juntar los resultados», escribe
 `lote/resultados.csv` (una fila por elemento, con su estado y el enlace a lo que entregó). `isWidePlan` acepta también
 esa forma: una sola tarea raíz, al menos 7 que dependen solo de ella y como mucho una que las junta.
+
+
+### Reparto automático del trabajo repetido entre agentes (1.48.0)
+
+Antes había que decir «en equipo» o «uno por agente» para que el coordinador repartiera; si no, un solo agente (casi
+siempre Claude) hacía todo, tardaba más y agotaba su cuota. Desde la 1.48.0 **se reparte solo**:
+
+- **El coordinador** lo trae en su encargo (regla «ELEMENTOS INDEPENDIENTES» de `buildPlanPrompt`): lo mismo para varias
+  cosas que no se necesitan entre sí (analizar 5 vídeos, revisar 4 webs…) son **una tarea por elemento**, sin
+  dependencias, en agentes distintos con terminal y con más peso a quien tiene más cuota libre. Si la lista aún no
+  existe, una primera tarea la prepara. Un plan con esa forma admite hasta 25 tareas aunque no se haya dicho «en lote»
+  (`planTaskLimit` mira solo la forma, `isWidePlan`).
+- **kywai lo comprueba** (`validatePlan` + `src/shared/loadSpread.ts`): si 3 o más tareas iguales e independientes
+  (`siblingGroups`: mismas dependencias, mismo tipo de entrega y dificultad) caen casi todas en un agente, `spreadLoad`
+  mueve las que sobran a otros con hueco. Cada agente se queda con su parte justa según su cuota libre (`agentWeight`:
+  menos si le queda poca, nada si está en alerta, menos si ya trabaja en otra cosa); no se reparte a modelos locales,
+  agentes de solo texto ni a quien no tiene el navegador de kywai si la tarea lo pide, ni lo que el usuario nombró
+  (`namedByUser`) o con «un solo agente». El chat cuenta el cambio («Repartí las N tareas iguales…»).
+- **«/crecer» con varios reels** (`sendNightShift`, `completeNightShift`): con 2 o más reels y 2 o más agentes con
+  terminal, la tanda va por fases: un agente **elige las fuentes** (`elegidos.md`, fase «search»), luego cada agente
+  **desmonta y escribe sus reels a la vez** (fase «part», tramos seguidos de `splitRanges`, hasta 5 a la vez) y los
+  **vídeos** salen repartidos por turnos y por cuota (`assignRoundRobin`, `ns.videoAgents`). La mesa de revisión se abre
+  al empezar. Un mensaje, «Reparto de la tanda entre N agentes», dice quién hace las fuentes, los guiones y cada vídeo.
+  Con un solo agente disponible o un solo reel, todo va como antes.
+- **«Hazme 6 vídeos…»** (`sendVideo`): los vídeos de una misma petición también se reparten por turnos entre los
+  agentes (antes solo los de estilo de película, y los guiones sin película iban todos al mismo).
+- Si un agente falla o se queda sin cuota a mitad, su tarea pasa a otro como siempre (reasignación del planificador).
 
 ### El plan se ve mientras se escribe
 
@@ -4363,7 +4395,7 @@ Skills, Planning with Files, UI UX Pro Max, Taste Skill, Emil Kowalski Skills, A
 Scientific Skills y Stop Slop. El 22 nov 2026 llegaron Make Interfaces Feel Better (detalles finos de interfaz:
 animaciones, alineación óptica, radios concéntricos, sombras, zonas de clic) y Loopy (bucles de hacer, comprobar y
 corregir con un final claro; solo publica un bucle en Loop Library si el usuario lo pide), y después Claude SEO (auditoría SEO a fondo, 29
-habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). El 25 nov 2026 (v1.34.0) llegó vgpu (`vercel-labs/vgpu`, MIT), la librería WebGPU de Vercel pensada para agentes: efectos 3D, luz y shaders (lava, cristal, partículas) en webs que se compilan con npm, con su galería y sus órdenes `npx vgpu docs`, `examples` y `check`. Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
+habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). El 25 nov 2026 (v1.34.0) llegó vgpu (`vercel-labs/vgpu`, MIT), la librería WebGPU de Vercel pensada para agentes: efectos 3D, luz y shaders (lava, cristal, partículas) en webs que se compilan con npm, con su galería y sus órdenes `npx vgpu docs`, `examples` y `check`. El 26 nov 2026 (v1.46.1, vigía ronda 7) llegó Hyper Elements (`hyper-elements/hyper-elements`, MIT, del equipo de Unlayer), con dos habilidades: `hyper-elements` (correos que salen bien en Outlook y Gmail, páginas, documentos y PDF, e imágenes PNG o SVG, todo con componentes de React de `@hyper-elements/react`; el agente instala el paquete en el proyecto si falta y comprueba el diseño con `validate()`/`outline()`) y `email-testing` (ver un correo en Outlook, Gmail, Apple Mail y otros clientes, gratis y en el equipo, con `@hyper-elements/email-clients`). Ninguna lanza órdenes al cargarse. Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
 traen algunas (Planning with Files, Taste Skill) no se ejecutan. Una habilidad en la raíz de su repositorio lleva sus
 carpetas (como `references/`), menos las de pruebas y las ocultas; con `only`, si la misma sale copiada en varias
 carpetas, vale la primera. Fuera a propósito: ECC y gstack (marcos con hooks que se solapan con Superpowers), Caveman
@@ -6319,8 +6351,10 @@ mi visto bueno» lo desactiva. Por defecto está apagado.
 
 **Reel de prueba.** **«/instagram prueba [qué quieres en el texto]»** hace lo mismo, pero lo publica como **reel de
 prueba** (trial reel): Instagram lo enseña primero solo a quien **no** sigue la cuenta y, si funciona bien, lo pasa
-solo a los seguidores (`trial_params` con `SS_PERFORMANCE` en la API). Sirve para probar un gancho o un formato sin
-gastar a los seguidores. La tarjeta dice «Reel de prueba».
+solo a los seguidores (`trial_params` con `SS_PERFORMANCE` en la API). La tarjeta dice «Reel de prueba». **Instagram
+solo lo permite a cuentas con 1.000 seguidores o más** («Trial Reels require an Instagram account with 1,000+
+followers»), así que desde la 1.44.2 «/crecer» ya **no** lo usa: publica reels normales. Úsalo a mano solo si tu cuenta
+llega a ese número.
 
 **Resultados.** **«/instagram resultados»** lee los números de los últimos reels (con Instagram conectado con un clic,
 las analíticas de Zernio; si no, la API con el token: los últimos 12) (vistas, alcance, me
@@ -6393,8 +6427,7 @@ el orquestador; la tarjeta, `InstagramRepliesBlock` en `Messages.tsx`.
 **Turno de noche (`/turno-noche`).** La cadena entera del Instagram de kywai en una sola orden, pensada para dejarla
 en una rutina de madrugada («/rutina cada día a las 3:00: /turno-noche IA y productividad»). También vale `/crecer`
 (desde la 1.15.4), `/maquina`, `/turno` o `/noche`. Es el bucle para que gente nueva descubra tu app sin salir en cámara:
-estudiar lo que funciona en tu nicho, rehacerlo con tu voz, probarlo con desconocidos (reel de prueba) y afinar con los
-números. Detrás va el nicho, unas cuentas o enlaces que quieras que mire (si no pones nada, lo saca de la
+estudiar lo que funciona en tu nicho, rehacerlo con tu voz, publicarlo y afinar con los números. Detrás va el nicho, unas cuentas o enlaces que quieras que mire (si no pones nada, lo saca de la
 voz de la cuenta). Lo que pasa:
 1. Un agente con terminal sigue la habilidad `ig-viral` y busca los vídeos cortos del nicho que han superado **3 veces
    o más** lo normal de su creador (la mediana de sus últimos vídeos). Mira YouTube Shorts y TikTok públicos (con
@@ -6414,11 +6447,17 @@ voz de la cuenta). Lo que pasa:
    palabra a palabra, música y efectos. El estilo lo elige el agente entre los que mejor quedan en reels
    (Detrás de la máquina, Lista contrarreloj, Robots de bloques, Lista de comprobación, Anuncio de app, Garabatos) o
    ninguno.
-6. Con el vídeo hecho, kywai lo prepara como **reel de prueba** («/instagram prueba»: primero lo ven solo quienes no
-   siguen la cuenta). Se publica con tu visto bueno en la tarjeta, o solo si tienes activado «Publicar sin preguntar».
-   Con «sin publicar» detrás («/turno-noche IA sin publicar») se queda en el vídeo.
+6. Con el vídeo hecho (desde la 1.44.2), kywai lo deja listo para publicar en **Instagram** (un **reel normal**, no de
+   prueba: la cuenta aún no llega a los 1.000 seguidores que pide Instagram) y en **TikTok** (si tienes la cuenta
+   conectada; sin ella sigue solo con Instagram, sin avisos). Al acabar, **en el chat salen solo esas dos tarjetas**, que
+   esperan tu decisión: eliges la **portada** (en Instagram, de las que propuso el agente; en TikTok va el fotograma que
+   eligió) y pulsas **Publicar** (o «Enviar como borrador» en TikTok). Sin eco de la orden, sin la tarea con «Hecha» y sin
+   «Texto del reel listo» (`instagram.quiet` en la tarea; `postNightShiftReel`, `orchestrator.ts`): los errores sí salen.
+   Con «Publicar sin preguntar» se publican solos. Con «sin publicar» detrás («/turno-noche IA sin publicar») se queda en el
+   vídeo. Un vídeo que ya salió a TikTok desde aquí no se vuelve a preparar como «ganador a TikTok» (`markSentToTikTok`).
+   Una **tanda** de varios reels va a su mesa de revisión de Instagram y no a TikTok (sus ganadores pasan después).
 
-**Varios reels de prueba de una vez.** Con un número («/crecer 20 reels IA», «/turno-noche IA x3», «tres al día» o
+**Varios reels de una vez.** Con un número («/crecer 20 reels IA», «/turno-noche IA x3», «tres al día» o
 «veinte reels», **hasta 20**, `NIGHT_SHIFT_MAX`) el turno hace una **tanda**: cada reel sale de un vídeo fuente distinto
 y prueba otro tipo de gancho (pregunta, cifra, contradicción, antes y después, error común), para saber antes qué
 funciona. Deja `desmontaje-1.md`, `guion-1.md`, `desmontaje-2.md`… y una orden `/video` por reel.
@@ -6487,7 +6526,7 @@ Instagram y TikTok:
 - **Tabla de publicación (1.23.1).** Con «Ve», los reels se reparten **N al día** (5 por defecto, de 1 a 10 en la
   tarjeta) entre las **10:00 y las 21:00** hora del equipo, siguiendo después del último ya programado
   (`src/shared/reelBatch.ts`: `daySlots`, `reelSlots`). Se **programan en Zernio** (`scheduledFor` en
-  `zernioPublish`) como reels de prueba: Zernio los publica solos a su hora aunque el equipo esté apagado. La tarjeta
+  `zernioPublish`) como reels normales: Zernio los publica solos a su hora aunque el equipo esté apagado. La tarjeta
   pasa a enseñar la tabla por días con la hora y el estado de cada uno. Sin Zernio no hay programador: salen ahora los
   de hoy y el resto espera en la mesa (lo dice el chat).
 - **Ganadores a TikTok (1.23.2).** Un **ganador** es un reel que hace **3 veces o más** la mediana de vistas de la cuenta
@@ -6703,6 +6742,62 @@ huellas de sus encargos y de cómo se lee su guion).
 - **Para Hermes** (`src/main/coordinatorGuide.ts`): «un vídeo de 5 minutos / completo / largo / tipo YouTube» es
   `duracion:largo`, «de 2-3 minutos» es `duracion:video`, y un Reel sigue siendo lo por defecto.
 
+**Tu equipo y calidad: lo mejor para cada equipo (1.45.0).** kywai mira el equipo que va a montar el vídeo y recomienda lo
+mejor para él, con la calidad primero y sin pasarse de tiempo. Pedido de Yil el 26 nov 2026: «que kywai analice el equipo y
+recomiende lo mejor para ese equipo». Todo lo puro está en `src/shared/videoAdvisor.ts` (con pruebas con equipos de
+ejemplo: Mac mini M4, RTX 4070 de 12 GB, RTX 3060 de 6 GB, AMD sin soporte y un PC de 8 GB sin gráfica) y lo que solo sabe
+el motor (el equipo, lo que hay listo para las imágenes y lo aprendido) en `src/main/videoAdvice.ts`.
+
+- **Qué equipo se analiza**: el de aquí (`detectHardware`, `src/main/hardware.ts`: chip de Apple, NVIDIA con su VRAM por
+  `nvidia-smi`, nombre de AMD/Intel, RAM, núcleos y disco) o, con `equipo:si` en kywai cloud, el equipo conectado, con el
+  hardware que ya manda por el puente para el Estudio Pro. En la nube sin equipo conectado, el espacio de la nube (sin
+  gráfica). Si no se pudo mirar, el selector lo dice («No se pudo analizar el equipo») y se usan los valores de siempre
+  (EEVEE, 32 muestras, 1080 p). Al montar el vídeo en el equipo conectado, ese equipo elige el nivel con su propio hardware.
+- **Marca `calidad:auto|alta|rapida`** (sin marca, igual que `auto`; `videoChoice.ts`, `withVideoChoice` la escribe tras
+  `estructura:`). Solo cambia el **Escenario 3D**: `videoEscenario.ts` ya no fija EEVEE, 32 muestras y 1080 p, usa el nivel
+  del asesor. `auto` es el mejor nivel que cabe en el tiempo razonable de la duración (Reel 90 min de Blender, Vídeo 2 h 30 min,
+  Largo 4 h; si ninguno cabe, el más rápido); `alta`, lo mejor que da el equipo; `rapida`, lo más ligero.
+- **Niveles del Escenario 3D** (segundos por fotograma en 1080 p horizontal; el reel va en vertical y tarda 0,8 veces):
+
+  | Equipo | rápida | normal | alta |
+  |---|---|---|---|
+  | Chip de Apple (**medido** en el Mac mini M4, Blender 5.3) | EEVEE 16 m: 1,0 s | EEVEE 32 m: 1,65 s | EEVEE 64 m a 1440 p: ≈5,3 s |
+  | NVIDIA de 8 GB o más (*sin medir*) | EEVEE 32 m: ≈0,8 s | Cycles con la gráfica, 64 m con quitaruido: ≈3 s | Cycles 128 m a 1440 p: ≈9 s |
+  | NVIDIA de menos de 8 GB (*sin medir*) | EEVEE 16 m | EEVEE 32 m | EEVEE 64 m a 1440 p |
+  | AMD, Intel, sin gráfica o menos de 8 GB de RAM (*sin medir*) | EEVEE 16 m a 720 p: ≈2 s | EEVEE 16 m a 1080 p: ≈3,5 s | EEVEE 32 m a 1080 p: ≈6 s |
+
+  Lo medido en el Mac mini M4 (equipo tranquilo, 26 nov 2026): EEVEE a 1080 p tarda 1,0 s con 16 muestras, 1,65 con 32, 3,0
+  con 64 y 5,8 con 128; a 1440 p cuesta 1,75 veces más y el vertical (1080×1920) 0,8 veces. **Cycles con Metal** tardó de 16 a
+  150 s por fotograma con solo 16 muestras (con el equipo ocupado) y no se ve mejor: por eso en un Mac se queda EEVEE. A simple
+  vista, EEVEE con 16, 32 y 128 muestras y Cycles con 16 y quitaruido se ven prácticamente igual en esta escena (la luz es
+  casi toda emisiva): lo que más cambia la nitidez es el tamaño (1440 p). **Lo de las NVIDIA no se pudo probar** (no hay una en
+  el Mac mini): las cifras son conservadoras y quedan marcadas «sin medir» en el selector hasta probarlas en un PC con RTX.
+- **Aprende**: tras cada render del Escenario (de 24 fotogramas o más) se guardan los segundos por fotograma medidos de ese
+  equipo en `escenario-tiempos.json` de la carpeta de datos (`rememberFrameTime`, media que pesa más lo reciente). Las
+  estimaciones siguientes usan lo medido («aprendido de tus vídeos»); si ese equipo pintó otro nivel del mismo motor, la
+  tabla se corrige con lo que le ha costado de más o de menos.
+- **`escenario.py`**: con `CYCLES` usa solo las gráficas (OptiX, CUDA, Metal, HIP, oneAPI; la CPU mezclada con la gráfica
+  frena) y, si no encuentra ninguna, pinta con EEVEE y 32 muestras como mucho (antes habría pintado con la CPU durante
+  horas). Escribe `KYWAI_MOTOR <motor> <muestras>` para que el aprendizaje apunte el motor que de verdad se usó.
+- **Imágenes**: ComfyUI si el equipo lo aguanta (las reglas de `adviseStudio`: NVIDIA de 6 GB o un Mac de 16 GB; unos 8 s
+  por imagen con una NVIDIA, unos 25 en un Mac) y ya está instalado; si está pero falta instalarlo, lo dice; si no, Draw
+  Things o la clave de Gemini (unos 14 a 20 s) y, al final, el motor gratis (una imagen cada ~46 s: avisa del tiempo).
+- **Voz**: la más natural que aguanta: con 16 GB (o una NVIDIA de 12 GB con 12 de RAM), la voz con emoción (Chatterbox, es la
+  automática: no hace falta `voz:`); si no, la sencilla del idioma (Edge en español, Kokoro en inglés).
+- **Duración recomendada**: la más larga que sale en un tiempo razonable (Escenario: el nivel automático cabe en el tiempo de
+  Blender de esa duración; el resto: unos 90 min como mucho). Ejemplo: en el Mac mini, un Escenario Largo sale con el nivel
+  rápido (≈3 h); en un PC de 8 GB sin gráfica, un Largo no sale y se recomienda un Vídeo.
+- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): el apartado desplegable **Tu equipo y calidad**
+  (antes de Opciones) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
+  la calidad (Automática, Alta, Rápida, cada una con su nivel y lo que cuesta) y **Usar lo recomendado**: pone `calidad:auto`,
+  la voz y, solo si la duración elegida no sale en tiempo razonable, la más larga que sí sale (nunca sube la que elegiste).
+  Las estimaciones del selector usan las tasas del equipo (`estimateVideoTime` con `escenarioPerVideoSecond` e
+  `imageSeconds`). Con `equipo:si` dice qué equipo conectado analizó. **Órbita**: lee y escribe la marca `calidad:` en sus
+  `VideoTags`, pero no enseña el análisis del equipo (la API móvil no lo manda todavía; el servidor sí lo calcula en
+  `checkVideoChoice`).
+- **Para Hermes** (`src/main/coordinatorGuide.ts`): «la mejor calidad» o nada es `calidad:auto` (el asesor elige);
+  `calidad:rapida` solo si piden rapidez.
+
 **Reels y vídeos siempre por el estudio, nunca como tarea a mano (1.5.4).** Un vídeo o un reel lo monta el Estudio de
 vídeo en minutos. Si quien coordina lo encarga como una tarea normal («Producir vídeo de lanzamiento…»: un agente que
 abre un navegador para grabar la app, instala programas y monta el vídeo de cero), kywai se lo devuelve una vez para
@@ -6893,6 +6988,16 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
   `/video` dice antes de empezar qué le falta a tu equipo (`FILM_MISSING_TEXT` en `src/shared/videoPreflight.ts`).
 - **Sin relevo inútil**: si el equipo dice que no puede o no está conectado, la tarea falla una vez con el motivo
   (`noRelay` en el resultado); solo un corte a mitad del envío se vuelve a intentar con otro agente.
+- **La corrección vuelve al mismo equipo** (1.47.1, 26 nov 2026). Con varios equipos conectados, `deviceBridge.video()`
+  elige cada vez «el que antes terminaría», y una corrección podía caer en otro equipo distinto del de la primera ronda:
+  allí la carpeta estaba vacía y el agente contestaba «BLOQUEADA: no hay película ni proyecto previo», que salía como
+  «MacBook-Pro no pudo hacer la película: la carpeta de la película está vacía» (Yil, 26 nov, un `/video tipo:sketch
+  personaje:robots-kywai estilo:blueprint … equipo:si`; no era un vídeo nuevo, era la corrección automática de ese
+  mismo vídeo tras ver cabezas cortadas en los planos generales). Ahora la respuesta del puente trae qué equipo recogió
+  el trabajo (cabeceras `x-kywai-device-id` y `x-kywai-device-name`), la tarea lo apunta (`meta.filmDevice`) y la
+  corrección se pide a ese equipo (`pin` en `video()`); el nombre de los avisos es el del equipo que de verdad la
+  recibió. Si ese equipo ya no está o su carpeta no tiene nada (equipo distinto, carpeta borrada a los 3 días), el
+  equipo no se bloquea: `fromScratchNote` convierte la corrección en «hazla entera de cero cuidando esto».
 - **El aviso del selector dice la verdad** (`onDeviceNote` en `src/shared/videoPreflight.ts`, 25 nov 2026). Con «en tu
   equipo» elegido y el equipo conectado pero sin poder hacerlo, antes decía «Tu equipo no está conectado» (el selector
   solo recibía el nombre del equipo si podía hacerlo) y Yil buscó el fallo en la conexión. Ahora `checkVideoChoice`
@@ -6923,6 +7028,37 @@ Los avisos ocupan su propio sitio entre la barra del vídeo y el cuadro de escri
 antes salían flotando encima del texto de la orden, de enviar y de «Hablar con kywai» porque su clase CSS se llamaba
 igual que la marca redonda de las tarjetas (`.check`, posición absoluta). Ahora es `.preflight` en
 `VideoPicker.module.css`; no reutilizar `.check` para otra cosa en ese archivo.
+
+**Cine IA: cortos con calidad de película** (`tipo:cine`, 1.49.0, 26 nov 2026). Pedido por Yil después de ver dos
+referencias: un corto vertical de 29 s al estilo Pixar con personajes iguales en todos los planos y diálogo con labios, y
+el anuncio de la habilidad `claude-animated-shorts` (personajes 2D en un mundo 3D con three.js). El primero es de IA de
+imagen a vídeo; kywai lo hace así (`src/shared/videoCine.ts`, `src/main/videoCine.ts`, `src/main/videoCineEngines.ts`):
+1. **Un agente escribe solo el plan de planos** (JSON: título, de 1 a 3 personajes con su aspecto en inglés, y de 2 a 12
+   planos de 3 a 10 s, máximo 75 s en total, cada uno con imagen, movimiento, diálogo, sonido y quién sale).
+   `parseCinePlan` lo valida y, si falla, el mismo agente lo repite una vez (como el guion de un reel).
+2. **kywai dibuja a cada personaje** (hoja de personaje con Gemini) **y la imagen de arranque de cada plano**, con las
+   imágenes de los personajes del plano como referencia para que salgan iguales. Si el usuario eligió un personaje con
+   imágenes, se usan esas.
+3. **Guion gráfico antes de gastar** (`approveCineStep`): una hoja con todas las imágenes sale en el chat y en «Te necesita»
+   con el coste (≈0,10 USD por segundo de vídeo; unos 3 USD por 30 s, 5-6 con repeticiones) y espera «Seguir» o «Parar»
+   (las mismas acciones `film-go`/`film-stop` que la película de producto). Con «Parar» no se gasta nada en vídeo.
+4. **Cada plano se anima con sonido** con **Gemini Omni 1.1 Flash** por la API de Interacciones (`omniClip`), con la misma
+   clave de Gemini que ya usa kywai para imágenes pero **con la facturación activada** (en el plan gratis da error y se
+   explica). Se repite una vez; si no sale, ese plano queda como imagen con un acercamiento lento y sin voz y se dice cuál.
+   Veo 3.1 en la API de Gemini se cerró el 22 oct 2026; los motores son intercambiables (`CINE_ENGINES`), y Kling o
+   Seedance por fal.ai son el siguiente paso.
+5. **Montaje con ffmpeg**: todos los planos al mismo formato (1080×1920 o 1920×1080, 30 fps, 48 kHz), unidos y con el
+   volumen de las redes (−14 LUFS). La carpeta de trabajo (`.ai-cowork/videos/…-cine`) conserva personajes, imágenes
+   y planos, así que repetir no vuelve a gastar en lo ya hecho.
+- Solo **Reel** (con una duración larga sale como vídeo rápido, con aviso). Vertical por defecto. No usa el estudio de
+  HyperFrames: `videoPreflight` no pone pegas y el motor, al enviar, solo exige la clave de Gemini. Tiempo estimado: de 8 a
+  20 minutos (`estimateVideoTime`).
+- **Lo que NO está comprobado** (se escribió sin una clave de Gemini de pago): cómo se pide la duración del plano (va en el
+  texto y el plano se recorta con ffmpeg), la forma exacta de la parte de texto de la petición y si el diálogo con labios
+  sale bien en planos nuevos. La lectura de la respuesta es tolerante y la entrega lo avisa. Antes de prometer calidad,
+  hacer un primer plano real y mirar la respuesta.
+- Fase 2 (no hecha): «Corto animado» en three.js (personajes 2D en mundo 3D, sin generador de IA) con las habilidades
+  Motion Skills y Three.js Skills (MIT) como fuentes opcionales; un tipo de créditos `video` para cobrarlo en el portal.
 
 **Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
 cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
@@ -9699,7 +9835,7 @@ sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para 
 **ytm-rs** es una app de escritorio gratis y de código abierto (licencia GPL-3.0, de grapedjuice) para escuchar
 YouTube Music en Windows, Mac y Linux. **Desde la 1.36.0 kywai la lleva por dentro**: nadie tiene que instalarla ni
 abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y abrir su app»).
-- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.2`) compilada en el fork público
+- **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.3`) compilada en el fork público
   [Yiku21/ytm-rs](https://github.com/Yiku21/ytm-rs). El fork añade a su mando las órdenes que necesita kywai (poner una
   canción, la cola, la posición, la letra, abrir su ventana y cerrarse) y un modo «por dentro» (`YTM_EMBEDDED`: arranca
   sin ventana, la × la esconde y no se actualiza sola). Su código está en esa etiqueta del fork, como pide la GPL, y la
@@ -9708,6 +9844,12 @@ abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y ab
     cuadro aunque se pida escondida, y en Windows salía una ventana negra vacía al encender ytm-rs. Ahora, en modo
     `YTM_EMBEDDED`, los primeros cuadros la vuelven a esconder (`start_hidden` en el fork) hasta que kywai pide
     «Abrir su ventana». Al cambiar de etiqueta, kywai descarga la copia nueva y borra la vieja; los datos se quedan.
+  - **Sin icono en el Dock del Mac (arreglado en la 1.49.2, `v0.4.0-kywai.3`):** al encender ytm-rs su icono rojo se
+    quedaba abajo en el Dock del Mac, como si fuera una app abierta aparte. Ahora, en modo `YTM_EMBEDDED`, el fork
+    arranca el bucle de ventanas (winit) como app «accesoria» (`ActivationPolicy::Accessory` en `src/main.rs`): suena
+    de fondo sin icono en el Dock ni barra de menús, y «Abrir su ventana» la sigue enseñando. Las copias del Mac de esa
+    etiqueta se compilan en el Mac mini (los equipos Mac de GitHub no salían) y la Release las sube desde la rama que
+    dice `KYWAI_MAC_PREBUILT`; están firmadas sin cuenta de Apple, como las anteriores.
 - **Primera vez:** la pestaña explica qué es y ofrece **«Activar ytm-rs»**: kywai descarga el paquete portable de su
   sistema de la Release del fork (unos 20 MB), comprueba su huella SHA256 (`YTMRS_ASSETS`; si no coincide no se usa) y
   lo deja en la carpeta de datos de kywai (`ytm-rs/<versión>/`). Mientras, dice cuánto lleva. Sus datos (sesión,
@@ -9774,7 +9916,7 @@ lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra co
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
 
-**Portada o vídeo (desde la 1.44.1):** en la pestaña ytm-rs, la nota musical de la cabecera deja solo la portada y el
+**Portada o vídeo (desde la 1.44.2):** en la pestaña ytm-rs, la nota musical de la cabecera deja solo la portada y el
 icono de vídeo que hay a su lado pone el videoclip (el elegido se ve en color y se recuerda). Sustituyen a «Ver el
 vídeo» y «Carátula». Código: `ViewSwitch` en `MusicPanel.tsx` y `useYtmrsVideo`/`setYtmrsVideo` en `YtmrsBox.tsx`.
 Las palabras que manda ytm-rs sin espacio (la línea que suena salía pegada, «Thescarsofyourlove») recuperan los espacios
