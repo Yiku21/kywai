@@ -48,18 +48,9 @@ kywai junta los agentes que ya usas (Claude Code, Codex, Gemini, modelos locales
 | Usar tu suscripción, tu clave o un modelo local | 42 agentes compatibles (Antigravity CLI, NVIDIA gratis, Codewhale…) y modelos locales instalados en un clic |
 | Tenerlo encendido siempre | kywai Cloud, con Mi cuenta para agentes, consumo y créditos, y Órbita en Android |
 
-## Lo nuevo hasta la 1.35
+## Actualizaciones
 
-- **Ventanas a tu medida:** Ajustes y las demás ventanas se estiran desde cualquier borde o se maximizan, y cada una recuerda su tamaño.
-- **Pulsar para hablar:** en «Hablar con kywai» solo te oye mientras mantienes F8 (o la tecla que elijas), también en segundo plano.
-- **Música con ytm-rs:** YouTube Music sin anuncios manejado desde kywai, con la letra como un karaoke y traducida.
-- **Amigos que suenan:** un aviso con marimba propia y una notificación del sistema cuando un amigo te escribe.
-- **`/diseno` y `/juego`:** diseños sin «cara de IA» y juegos pequeños que el agente prueba jugando antes de dártelos; también `/seo` y `/marketing`.
-- **Más fluido y ligero:** el 3D ya no da tirones, la app abre antes y la descarga pesa unos 20 MB menos.
-- **kywai Cloud:** Hermes usa primero tu Claude o tu ChatGPT, y «Pasar a kywai cloud» aguanta muchísimos archivos.
-- Y desde la 1.28: peluches con 18 acabados, «Tu ordenador», máquina de reels (`/crecer`), `/seguridad` con 33 ataques y Conectores con 1.740 apps.
-
-Todas las notas: [versiones publicadas](https://github.com/Yiku21/kywai/releases).
+Todo lo que ha cambiado en kywai desde el primer día, con filtro y buscador: **[kywai.app/es/actualizaciones](https://kywai.app/es/actualizaciones/)**. Las notas de cada versión están en las [versiones publicadas](https://github.com/Yiku21/kywai/releases).
 
 ## Instalar
 
