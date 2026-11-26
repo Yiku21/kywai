@@ -1,5 +1,6 @@
 // Escaparates basados en el catálogo y las miniaturas de la aplicación.
 import { icon, brandSymbol } from './iconos.mjs'
+import { peluche } from './peluche.mjs'
 export const VISUALES = {
  es:{
   hermesSummary:"Agente con memoria, herramientas y automatizaciones.",codexSummary:'Programación, terminal y creación de prototipos.',agentsTitle:'Elige quién trabaja contigo.',agentsIntro:"Uno o varios agentes. Tú eliges cuáles usas y quién coordina.",own:"Agentes de ejemplo. Elige cuáles conectar y cuántos usar.",catalog:'Explora el catálogo',filters:['Todos','Adaptadores propios','Terminal / CLI','Modelos locales'],search:'Buscar un agente',account:'Cuenta y conexión',official:'Documentación del agente',desktop:'Catálogo de escritorio',localTitle:'También con tus modelos locales.',localBody:'Conecta LM Studio u Ollama con un modelo descargado en tu equipo.',localAccount:'Necesita el programa y un modelo local en funcionamiento.',agentSetup:'Añadir un agente, en tres pasos',agentSteps:['Abre el catálogo de agentes de kywai y elige «Añadir».','El asistente te lleva por «Programas» y «Sesiones».','Completa la instalación y la conexión con tu propia cuenta.'],agentNote:'Las cuentas, los requisitos y la compatibilidad dependen de cada proveedor. Cloud tiene su propio flujo de conexión.',
@@ -131,6 +132,7 @@ export const VISUALES = {
  },
 }
 
+const PELUCHE={'qwen-code':'qwen'}
 const ROBOTS={hermes:'hermes',claude:'claude',codex:'codex',gemini:'gemini',muse:'muse','qwen-code':'qwen'}
 export function renderVisual(id,{s,t,data,lang,base,url,esc,marks}) {
  const intro=(title,body,extra='')=>`<section class="page-intro visual-intro"><div class="wrap"><p class="eyebrow">kywai</p><h1>${esc(title)}</h1><p class="lede">${esc(body)}</p>${extra}</div></section>`
@@ -140,7 +142,7 @@ export function renderVisual(id,{s,t,data,lang,base,url,esc,marks}) {
  if(id==='agentes') {
   const models=[{id:'lmstudio',name:'LM Studio',kind:'local',text:{[lang]:{summary:s.localBody,account:s.localAccount}}},{id:'ollama',name:'Ollama',kind:'local',text:{[lang]:{summary:s.localBody,account:s.localAccount}}}]
   const catalog=[...data.agents,...models]
-  const hero=`<div class="agent-cast" aria-label="${esc(s.desktop)}">${data.agents.filter(a=>ROBOTS[a.id]).map(a=>`<div>${official(a.id,a.name)}<span>${esc(a.name)}</span></div>`).join('')}</div>`
+  const hero=`<div class="agent-cast" aria-label="${esc(s.desktop)}">${data.agents.filter(a=>ROBOTS[a.id]).map(a=>`<div class="cast-agent"><span class="cast-rob">${peluche(base,PELUCHE[a.id]||ROBOTS[a.id],'',96)}${official(a.id,a.name)}</span><span>${esc(a.name)}</span></div>`).join('')}</div>`
   const filters=['all','builtin','cli','local']
   const cards=catalog.map(a=>`<article class="agent-catalog-card" data-agent-category="${a.kind}" data-agent-name="${esc(a.name.toLowerCase())}"><div class="agent-card-top"><span class="agent-portrait">${official(a.id,a.name)}</span><div><h2>${esc(a.name)}</h2><span class="agent-kind">${esc(s.filters[filters.indexOf(a.kind)])}</span></div></div><p>${esc(a.id==='codex'?s.codexSummary:a.id==='hermes'?s.hermesSummary:a.text[lang].summary)}</p><details><summary>${esc(s.account)}</summary><p>${esc(a.text[lang].account)}</p>${a.docs?`<a class="text-link" href="${esc(a.docs)}" target="_blank" rel="noopener noreferrer">${esc(s.official)} →</a>`:''}</details></article>`).join('')
   return intro(s.agentsTitle,s.agentsIntro,`<p class="visual-note">${esc(s.own)}</p><a class="text-link visual-guide-link" href="#agent-setup">${esc(s.agentSetup)} →</a>${hero}`)+`<section class="visual-page"><div class="wrap"><div class="visual-toolbar"><div class="visual-filters" role="group" aria-label="${esc(s.catalog)}">${s.filters.map((name,i)=>`<button type="button" data-agent-filter="${filters[i]}" aria-pressed="${i===0}">${esc(name)}</button>`).join('')}</div><input type="search" class="agent-search" data-agent-search placeholder="${esc(s.search)}" aria-label="${esc(s.search)}"></div><div class="agent-catalog-grid">${cards}</div><p class="agent-empty" hidden>${esc(s.noResults)}</p><aside class="agent-setup" id="agent-setup"><h2>${esc(s.agentSetup)}</h2><ol>${s.agentSteps.map(v=>`<li>${esc(v)}</li>`).join('')}</ol><p>${esc(s.agentNote)}</p></aside>${ctas()}</div></section>`
