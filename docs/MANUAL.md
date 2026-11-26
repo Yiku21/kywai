@@ -9232,6 +9232,23 @@ y un buscador (sin tildes ni mayúsculas, y que también encuentra por lo escrit
 - **Por qué kywai**: diez ventajas reales y tres comparaciones generales (asistentes como Claude o ChatGPT, editores
   como Cursor, agentes autónomos como Manus). Solo van cosas que existen hoy y se pueden comprobar en la app.
 
+**El robot de kywai** (abajo de la misma ventana, 26 nov 2026, pedido por Yil): una caja de chat con la cotorra donde la
+persona escribe una duda de uso y el robot contesta con la base de conocimiento de kywai (los apartados de `ayuda.ts`,
+las 53 órdenes «/» y, donde el manual viaja con la app, extractos del manual). Es solo ayuda de uso: no crea tareas, no
+toca archivos y no pertenece a ningún proyecto ni chat. Funciona así:
+
+- La ventana llama a `askKywaiHelp` (`src/main/ayudaBot.ts`, disponible también por web y en kywai Cloud). El motor
+  hace una llamada corta a quien coordina (Hermes u otro agente, `quickAsk` en `orchestrator.ts`, con tope de 40 s y en
+  una carpeta vacía) con el índice de todas las funciones, lo más parecido a la pregunta y los últimos turnos, y las
+  reglas: contestar corto y en el idioma de la persona, solo con la base, sin inventar botones ni ajustes.
+- Si no hay ningún agente disponible, tarda o falla, contesta la propia base (`respuestaLocal`, sin modelos y al
+  momento): el robot siempre responde. La burbuja dice quién contestó («Contestado por Hermes» o «Respuesta de la guía
+  de kywai»).
+- La búsqueda (`src/shared/ayudaBot.ts`) pesa las palabras raras más que las corrientes, entiende los nombres de
+  órdenes («/serie», alias incluidos) y el chino por pares de caracteres. `ayudaBot.test.ts` comprueba que cada función
+  se encuentra por su título en los 6 idiomas.
+- Cada función nueva que se añada a `ayuda.ts` ya la conoce el robot, sin tocar nada más.
+
 Los textos viven en **`src/shared/ayuda.ts`** (en los 6 idiomas; la fuente única para que la web diga lo mismo), el
 diálogo en `src/renderer/src/ui/header/HelpDialog.tsx` y su estado en `useCowork.helpOpen`. Cuando una función nueva se
 note, añade su entrada en `AYUDA_FUNCIONES` con sus pasos reales (comprobados en el código, no inventados).
@@ -9756,6 +9773,12 @@ esquina: el vídeo, la canción y atrás / pausa / adelante. Sigue sonando. «M�
 lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra con solo atrás / pausa / adelante y el
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
+
+**Portada o vídeo (desde la 1.44.1):** en la pestaña ytm-rs, la nota musical de la cabecera deja solo la portada y el
+icono de vídeo que hay a su lado pone el videoclip (el elegido se ve en color y se recuerda). Sustituyen a «Ver el
+vídeo» y «Carátula». Código: `ViewSwitch` en `MusicPanel.tsx` y `useYtmrsVideo`/`setYtmrsVideo` en `YtmrsBox.tsx`.
+Las palabras que manda ytm-rs sin espacio (la línea que suena salía pegada, «Thescarsofyourlove») recuperan los espacios
+del texto de la línea (`spacedWords` en `@shared/lyrics`).
 
 **Letra y vídeo de ytm-rs (desde la 1.42.0):** en la fila de botones de ytm-rs, el micrófono (junto al corazón)
 enseña u oculta la letra; oculta no ocupa sitio (antes quedaba la caja con «Ver»), y se recuerda en el equipo. En la
