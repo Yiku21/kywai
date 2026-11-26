@@ -35,8 +35,8 @@ export const SECCIONES = {
     pilot: 'Private pilot', pilotBody: 'Cloud is currently available to enabled pilot accounts. If your email is not enabled, contact us to request access.',
     cloudCards: ['Your own space', 'Your own accounts', 'Start with one agent'],
     cloudBodies: ['Projects and settings belong to your account.', 'Connections and provider accounts stay separate for every user.', 'New spaces start with an empty team. Connect and test the agent you want to use.'],
-    cloudCta: 'Open my account', cloudAccess: 'Request pilot access', cloudPricing: 'The pilot does not activate real charges. Credits and storage upgrades are not available for purchase yet.',
-    composioTitle: 'Your apps, connected through Composio.', composioBody: 'We are preparing managed app connections and event-based automations for kywai Cloud. Each user will authorize their own accounts.', composioState: 'In preparation',
+    cloudCta: 'Open my account', cloudAccess: 'Request pilot access', cloudPricing: 'Plans and credit top-ups are paid securely with Stripe. Cloud is still an invitation-only pilot.',
+    composioTitle: 'Your apps, connected through Composio.', composioBody: 'Connect your own apps and event-based automations in kywai Cloud. Each user authorizes their own accounts.', composioState: 'In the Cloud pilot',
   },
   es: {
     labels: ['Inicio', 'Cómo funciona', 'Funciones', 'Agentes', 'Conectores', 'Dispositivos', 'Temas', 'Descargas', 'Cloud', 'Precios', 'Guías', 'Ayuda'],
@@ -58,8 +58,8 @@ export const SECCIONES = {
     pilot: 'Piloto privado', pilotBody: 'Cloud está disponible para las cuentas habilitadas del piloto. Si tu correo no está habilitado, escríbenos para solicitar acceso.',
     cloudCards: ['Tu propio espacio', 'Tus propias cuentas', 'Empieza con un agente'],
     cloudBodies: ['Los proyectos y los ajustes pertenecen a tu cuenta.', 'Los conectores y las cuentas de proveedores están separados para cada usuario.', 'Los espacios nuevos empiezan con el equipo vacío. Conecta y prueba el agente que quieras usar.'],
-    cloudCta: 'Abrir mi cuenta', cloudAccess: 'Solicitar acceso al piloto', cloudPricing: 'El piloto no activa cobros reales. Todavía no se venden créditos ni ampliaciones de almacenamiento.',
-    composioTitle: 'Tus apps, conectadas mediante Composio.', composioBody: 'Estamos preparando las conexiones de apps y las automatizaciones por eventos para kywai Cloud. Cada usuario autorizará sus propias cuentas.', composioState: 'En preparación',
+    cloudCta: 'Abrir mi cuenta', cloudAccess: 'Solicitar acceso al piloto', cloudPricing: 'Los planes y las recargas de créditos se pagan de forma segura con Stripe. Cloud sigue en piloto por invitación.',
+    composioTitle: 'Tus apps, conectadas mediante Composio.', composioBody: 'Conecta tus propias apps y automatizaciones por eventos en kywai Cloud. Cada usuario autoriza sus propias cuentas.', composioState: 'En el piloto de Cloud',
   },
   pt: {
     labels: ['Início', 'Como funciona', 'Funcionalidades', 'Agentes', 'Conectores', 'Dispositivos', 'Temas', 'Downloads', 'Cloud', 'Preços', 'Guias', 'Ajuda'],
@@ -81,8 +81,8 @@ export const SECCIONES = {
     pilot: 'Piloto privado', pilotBody: 'O Cloud está disponível para contas habilitadas no piloto. Se seu e-mail não estiver habilitado, entre em contato para solicitar acesso.',
     cloudCards: ['Seu próprio espaço', 'Suas próprias contas', 'Comece com um agente'],
     cloudBodies: ['Os projetos e ajustes pertencem à sua conta.', 'As conexões e contas de provedores ficam separadas para cada usuário.', 'Novos espaços começam com a equipe vazia. Conecte e teste o agente que deseja usar.'],
-    cloudCta: 'Abrir minha conta', cloudAccess: 'Solicitar acesso ao piloto', cloudPricing: 'O piloto não ativa cobranças reais. Créditos e expansões de armazenamento ainda não estão à venda.',
-    composioTitle: 'Seus apps, conectados pelo Composio.', composioBody: 'Estamos preparando conexões de apps e automações por eventos para o kywai Cloud. Cada usuário autorizará suas próprias contas.', composioState: 'Em preparação',
+    cloudCta: 'Abrir minha conta', cloudAccess: 'Solicitar acesso ao piloto', cloudPricing: 'Os planos e as recargas de créditos são pagos com segurança pelo Stripe. O Cloud continua em piloto por convite.',
+    composioTitle: 'Seus apps, conectados pelo Composio.', composioBody: 'Conecte seus próprios apps e automações por eventos no kywai Cloud. Cada usuário autoriza suas próprias contas.', composioState: 'No piloto do Cloud',
   },
   fr: {
     labels: ['Accueil', 'Fonctionnement', 'Fonctionnalités', 'Agents', 'Connecteurs', 'Appareils', 'Thèmes', 'Téléchargements', 'Cloud', 'Tarifs', 'Guides', 'Aide'],
@@ -104,8 +104,8 @@ export const SECCIONES = {
     pilot: 'Pilote privé', pilotBody: 'Cloud est disponible pour les comptes autorisés du pilote. Si votre adresse n’est pas autorisée, contactez-nous pour demander l’accès.',
     cloudCards: ['Votre propre espace', 'Vos propres comptes', 'Commencez avec un agent'],
     cloudBodies: ['Les projets et réglages appartiennent à votre compte.', 'Les connexions et comptes de fournisseurs restent séparés pour chaque utilisateur.', 'Les nouveaux espaces commencent avec une équipe vide. Connectez et testez l’agent de votre choix.'],
-    cloudCta: 'Ouvrir mon compte', cloudAccess: 'Demander l’accès au pilote', cloudPricing: 'Le pilote n’active aucun paiement réel. Les crédits et extensions de stockage ne sont pas encore en vente.',
-    composioTitle: 'Vos apps, connectées via Composio.', composioBody: 'Nous préparons les connexions d’apps et les automatisations par événements pour kywai Cloud. Chaque utilisateur autorisera ses propres comptes.', composioState: 'En préparation',
+    cloudCta: 'Ouvrir mon compte', cloudAccess: 'Demander l’accès au pilote', cloudPricing: 'Les forfaits et les recharges de crédits se paient en toute sécurité avec Stripe. Cloud reste un pilote sur invitation.',
+    composioTitle: 'Vos apps, connectées via Composio.', composioBody: 'Connectez vos propres apps et automatisations par événements dans kywai Cloud. Chaque utilisateur autorise ses propres comptes.', composioState: 'Dans le pilote Cloud',
   },
   zh: {
     labels: ['首页', '工作原理', '功能', '智能体', '连接器', '设备', '主题', '下载', 'Cloud', '价格', '指南', '帮助'],
@@ -127,8 +127,8 @@ export const SECCIONES = {
     pilot: '私密试用', pilotBody: 'Cloud 目前仅向已获授权的试用账户开放。如果你的邮箱尚未获授权，请联系我们申请访问。',
     cloudCards: ['你的个人空间', '你自己的账户', '从一个智能体开始'],
     cloudBodies: ['项目和设置属于你的账户。', '每位用户的连接器和服务商账户相互独立。', '新空间的团队起初为空。连接并测试你想使用的智能体。'],
-    cloudCta: '打开我的账户', cloudAccess: '申请试用', cloudPricing: '试用不会启用真实收费。目前尚未出售积分或额外存储空间。',
-    composioTitle: '通过 Composio 连接你的应用。', composioBody: '我们正在为 kywai Cloud 准备应用连接和事件驱动的自动化。每位用户将授权自己的账户。', composioState: '准备中',
+    cloudCta: '打开我的账户', cloudAccess: '申请试用', cloudPricing: '套餐和积分充值通过 Stripe 安全支付。Cloud 仍是邀请制试用。',
+    composioTitle: '通过 Composio 连接你的应用。', composioBody: '在 kywai Cloud 中连接你自己的应用和事件驱动的自动化。每位用户授权自己的账户。', composioState: 'Cloud 试用中可用',
   },
   hi: {
     "labels": [
@@ -207,9 +207,9 @@ export const SECCIONES = {
     ],
     "cloudCta": "मेरा खाता खोलें",
     "cloudAccess": "पायलट एक्सेस का अनुरोध करें",
-    "cloudPricing": "पायलट में असली शुल्क नहीं लगते। क्रेडिट और स्टोरेज अपग्रेड अभी खरीदे नहीं जा सकते।",
+    "cloudPricing": "प्लान और क्रेडिट रीचार्ज का भुगतान Stripe से सुरक्षित रूप से होता है। Cloud अभी भी आमंत्रण वाला पायलट है।",
     "composioTitle": "आपके ऐप, Composio के ज़रिए जुड़े हुए।",
-    "composioBody": "हम kywai Cloud के लिए प्रबंधित ऐप कनेक्शन और इवेंट-आधारित ऑटोमेशन तैयार कर रहे हैं। हर उपयोगकर्ता अपने खुद के खाते अधिकृत करेगा।",
-    "composioState": "तैयारी में"
+    "composioBody": "kywai Cloud में अपने ऐप और इवेंट-आधारित ऑटोमेशन जोड़ें। हर उपयोगकर्ता अपने खुद के खाते अधिकृत करता है।",
+    "composioState": "Cloud पायलट में उपलब्ध"
   },
 }

@@ -18,7 +18,7 @@ export const PRECIOS = {
     maxFeatures: ['130 GB of space.', '2,500 kywai credits a month.', '3,000 connected-app actions a day.', '300 minutes of live voice a month.', '6 GB of RAM · 4 vCPU.', '10 agents working at once.', '100 scheduled tasks.', 'Shared projects with up to 15 people.', 'Create your agent included for 10 agents.', 'Backups kept for 90 days.', '*GPU render priority.', 'Priority support.'],
     freeCta: 'Download kywai', cloudCta: 'Request Cloud access',
     noteTitle: 'What the plans include', note: 'Each plan includes hosting and monthly kywai credits for included models, images, video, 3D and connected apps. Your own AI subscriptions and API usage are still paid to your providers; unlimited AI usage is not included.',
-    availability: 'Cloud is currently an invitation-only pilot and does not make real charges yet. Items marked “Coming soon” are not available yet.',
+    availability: 'Cloud is currently an invitation-only pilot. Plans and credit top-ups are paid securely with Stripe. Items marked “Coming soon” are not available yet.',
   },
   es: {
     title: 'Elige dónde vive tu kywai.', intro: 'Úsalo gratis en tu equipo o deja que kywai Cloud lo tenga siempre en marcha, con más en cada plan.',
@@ -36,7 +36,7 @@ export const PRECIOS = {
     maxFeatures: ['130 GB de espacio.', '2.500 créditos kywai al mes.', '3.000 acciones de apps conectadas al día.', '300 minutos de voz en vivo al mes.', '6 GB de RAM · 4 vCPU.', '10 agentes trabajando a la vez.', '100 tareas programadas.', 'Proyectos compartidos con hasta 15 personas.', 'Crea tu agente incluido para 10 agentes.', 'Copias de 90 días.', '*Prioridad en el render con GPU.', 'Soporte prioritario.'],
     freeCta: 'Descargar kywai', cloudCta: 'Solicitar acceso a Cloud',
     noteTitle: 'Qué incluyen los planes', note: 'Cada plan incluye el alojamiento y créditos kywai cada mes para modelos incluidos, imagen, vídeo, 3D y apps conectadas. Tus propias suscripciones de IA y el uso de API se siguen pagando a tus proveedores; no incluye consumo ilimitado de IA.',
-    availability: 'Cloud está en un piloto por invitación y todavía no hace cobros reales. Lo marcado como «Próximamente» aún no está disponible.',
+    availability: 'Cloud está en un piloto por invitación. Los planes y las recargas de créditos se pagan de forma segura con Stripe. Lo marcado como «Próximamente» aún no está disponible.',
   },
   pt: {
     title: 'Escolha onde seu kywai vive.', intro: 'Use grátis no seu equipamento ou deixe o kywai Cloud mantê-lo sempre ligado, com mais em cada plano.',
@@ -54,7 +54,7 @@ export const PRECIOS = {
     maxFeatures: ['130 GB de espaço.', '2.500 créditos kywai por mês.', '3.000 ações de apps conectados por dia.', '300 minutos de voz ao vivo por mês.', '6 GB de RAM · 4 vCPU.', '10 agentes trabalhando ao mesmo tempo.', '100 tarefas agendadas.', 'Projetos compartilhados com até 15 pessoas.', 'Crie seu agente incluído para 10 agentes.', 'Backups de 90 dias.', '*Prioridade na renderização com GPU.', 'Suporte prioritário.'],
     freeCta: 'Baixar kywai', cloudCta: 'Solicitar acesso ao Cloud',
     noteTitle: 'O que os planos incluem', note: 'Cada plano inclui a hospedagem e créditos kywai todo mês para modelos incluídos, imagem, vídeo, 3D e apps conectados. Suas próprias assinaturas de IA e o uso de API continuam sendo pagos aos seus provedores; uso ilimitado de IA não está incluído.',
-    availability: 'O Cloud está em um piloto por convite e ainda não faz cobranças reais. O que está marcado como “Em breve” ainda não está disponível.',
+    availability: 'O Cloud está em um piloto por convite. Os planos e as recargas de créditos são pagos com segurança pelo Stripe. O que está marcado como “Em breve” ainda não está disponível.',
   },
   fr: {
     title: 'Choisissez où vit votre kywai.', intro: 'Utilisez-le gratuitement sur votre équipement ou laissez kywai Cloud le faire tourner pour vous, avec plus à chaque offre.',
@@ -72,7 +72,7 @@ export const PRECIOS = {
     maxFeatures: ['130 Go d’espace.', '2 500 crédits kywai par mois.', '3 000 actions d’apps connectées par jour.', '300 minutes de voix en direct par mois.', '6 Go de RAM · 4 vCPU.', '10 agents qui travaillent en même temps.', '100 tâches planifiées.', 'Projets partagés avec jusqu’à 15 personnes.', 'Créez votre agent inclus pour 10 agents.', 'Sauvegardes sur 90 jours.', '*Priorité au rendu GPU.', 'Support prioritaire.'],
     freeCta: 'Télécharger kywai', cloudCta: 'Demander l’accès à Cloud',
     noteTitle: 'Ce que comprennent les offres', note: 'Chaque offre comprend l’hébergement et des crédits kywai chaque mois pour les modèles inclus, les images, la vidéo, la 3D et les apps connectées. Vos propres abonnements IA et l’utilisation des API restent facturés par vos fournisseurs ; l’usage illimité de l’IA n’est pas inclus.',
-    availability: 'Cloud est un pilote sur invitation et n’effectue pas encore de paiements réels. Ce qui est marqué « Bientôt » n’est pas encore disponible.',
+    availability: 'Cloud est un pilote sur invitation. Les forfaits et les recharges de crédits se paient en toute sécurité avec Stripe. Ce qui est marqué « Bientôt » n’est pas encore disponible.',
   },
   zh: {
     title: '选择 kywai 的运行方式。', intro: '在自己的设备上免费运行，或让 kywai Cloud 帮你一直运行，每个方案都多给一些。',
@@ -90,7 +90,7 @@ export const PRECIOS = {
     maxFeatures: ['130 GB 空间。', '每月 2,500 kywai 积分。', '每天 3,000 次已连接应用操作。', '每月 300 分钟实时语音。', '6 GB 内存 · 4 vCPU。', '10 个智能体同时工作。', '100 个定时任务。', '与最多 15 人共享项目。', '为 10 个智能体包含形象创建。', '备份保留 90 天。', '*GPU 渲染优先。', '优先支持。'],
     freeCta: '下载 kywai', cloudCta: '申请 Cloud 访问权限',
     noteTitle: '方案包含什么', note: '每个方案都包含托管服务，以及每月用于内置模型、图片、视频、3D 和已连接应用的 kywai 积分。你自己的 AI 订阅和 API 使用仍由你的服务商收费；不包含无限量 AI 使用。',
-    availability: 'Cloud 目前处于邀请制试用阶段，暂不进行真实收费。标有“即将推出”的内容目前尚不可用。',
+    availability: 'Cloud 目前处于邀请制试用阶段。套餐和积分充值通过 Stripe 安全支付。标有“即将推出”的内容目前尚不可用。',
   },
   hi: {
     "title": "चुनें कि आपका kywai कहाँ रहे।",
@@ -159,6 +159,6 @@ export const PRECIOS = {
     "cloudCta": "Cloud एक्सेस का अनुरोध करें",
     "noteTitle": "प्लान में क्या शामिल है",
     "note": "हर प्लान में होस्टिंग और शामिल मॉडल, तस्वीरों, वीडियो, 3D और जुड़े ऐप्स के लिए मासिक kywai क्रेडिट शामिल हैं। आपकी अपनी AI सब्सक्रिप्शन और API उपयोग का भुगतान अब भी आपके प्रदाताओं को होता है; असीमित AI उपयोग शामिल नहीं है।",
-    "availability": "Cloud अभी केवल आमंत्रण वाला पायलट है और अभी असली शुल्क नहीं लेता। “जल्द आ रहा है” वाली चीज़ें अभी उपलब्ध नहीं हैं।"
+    "availability": "Cloud अभी केवल आमंत्रण वाला पायलट है। प्लान और क्रेडिट रीचार्ज का भुगतान Stripe से सुरक्षित रूप से होता है। “जल्द आ रहा है” वाली चीज़ें अभी उपलब्ध नहीं हैं।"
   },
 }

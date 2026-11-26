@@ -21,7 +21,7 @@ export const PRESENTACION = {
     promptThree: 'Cada semana, revisa los archivos de esta carpeta y prepara un resumen.', caseThreeBody: 'Configura una rutina para el trabajo que se repite. Consulta su historial y conserva los resultados en tu proyecto.', resultThree: 'Rutina · Historial de ejecuciones · Resúmenes',
     casesNote: 'Ejemplos de uso. Los resultados dependen de los agentes, permisos y servicios que conectes.',
     vision: 'Nuestra visión', visionTitle: 'Dirigir el trabajo. Ampliar lo posible.', visionBody: 'Queremos que cualquier persona pueda dirigir un equipo de IA con sus propias herramientas. Una base abierta, un espacio compartido y una forma más clara de convertir ideas en proyectos.',
-    desktopStatus: 'Escritorio disponible', cloudStatus: 'Cloud en piloto', connectorsStatus: 'Composio en preparación',
+    desktopStatus: 'Escritorio disponible', cloudStatus: 'Cloud en piloto', connectorsStatus: 'Conectores en Cloud',
     closing: 'Empieza con una idea. Construye con un equipo.', closingBody: 'Descarga kywai o descubre Cloud: un servidor operativo 24/7, sin configurar túneles para acceder a tu espacio.', pricing: 'Ver los dos planes', contact: 'Colaboraciones e inversión',
   },
   en: {
@@ -45,7 +45,7 @@ export const PRESENTACION = {
     promptThree: 'Every week, review the files in this folder and prepare a summary.', caseThreeBody: 'Set up a routine for recurring work. Inspect its history and keep the results in your project.', resultThree: 'Routine · Run history · Summaries',
     casesNote: 'Usage examples. Results depend on the agents, permissions and services you connect.',
     vision: 'Our vision', visionTitle: 'Direct the work. Expand what’s possible.', visionBody: 'We want anyone to be able to direct an AI team using their own tools. An open foundation, a shared workspace and a clearer way to turn ideas into projects.',
-    desktopStatus: 'Desktop available', cloudStatus: 'Cloud in pilot', connectorsStatus: 'Composio in preparation',
+    desktopStatus: 'Desktop available', cloudStatus: 'Cloud in pilot', connectorsStatus: 'Connectors in Cloud',
     closing: 'Start with an idea. Build with a team.', closingBody: 'Download kywai or explore Cloud: a server running 24/7, with no tunnels to configure to access your space.', pricing: 'See the two plans', contact: 'Partnerships and investment',
   },
   pt: {
@@ -69,7 +69,7 @@ export const PRESENTACION = {
     promptThree: 'Toda semana, revise os arquivos desta pasta e prepare um resumo.', caseThreeBody: 'Configure uma rotina para o trabalho que se repete. Consulte o histórico e guarde os resultados no projeto.', resultThree: 'Rotina · Histórico de execuções · Resumos',
     casesNote: 'Exemplos de uso. Os resultados dependem dos agentes, permissões e serviços conectados.',
     vision: 'Nossa visão', visionTitle: 'Dirigir o trabalho. Ampliar o possível.', visionBody: 'Queremos que qualquer pessoa possa dirigir uma equipe de IA com suas próprias ferramentas. Uma base aberta, um espaço compartilhado e uma forma mais clara de transformar ideias em projetos.',
-    desktopStatus: 'Desktop disponível', cloudStatus: 'Cloud em piloto', connectorsStatus: 'Composio em preparação',
+    desktopStatus: 'Desktop disponível', cloudStatus: 'Cloud em piloto', connectorsStatus: 'Conectores no Cloud',
     closing: 'Comece com uma ideia. Construa com uma equipe.', closingBody: 'Baixe o kywai ou conheça o Cloud: um servidor funcionando 24/7, sem configurar túneis para acessar seu espaço.', pricing: 'Ver os dois planos', contact: 'Parcerias e investimento',
   },
   fr: {
@@ -93,7 +93,7 @@ export const PRESENTACION = {
     promptThree: 'Chaque semaine, examine les fichiers de ce dossier et prépare un résumé.', caseThreeBody: 'Configurez une routine pour les tâches récurrentes. Consultez son historique et conservez les résultats dans le projet.', resultThree: 'Routine · Historique d’exécution · Résumés',
     casesNote: 'Exemples d’utilisation. Les résultats dépendent des agents, autorisations et services connectés.',
     vision: 'Notre vision', visionTitle: 'Diriger le travail. Élargir le possible.', visionBody: 'Nous voulons permettre à chacun de diriger une équipe IA avec ses propres outils. Une base ouverte, un espace partagé et une voie plus claire pour transformer les idées en projets.',
-    desktopStatus: 'Bureau disponible', cloudStatus: 'Cloud en pilote', connectorsStatus: 'Composio en préparation',
+    desktopStatus: 'Bureau disponible', cloudStatus: 'Cloud en pilote', connectorsStatus: 'Connecteurs dans Cloud',
     closing: 'Partez d’une idée. Construisez en équipe.', closingBody: 'Téléchargez kywai ou découvrez Cloud : un serveur opérationnel 24 h/24 et 7 j/7, sans tunnel à configurer pour accéder à votre espace.', pricing: 'Voir les deux offres', contact: 'Partenariats et investissement',
   },
   zh: {
@@ -117,7 +117,7 @@ export const PRESENTACION = {
     promptThree: '每周检查这个文件夹中的文件，并生成一份摘要。', caseThreeBody: '为重复工作设置例行任务，查看执行历史，并将成果保留在项目中。', resultThree: '例行任务 · 执行历史 · 摘要',
     casesNote: '以上为使用示例。成果取决于你连接的智能体、权限和服务。',
     vision: '我们的愿景', visionTitle: '指挥工作，拓展可能。', visionBody: '我们希望每个人都能使用自己的工具指挥 AI 团队。以开放基础和共享空间，让想法更清晰地转化为项目。',
-    desktopStatus: '桌面版已提供', cloudStatus: 'Cloud 试用中', connectorsStatus: 'Composio 准备中',
+    desktopStatus: '桌面版已提供', cloudStatus: 'Cloud 试用中', connectorsStatus: 'Cloud 中的连接器',
     closing: '从一个想法开始，与团队一起构建。', closingBody: '下载 kywai，或了解 Cloud：全天候运行的服务器，访问空间无需配置隧道。', pricing: '查看两种方案', contact: '合作与投资',
   },
   hi: {
@@ -184,7 +184,7 @@ export const PRESENTACION = {
     "visionBody": "हम चाहते हैं कि कोई भी अपने टूल से एक AI टीम चला सके। एक खुली नींव, एक साझा वर्कस्पेस और विचारों को प्रोजेक्ट में बदलने का एक साफ़ तरीका।",
     "desktopStatus": "डेस्कटॉप उपलब्ध",
     "cloudStatus": "Cloud पायलट में",
-    "connectorsStatus": "Composio तैयारी में",
+    "connectorsStatus": "Cloud में कनेक्टर",
     "closing": "एक विचार से शुरू करें। एक टीम के साथ बनाएँ।",
     "closingBody": "kywai डाउनलोड करें या Cloud देखें: 24/7 चलने वाला सर्वर, अपने स्पेस तक पहुँचने के लिए कोई टनल सेट करने की ज़रूरत नहीं।",
     "pricing": "दोनों प्लान देखें",

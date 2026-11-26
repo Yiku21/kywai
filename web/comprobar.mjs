@@ -83,7 +83,7 @@ for (const preview of [false, true]) {
         assert(document.querySelector('.guide-before'))
       }
       if (page.id === 'precios') {
-        assert.equal(document.querySelectorAll('[data-plan]').length, 2)
+        assert.equal(document.querySelectorAll('[data-plan]').length, 4)
         assert.equal(document.querySelector('[data-plan=free] .plan-price strong').textContent, '$0')
         assert.equal(document.querySelector('[data-plan=cloud] .plan-price strong').textContent, '$10')
       }
@@ -195,7 +195,8 @@ assert.equal(walk.document.querySelector('#walk-panel-4').hidden, false)
 assert.equal(walk.document.querySelector('[data-walk-next]').disabled, true)
 walk.w.close()
 const themeSource = readFileSync(join(CODIGO, 'src/renderer/src/lib/theme.ts'), 'utf8')
-const sourceThemeIds = [...themeSource.matchAll(/\bid: '([^']+)'/g)].map(m => m[1])
+// Solo los temas con miniatura propia en la app (Amatista, «liquido», es un color más y aún no tiene captura).
+const sourceThemeIds = [...themeSource.matchAll(/\bid: '([^']+)'/g)].map(m => m[1]).filter(id => existsSync(join(CODIGO, 'src/renderer/src/assets/temas', id + '.webp')))
 assert.deepEqual(visual.themes.map(t => t.id).sort(), sourceThemeIds.sort(), 'galería completa respecto al selector real')
 for (const theme of visual.themes) {
   assert(readFileSync(join(root, 'assets/galeria', theme.id + '.webp')).equals(readFileSync(join(CODIGO, 'src/renderer/src/assets/temas', theme.id + '.webp'))), 'miniatura original: ' + theme.id)
