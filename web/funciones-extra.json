@@ -1290,6 +1290,14 @@
 "没有符合搜索的功能。",
 "इस खोज से कोई फ़ीचर नहीं मिला।"
 ],
+"solo": [
+"Solo en kywai Cloud",
+"Only in kywai Cloud",
+"Só no kywai Cloud",
+"Seulement dans kywai Cloud",
+"仅限 kywai Cloud",
+"केवल kywai Cloud में"
+],
 "jump": {
 "par": [
 "En paralelo",
@@ -1956,7 +1964,9 @@
 "पूरा होने पर आपको अंतिम जवाब मिलता है, जिसमें दिया गया काम और फ़ाइलें होती हैं।"
 ]
 ],
-"b": "coordinador coordinator plan tareas tasks"
+"b": "coordinador coordinator plan tareas tasks",
+"n": null,
+"s": null
 },
 {
 "id": "agentes",
@@ -2003,7 +2013,9 @@
 "«जाँचें» से या चैट में /probar लिखकर देखें: यह बताता है कि कौन जवाब दे रहा है और कितना समय लगता है।"
 ]
 ],
-"b": "claude codex gemini ollama lm studio modelo model agente agent catálogo"
+"b": "claude codex gemini ollama lm studio modelo model agente agent catálogo",
+"n": null,
+"s": null
 },
 {
 "id": "multicuenta",
@@ -2050,7 +2062,16 @@
 "गाइड वाली विंडो में दूसरे खाते से साइन इन करें।"
 ]
 ],
-"b": "cuenta account multicuenta segunda cuenta"
+"b": "cuenta account multicuenta segunda cuenta",
+"n": [
+"Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.",
+"Using several accounts of your own is your decision: check each service’s terms.",
+"Usar várias contas suas é decisão sua: confira os termos de cada serviço.",
+"Utiliser plusieurs comptes à vous est votre décision : vérifiez les conditions de chaque service.",
+"是否使用多个自己的账户由你决定：请查看各服务的条款。",
+"अपने कई खाते इस्तेमाल करना आपका फ़ैसला है: हर सेवा की शर्तें देख लें।"
+],
+"s": null
 },
 {
 "id": "paralelo",
@@ -2097,7 +2118,16 @@
 "एक साथ कितने काम: ⚙ → सेटिंग्स → उन्नत → «एक साथ काम» (kywai Cloud में सीमा आपके प्लान से तय होती है)।"
 ]
 ],
-"b": "paralelo parallel simultáneas tareas a la vez concurrentes"
+"b": "paralelo parallel simultáneas tareas a la vez concurrentes",
+"n": [
+"Los modelos locales hacen una tarea cada vez, para no saturar tu equipo.",
+"Local models do one task at a time, so they do not overload your computer.",
+"Os modelos locais fazem uma tarefa por vez, para não sobrecarregar o seu computador.",
+"Les modèles locaux font une tâche à la fois, pour ne pas saturer votre ordinateur.",
+"本地模型一次只做一项任务，以免拖垮你的电脑。",
+"लोकल मॉडल एक बार में एक ही काम करते हैं, ताकि आपका कंप्यूटर न दबे।"
+],
+"s": null
 },
 {
 "id": "control",
@@ -2144,7 +2174,16 @@
 "हर काम में आप देख सकते हैं कि कौन-सी फ़ाइलें बदलीं और उन्हें पूर्ववत कर सकते हैं; कुछ गड़बड़ हो तो «रोकें» काम बंद कर देता है।"
 ]
 ],
-"b": "permisos permissions aprobar approve plan deshacer undo seguridad security te necesita"
+"b": "permisos permissions aprobar approve plan deshacer undo seguridad security te necesita",
+"n": [
+"Borrar, pagar, comprar, publicar o enviar siempre se confirma cada vez.",
+"Deleting, paying, buying, publishing or sending is always confirmed each time.",
+"Apagar, pagar, comprar, publicar ou enviar sempre é confirmado a cada vez.",
+"Supprimer, payer, acheter, publier ou envoyer est toujours confirmé à chaque fois.",
+"删除、付款、购买、发布或发送，每次都需要你确认。",
+"मिटाना, भुगतान, खरीदना, प्रकाशित करना या भेजना हर बार आपसे पूछकर ही होता है।"
+],
+"s": null
 },
 {
 "id": "verificar",
@@ -2183,7 +2222,9 @@
 "हर काम के नतीजे के पास दिखता है कि किसने जाँचा और मंज़ूर किया या नहीं; अगर जाँचने वाला साफ़ फ़ैसला न दे सके तो «जाँच नहीं हुई» दिखता है और आपसे खुद देखने को कहता है।"
 ]
 ],
-"b": "verificar verify revisión review calidad quality comprobar"
+"b": "verificar verify revisión review calidad quality comprobar",
+"n": null,
+"s": null
 },
 {
 "id": "directo",
@@ -2230,7 +2271,9 @@
 "किसी ख़ास बात का जवाब देने के लिए संदेश के नीचे «जवाब दें» दबाएँ।"
 ]
 ],
-"b": "@ directo direct dm mencionar mention responder reply"
+"b": "@ directo direct dm mencionar mention responder reply",
+"n": null,
+"s": null
 },
 {
 "id": "voz",
@@ -2277,7 +2320,16 @@
 "जो आप लिखकर माँगते वही बोलकर माँगें, «/» कमांड भी। ख़त्म करने के लिए «कॉल काटो» कहें या बटन फिर दबाएँ।"
 ]
 ],
-"b": "voz voice live tiempo real realtime llamada call hablar speak gemini"
+"b": "voz voice live tiempo real realtime llamada call hablar speak gemini",
+"n": [
+"Lo hablado queda guardado en el chat al colgar. En kywai Cloud, pasados los minutos de tu plan, gasta créditos.",
+"What was said is saved in the chat when you hang up. In kywai Cloud, after your plan’s minutes, it uses credits.",
+"O que foi dito fica salvo no chat ao desligar. No kywai Cloud, passados os minutos do seu plano, gasta créditos.",
+"Ce qui a été dit est enregistré dans le chat à la fin de l’appel. Dans kywai Cloud, une fois les minutes de votre forfait écoulées, cela consomme des crédits.",
+"挂断后，对话内容会保存在聊天里。在 kywai Cloud 中，超出套餐包含的分钟数后会消耗额度。",
+"कॉल ख़त्म होने पर बातचीत चैट में सहेज ली जाती है। kywai Cloud में प्लान के मिनट पूरे होने के बाद क्रेडिट लगते हैं।"
+],
+"s": null
 },
 {
 "id": "lector",
@@ -2324,7 +2376,9 @@
 "⚙ → सेटिंग्स → सामान्य → «जवाब पढ़ने की आवाज़» में आवाज़ चुनें: हर एक के पास ▶ है नमूना सुनने के लिए।"
 ]
 ],
-"b": "lector leer reader read aloud tts voz altavoz speaker escuchar listen"
+"b": "lector leer reader read aloud tts voz altavoz speaker escuchar listen",
+"n": null,
+"s": null
 },
 {
 "id": "dictado",
@@ -2371,7 +2425,9 @@
 "डेस्कटॉप ऐप में: Ctrl+Alt+Space (Mac पर Control+Option+Space) किसी भी ऐप में बोलकर लिखवाता है और टेक्स्ट कर्सर वाली जगह चिपका देता है।"
 ]
 ],
-"b": "dictado dictar dictation whisper micrófono microphone nota de voz voice note"
+"b": "dictado dictar dictation whisper micrófono microphone nota de voz voice note",
+"n": null,
+"s": null
 },
 {
 "id": "mensajeria",
@@ -2418,7 +2474,16 @@
 "उसी ऐप से लिखें। यह सिर्फ़ आपकी जोड़ी हुई चैट की सुनता है (6 अंकों का कोड उसे जोड़ता है): कोई और आपके एजेंटों को काम नहीं भेज सकता।"
 ]
 ],
-"b": "telegram whatsapp slack teams mensajería messaging bot chat móvil"
+"b": "telegram whatsapp slack teams mensajería messaging bot chat móvil",
+"n": [
+"WhatsApp usa tu chat contigo mismo y nunca escribe a otras personas.",
+"WhatsApp uses your chat with yourself and never writes to other people.",
+"O WhatsApp usa seu chat com você mesmo e nunca escreve para outras pessoas.",
+"WhatsApp utilise votre discussion avec vous-même et n’écrit jamais à d’autres personnes.",
+"WhatsApp 使用你与自己的聊天，绝不会给其他人发消息。",
+"WhatsApp आपकी अपनी चैट इस्तेमाल करता है और कभी दूसरे लोगों को नहीं लिखता।"
+],
+"s": null
 },
 {
 "id": "movil",
@@ -2465,7 +2530,9 @@
 "Órbita में आप वही देखते और करते हैं जो डेस्कटॉप पर: चैट, काम, «आपकी ज़रूरत है», फ़ाइलें और वॉइस नोट।"
 ]
 ],
-"b": "móvil mobile android orbita órbita tailscale navegador browser"
+"b": "móvil mobile android orbita órbita tailscale navegador browser",
+"n": null,
+"s": null
 },
 {
 "id": "proyectos",
@@ -2512,7 +2579,9 @@
 "Ctrl+K किसी भी चैट, प्रोजेक्ट या नतीजे को खोजता है। «इतिहास» उन्हें तारीख़ से दिखाता है, और आप Claude Code, Codex, ChatGPT या Claude.ai की अपनी चैट यहाँ ला सकते हैं।"
 ]
 ],
-"b": "proyecto project carpeta folder favoritos favorites buscar search historial history importar import ctrl+k"
+"b": "proyecto project carpeta folder favoritos favorites buscar search historial history importar import ctrl+k",
+"n": null,
+"s": null
 },
 {
 "id": "ventanas",
@@ -2559,7 +2628,9 @@
 "बगल में चैट खुली हो तो 3D संसाधन बचाने के लिए रुक जाता है; ✕ से बंद करने पर सब पहले जैसा हो जाता है।"
 ]
 ],
-"b": "ventanas windows dividir split lado a lado side by side monitor múltiples multiple"
+"b": "ventanas windows dividir split lado a lado side by side monitor múltiples multiple",
+"n": null,
+"s": null
 },
 {
 "id": "seguimiento",
@@ -2606,7 +2677,9 @@
 "«आपकी ज़रूरत है» की घंटी वह सब इकट्ठा करती है जो आपके फ़ैसले का इंतज़ार कर रहा है।"
 ]
 ],
-"b": "tareas tasks tablero board kanban resultados results te necesita needs you tu día"
+"b": "tareas tasks tablero board kanban resultados results te necesita needs you tu día",
+"n": null,
+"s": null
 },
 {
 "id": "ordenes",
@@ -2653,7 +2726,9 @@
 "ये आवाज़ से और Telegram, WhatsApp, Slack या Teams से भी चलती हैं, और आपके टेम्पलेट और मॉड अपनी कमांड सूची में जोड़ते हैं।"
 ]
 ],
-"b": "órdenes comandos commands slash barra / atajos"
+"b": "órdenes comandos commands slash barra / atajos",
+"n": null,
+"s": null
 },
 {
 "id": "multimedia",
@@ -2700,7 +2775,9 @@
 "नतीजा चैट और नतीजे टैब में आता है और kywai छोड़े बिना प्रीव्यू में खुलता है।"
 ]
 ],
-"b": "imágenes images vídeo video estudio studio voz música music multimedia draw things comfyui flux gratis free"
+"b": "imágenes images vídeo video estudio studio voz música music multimedia draw things comfyui flux gratis free",
+"n": null,
+"s": null
 },
 {
 "id": "memoria",
@@ -2747,7 +2824,9 @@
 "लंबी बातचीत अपने आप संक्षेप में सहेज ली जाती है ताकि सिरा न छूटे।"
 ]
 ],
-"b": "memoria memory recordar remember instrucciones instructions agents.md"
+"b": "memoria memory recordar remember instrucciones instructions agents.md",
+"n": null,
+"s": null
 },
 {
 "id": "secretos",
@@ -2786,7 +2865,9 @@
 "या चैट से: /secreto नाम मान। यह कमांड किसी एजेंट को नहीं भेजी जाती: सीधे सीक्रेट में चली जाती है।"
 ]
 ],
-"b": "secretos secrets claves keys tokens api contraseñas passwords"
+"b": "secretos secrets claves keys tokens api contraseñas passwords",
+"n": null,
+"s": null
 },
 {
 "id": "rutinas",
@@ -2833,7 +2914,9 @@
 "टेम्पलेट चैट बॉक्स के ऊपर के बटन हैं: एक टच और भेज दिया जाता है ({खाली जगह} हो तो वह भरने को कहता है)।"
 ]
 ],
-"b": "rutinas routines programar schedule cron plantillas templates automatizar automate"
+"b": "rutinas routines programar schedule cron plantillas templates automatizar automate",
+"n": null,
+"s": null
 },
 {
 "id": "extensiones",
@@ -2880,7 +2963,9 @@
 "अपनी ज़रूरत का कुछ चाहिए तो /extension और जो चाहिए लिखें («नोट्स की दीवार»): एक एजेंट उसे बनाता है और वह «Mods» में खुलता है।"
 ]
 ],
-"b": "extensiones extensions mcp habilidades skills plugins mods catálogo catalog"
+"b": "extensiones extensions mcp habilidades skills plugins mods catálogo catalog",
+"n": null,
+"s": null
 },
 {
 "id": "apps",
@@ -2927,7 +3012,9 @@
 "अपने शब्दों में माँगें («मेरे अनपढ़े ईमेल का सार बताओ»): एजेंट कनेक्शन इस्तेमाल करता है।"
 ]
 ],
-"b": "apps conectores connectors gmail drive youtube composio integraciones integrations"
+"b": "apps conectores connectors gmail drive youtube composio integraciones integrations",
+"n": null,
+"s": null
 },
 {
 "id": "navegador",
@@ -2974,7 +3061,9 @@
 "एजेंट से पेज पढ़ने या घूमने को कहें। सब से बाहर निकलने के लिए «सब से साइन आउट» कुकी और डेटा मिटा देता है।"
 ]
 ],
-"b": "navegador browser web cuentas accounts login sesión session"
+"b": "navegador browser web cuentas accounts login sesión session",
+"n": null,
+"s": null
 },
 {
 "id": "pc",
@@ -3021,7 +3110,16 @@
 "क्लाउड से: डेस्कटॉप ऐप इंस्टॉल करें, ⚙ → सेटिंग्स → यह PC खोलें और «kywai cloud को इस PC से जोड़ें» चालू करें («माउस और कीबोर्ड» चालू रखकर)।"
 ]
 ],
-"b": "pc ordenador computer control ratón mouse teclado keyboard nube cloud escritorio desktop computer use"
+"b": "pc ordenador computer control ratón mouse teclado keyboard nube cloud escritorio desktop computer use",
+"n": [
+"Borrar, pagar, comprar, publicar o enviar nunca se hace sin preguntarte. En Mac, la primera vez pide los permisos de Accesibilidad y Grabación de pantalla.",
+"Deleting, paying, buying, publishing or sending is never done without asking you. On Mac, the first time it asks for Accessibility and Screen Recording permissions.",
+"Apagar, pagar, comprar, publicar ou enviar nunca é feito sem perguntar a você. No Mac, na primeira vez pede as permissões de Acessibilidade e Gravação de Tela.",
+"Supprimer, payer, acheter, publier ou envoyer ne se fait jamais sans vous demander. Sur Mac, la première fois, il demande les autorisations Accessibilité et Enregistrement d’écran.",
+"删除、付款、购买、发布或发送，绝不会不经你确认就执行。在 Mac 上首次使用时会请求“辅助功能”和“屏幕录制”权限。",
+"मिटाना, भुगतान, खरीदना, प्रकाशित करना या भेजना आपसे पूछे बिना कभी नहीं होता। Mac पर पहली बार यह «एक्सेसिबिलिटी» और «स्क्रीन रिकॉर्डिंग» की अनुमति माँगता है।"
+],
+"s": null
 },
 {
 "id": "potencia",
@@ -3068,7 +3166,9 @@
 "/equipos लिखकर देखें कि कौन-से कंप्यूटर हैं और कितना समय लेते हैं, और /instalar प्रोग्राम से चैट में Blender, Krita, Audacity वगैरह इंस्टॉल करें।"
 ]
 ],
-"b": "potencia power gpu modelos locales imágenes vídeo instalar install equipos devices"
+"b": "potencia power gpu modelos locales imágenes vídeo instalar install equipos devices",
+"n": null,
+"s": null
 },
 {
 "id": "cloud",
@@ -3115,7 +3215,16 @@
 "अपने कंप्यूटर पर पहले से kywai चलाते हैं? उसे खोलें और «kywai cloud पर जाएँ» से अपने प्रोजेक्ट, चैट, एजेंट और सेटिंग्स साथ ले जाएँ।"
 ]
 ],
-"b": "cloud nube cuenta account plan 24 horas hosting servidor server migrar migrate"
+"b": "cloud nube cuenta account plan 24 horas hosting servidor server migrar migrate",
+"n": [
+"El espacio de un usuario nunca se reinicia ni se actualiza sin su aprobación.",
+"A user’s space is never restarted or updated without their approval.",
+"O espaço de um usuário nunca é reiniciado nem atualizado sem a aprovação dele.",
+"L’espace d’un utilisateur n’est jamais redémarré ni mis à jour sans son accord.",
+"未经用户本人批准，其空间绝不会被重启或更新。",
+"किसी उपयोगकर्ता की जगह उसकी मंज़ूरी के बिना कभी रीस्टार्ट या अपडेट नहीं होती।"
+],
+"s": null
 },
 {
 "id": "amigos",
@@ -3162,7 +3271,9 @@
 "क्लिप से फ़ाइल जोड़ें (या चिपकाएँ); एक क्लिक में डाउनलोड होती है और 30 दिन तक रखी जाती है।"
 ]
 ],
-"b": "amigos friends chat mensajes messages id solicitud archivos files"
+"b": "amigos friends chat mensajes messages id solicitud archivos files",
+"n": null,
+"s": "nube"
 },
 {
 "id": "compartir",
@@ -3209,7 +3320,9 @@
 "आपका दोस्त निमंत्रण «दोस्त → आपको प्रोजेक्ट में बुलाया गया है» में देखता है। दोनों एक ही फ़ाइल बदलें तो कुछ दबता नहीं: हर कोई अपनी रखता है और दूसरे की प्रति बगल में पाता है।"
 ]
 ],
-"b": "compartir share colaborar collaborate proyecto compartido shared project equipo team colaboración"
+"b": "compartir share colaborar collaborate proyecto compartido shared project equipo team colaboración",
+"n": null,
+"s": "nube"
 },
 {
 "id": "archivos",
@@ -3256,7 +3369,9 @@
 "स्प्रेडशीट में «संपादित करें» सूत्रों वाला एडिटर खोलता है और «प्रति सहेजें» मूल को जस का तस रखता है। जोड़ने के लिए फ़ाइलें चैट में खींचें; उन्हें प्रकार से छाँटा जा सकता है (फ़ोटो, वीडियो, ऑडियो, दस्तावेज़, कोड)।"
 ]
 ],
-"b": "archivos files word excel powerpoint pdf docx xlsx pptx csv zip vista previa preview adjuntar attach tipos formatos formats"
+"b": "archivos files word excel powerpoint pdf docx xlsx pptx csv zip vista previa preview adjuntar attach tipos formatos formats",
+"n": null,
+"s": null
 },
 {
 "id": "espacio",
@@ -3303,7 +3418,9 @@
 "ज़रूरत न हो तो छिपा दें: वह रुक जाता है और चैट पूरी विंडो ले लेती है।"
 ]
 ],
-"b": "3d 2d espacio space personajes characters agentes peluches cotorra loro parrot mascota mascot"
+"b": "3d 2d espacio space personajes characters agentes peluches cotorra loro parrot mascota mascot",
+"n": null,
+"s": null
 },
 {
 "id": "aspecto",
@@ -3342,7 +3459,9 @@
 "संगीत के लिए स्पेस के ऊपर संगीत बटन दबाएँ: YouTube, रेडियो या ytm-rs, ताल पर चलती रोशनी के साथ।"
 ]
 ],
-"b": "temas themes idioma language música music color acento accent tema claro oscuro dark light"
+"b": "temas themes idioma language música music color acento accent tema claro oscuro dark light",
+"n": null,
+"s": null
 },
 {
 "id": "creditos",
@@ -3381,7 +3500,9 @@
 "kywai Cloud में, मेरा खाता → kywai क्रेडिट आपका बैलेंस, कीमतें और लेन-देन दिखाता है और रिचार्ज करने देता है (एक बार का भुगतान, कभी अपने आप नहीं)।"
 ]
 ],
-"b": "cuota quota uso usage coste cost créditos credits precio price plan recarga top up dinero money"
+"b": "cuota quota uso usage coste cost créditos credits precio price plan recarga top up dinero money",
+"n": null,
+"s": null
 },
 {
 "id": "copia",
@@ -3420,7 +3541,9 @@
 "दूसरे ऐप की चैट लाने के लिए: ⚙ → «दूसरे ऐप से आयात करें…»। दोबारा आयात करने पर जो आ चुका है वह दोहराया नहीं जाता।"
 ]
 ],
-"b": "copia seguridad backup importar import restaurar restore exportar export datos data"
+"b": "copia seguridad backup importar import restaurar restore exportar export datos data",
+"n": null,
+"s": null
 }
 ]
 }

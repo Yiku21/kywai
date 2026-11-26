@@ -231,3 +231,15 @@ body:not(.page-inicio) .page-intro .overview-links.jump { gap: 8px; }
 [hidden].fx-cm, [hidden].fx-cf { display: none; }
 @media (max-width: 980px) { .fx-grid, .fx-cmgrid, .fx-cfgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .fx-grid, .fx-cmgrid, .fx-cfgrid { grid-template-columns: 1fr; } .fx-search { width: 100%; min-width: 0; } .fx-head .eyebrow::before, .fx-head .eyebrow::after { width: 16px; } }
+.fx-solo { justify-self: start; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; color: var(--orange, #ff8a3d); border: 1px solid color-mix(in srgb, var(--orange, #ff8a3d) 45%, transparent); background: color-mix(in srgb, var(--orange, #ff8a3d) 10%, transparent); }
+.fx-nota { margin: 10px 0 0 !important; padding: 10px 12px; border-left: 2px solid var(--blue); border-radius: 0 8px 8px 0; background: color-mix(in srgb, var(--blue) 8%, transparent); font-size: 13.5px !important; }
+
+/* Ayuda: las preguntas son tarjetas, no un acordeón (como en la muestra) */
+.help-links { justify-content: center; margin-inline: auto; }
+.help-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 28px; align-items: start; }
+.help-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+.help-card h2 { font-size: 19px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -.02em; }
+.help-card p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+@media (max-width: 1100px) { .help-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .help-cards { grid-template-columns: 1fr; } }
+.help-links { background: none !important; border: 0 !important; padding: 0 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
