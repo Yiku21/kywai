@@ -11,12 +11,13 @@ export const PAGINAS = [
   { id: 'cloud', paths: ['cloud/', 'cloud/', 'cloud/', 'cloud/', 'cloud/', 'cloud/'] },
   { id: 'precios', paths: ['pricing/', 'precios/', 'precos/', 'tarifs/', 'pricing/', 'pricing/'] },
   { id: 'guias', paths: ['guides/', 'guias/', 'guias/', 'guides/', 'guides/', 'guides/'] },
+  { id: 'actualizaciones', paths: ['updates/', 'actualizaciones/', 'atualizacoes/', 'mises-a-jour/', 'updates/', 'updates/'] },
   { id: 'ayuda', paths: ['help/', 'ayuda/', 'ajuda/', 'aide/', 'help/', 'help/'] },
 ]
 
 export const SECCIONES = {
   en: {
-    labels: ['Home', 'How it works', 'Features', 'Agents', 'Connectors', 'Devices', 'Themes', 'Downloads', 'Cloud', 'Pricing', 'Guides', 'Help'],
+    labels: ['Home', 'How it works', 'Features', 'Agents', 'Connectors', 'Devices', 'Themes', 'Downloads', 'Cloud', 'Pricing', 'Guides', 'Updates', 'Help'],
     skip: 'Skip to content', menu: 'Menu', theme: 'Change theme', account: 'My account', project: 'Project', explore: 'Explore kywai',
     choose: 'Choose where you want to use kywai.', install: 'How to install', recommended: 'For your device', chip: 'Choose your Mac chip',
     downloadNote: 'The desktop app is free. Connect your own AI account or API key; provider fees and limits apply.',
@@ -39,7 +40,7 @@ export const SECCIONES = {
     composioTitle: 'Your apps, connected through Composio.', composioBody: 'Connect your own apps and event-based automations in kywai Cloud. Each user authorizes their own accounts.', composioState: 'In the Cloud pilot',
   },
   es: {
-    labels: ['Inicio', 'Cómo funciona', 'Funciones', 'Agentes', 'Conectores', 'Dispositivos', 'Temas', 'Descargas', 'Cloud', 'Precios', 'Guías', 'Ayuda'],
+    labels: ['Inicio', 'Cómo funciona', 'Funciones', 'Agentes', 'Conectores', 'Dispositivos', 'Temas', 'Descargas', 'Cloud', 'Precios', 'Guías', 'Actualizaciones', 'Ayuda'],
     skip: 'Ir al contenido', menu: 'Menú', theme: 'Cambiar tema', account: 'Mi cuenta', project: 'Proyecto', explore: 'Descubre kywai',
     choose: 'Elige dónde quieres usar kywai.', install: 'Cómo instalar', recommended: 'Para tu dispositivo', chip: 'Elige el chip de tu Mac',
     downloadNote: 'La aplicación de escritorio es gratis. Conecta tu cuenta de IA o tu clave; se aplican las tarifas y los límites de tu proveedor.',
@@ -62,7 +63,7 @@ export const SECCIONES = {
     composioTitle: 'Tus apps, conectadas mediante Composio.', composioBody: 'Conecta tus propias apps y automatizaciones por eventos en kywai Cloud. Cada usuario autoriza sus propias cuentas.', composioState: 'En el piloto de Cloud',
   },
   pt: {
-    labels: ['Início', 'Como funciona', 'Funcionalidades', 'Agentes', 'Conectores', 'Dispositivos', 'Temas', 'Downloads', 'Cloud', 'Preços', 'Guias', 'Ajuda'],
+    labels: ['Início', 'Como funciona', 'Funcionalidades', 'Agentes', 'Conectores', 'Dispositivos', 'Temas', 'Downloads', 'Cloud', 'Preços', 'Guias', 'Atualizações', 'Ajuda'],
     skip: 'Ir para o conteúdo', menu: 'Menu', theme: 'Mudar tema', account: 'Minha conta', project: 'Projeto', explore: 'Conheça o kywai',
     choose: 'Escolha onde quer usar o kywai.', install: 'Como instalar', recommended: 'Para o seu dispositivo', chip: 'Escolha o chip do seu Mac',
     downloadNote: 'O aplicativo de desktop é gratuito. Conecte sua conta de IA ou chave; aplicam-se as tarifas e os limites do provedor.',
@@ -85,7 +86,7 @@ export const SECCIONES = {
     composioTitle: 'Seus apps, conectados pelo Composio.', composioBody: 'Conecte seus próprios apps e automações por eventos no kywai Cloud. Cada usuário autoriza suas próprias contas.', composioState: 'No piloto do Cloud',
   },
   fr: {
-    labels: ['Accueil', 'Fonctionnement', 'Fonctionnalités', 'Agents', 'Connecteurs', 'Appareils', 'Thèmes', 'Téléchargements', 'Cloud', 'Tarifs', 'Guides', 'Aide'],
+    labels: ['Accueil', 'Fonctionnement', 'Fonctionnalités', 'Agents', 'Connecteurs', 'Appareils', 'Thèmes', 'Téléchargements', 'Cloud', 'Tarifs', 'Guides', 'Mises à jour', 'Aide'],
     skip: 'Aller au contenu', menu: 'Menu', theme: 'Changer de thème', account: 'Mon compte', project: 'Projet', explore: 'Découvrez kywai',
     choose: 'Choisissez où utiliser kywai.', install: 'Comment installer', recommended: 'Pour votre appareil', chip: 'Choisissez la puce de votre Mac',
     downloadNote: 'L’application de bureau est gratuite. Connectez votre compte IA ou votre clé ; les tarifs et limites du fournisseur s’appliquent.',
@@ -108,7 +109,7 @@ export const SECCIONES = {
     composioTitle: 'Vos apps, connectées via Composio.', composioBody: 'Connectez vos propres apps et automatisations par événements dans kywai Cloud. Chaque utilisateur autorise ses propres comptes.', composioState: 'Dans le pilote Cloud',
   },
   zh: {
-    labels: ['首页', '工作原理', '功能', '智能体', '连接器', '设备', '主题', '下载', 'Cloud', '价格', '指南', '帮助'],
+    labels: ['首页', '工作原理', '功能', '智能体', '连接器', '设备', '主题', '下载', 'Cloud', '价格', '指南', '更新记录', '帮助'],
     skip: '跳至内容', menu: '菜单', theme: '切换主题', account: '我的账户', project: '项目', explore: '探索 kywai',
     choose: '选择你想使用 kywai 的设备。', install: '安装方法', recommended: '适合你的设备', chip: '选择 Mac 芯片类型',
     downloadNote: '桌面应用免费。连接你自己的 AI 账户或 API 密钥；服务商的费用和使用限制仍然适用。',
@@ -143,6 +144,7 @@ export const SECCIONES = {
      "Cloud",
      "कीमतें",
      "गाइड",
+     "अपडेट",
      "मदद"
     ],
     "skip": "सामग्री पर जाएँ",
