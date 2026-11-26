@@ -172,3 +172,22 @@ html[data-theme="light"] .cielo { background: radial-gradient(ellipse 90% 34% at
   .logo-stage { min-height: 64vh; }
   .page-inicio .section-head .eyebrow::before, .page-inicio .section-head .eyebrow::after, .page-inicio .agent-ribbon-kicker::before, .page-inicio .agent-ribbon-kicker::after { width: 18px; }
 }
+
+/* =====================================================================
+   Páginas interiores en el estilo aprobado: cabecera centrada con punto verde, titular grande
+   y chips de salto redondeados. (La portada tiene su propio bloque más arriba.)
+   ===================================================================== */
+body:not(.page-inicio) .page-intro { padding: clamp(46px, 8vw, 96px) 0 clamp(26px, 4vw, 44px); }
+body:not(.page-inicio) .page-intro > .wrap { display: grid; justify-items: center; text-align: center; gap: 18px; }
+body:not(.page-inicio) .page-intro .eyebrow { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; }
+body:not(.page-inicio) .page-intro .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(31,202,133,.25); }
+body:not(.page-inicio) .page-intro h1 { font-size: clamp(40px, 7vw, 84px); font-weight: 700; line-height: 1; letter-spacing: -.05em; max-width: 16ch; margin: 0; text-wrap: balance; }
+body:not(.page-inicio) .page-intro .lede { max-width: 52ch; margin: 0; }
+body:not(.page-inicio) .page-intro .download-note, body:not(.page-inicio) .page-intro .ctas, body:not(.page-inicio) .page-intro .release-line { justify-content: center; margin-inline: auto; }
+body:not(.page-inicio) .page-intro .overview-links { justify-content: center; gap: 10px; margin-top: 8px; max-width: 880px; }
+body:not(.page-inicio) .page-intro .overview-links > span { padding: 7px 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); font-size: 14px; }
+body:not(.page-inicio) .showcase-intro .text-link { margin-top: 8px; }
+.connector-visual-layout { display: grid !important; grid-template-columns: 1fr !important; justify-items: center; text-align: center; gap: 22px; }
+.connector-visual-layout > div:first-child { display: grid; justify-items: center; gap: 18px; }
+.connector-visual-layout h1 { max-width: 16ch; }
+.connector-visual-layout > :not(:first-child) { max-width: 520px; margin-inline: auto; transform: scale(.82); transform-origin: top center; margin-bottom: -40px; }
