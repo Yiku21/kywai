@@ -11,7 +11,7 @@ export const ESCAPARATE = {
     connectorsTitle: 'Más herramientas. Más posibilidades.', connectorsIntro: 'Conecta servicios para que tus agentes puedan investigar, programar, navegar y crear.', catalogue: 'Explora las conexiones', desktop: 'Catálogo MCP · Escritorio', desktopNote: 'Se configuran dentro de kywai. La disponibilidad depende del agente y de los requisitos de cada servicio.',
     filters: ['Todas','Código','Web e investigación','Creatividad'], connect: 'Cómo conectar', docs: 'Documentación', steps: ['Abre kywai → Ajustes → Extensiones → Servidores MCP.', 'Busca este servicio en el catálogo y añade su conexión.', 'Elige los agentes compatibles y prueba la conexión antes de activarla.'], needsKey: 'Necesita tu token o clave del servicio.', noKey: 'No requiere una clave en su configuración destacada.',
     descriptions: ['Repositorios, issues y pull requests.', 'Un navegador que hace clic y toma capturas.', 'Documentación de librerías al día.', 'Preguntas sobre repositorios públicos.', 'Convierte páginas web en texto.', 'Rastrea webs y extrae datos.', 'Navegación web para agentes.', 'Investigación en internet con fuentes.', 'Pixel art, personajes y animaciones.', 'Analítica de tu web o aplicación.', 'Razonamiento paso a paso.'],
-    cloudTitle: 'Tus apps del día a día, en Cloud.', cloudIntro: 'Estamos preparando conexiones con Composio. Cada usuario autorizará sus propias cuentas.', coming: 'En preparación', cloudNames: ['Correo','Documentos','Archivos','Mensajes','Calendario'], cloudAccess: 'Conocer kywai Cloud',
+    cloudTitle: 'Tus apps del día a día, en Cloud.', cloudIntro: 'Conecta tus apps con Composio desde Mi cuenta. Cada usuario autoriza sus propias cuentas.', coming: 'En el piloto de Cloud', cloudNames: ['Correo','Documentos','Archivos','Mensajes','Calendario'], cloudAccess: 'Conocer kywai Cloud',
     extensionsTitle: 'Más formas de ampliar tu equipo', extensionNames: ['Skills','Plugins','Mods'], extensionBodies: ['Habilidades reutilizables para tus tareas.','Paquetes de habilidades y herramientas compatibles.','Órdenes, automatizaciones y paneles de kywai.'], compatibility: 'Ver compatibilidad y requisitos', empty: 'No hay conexiones en esta categoría.',
   },
   en: {
@@ -23,7 +23,7 @@ export const ESCAPARATE = {
     connectorsTitle: 'More tools. More possibilities.', connectorsIntro: 'Connect services so your agents can research, code, browse and create.', catalogue: 'Explore connections', desktop: 'MCP catalog · Desktop', desktopNote: 'Set these up inside kywai. Availability depends on the agent and each service’s requirements.',
     filters: ['All','Code','Web and research','Creative'], connect: 'How to connect', docs: 'Documentation', steps: ['Open kywai → Settings → Extensions → MCP servers.', 'Find this service in the catalog and add its connection.', 'Choose compatible agents and test the connection before enabling it.'], needsKey: 'Requires your service token or API key.', noKey: 'No key required in its featured configuration.',
     descriptions: ['Repositories, issues and pull requests.', 'A browser that clicks and takes screenshots.', 'Up-to-date library documentation.', 'Questions about public repositories.', 'Turn web pages into text.', 'Crawl websites and extract data.', 'Web browsing for agents.', 'Internet research with sources.', 'Pixel art, characters and animations.', 'Analytics for your website or app.', 'Step-by-step reasoning.'],
-    cloudTitle: 'Your everyday apps, in Cloud.', cloudIntro: 'We are preparing connections through Composio. Each user will authorize their own accounts.', coming: 'In preparation', cloudNames: ['Email','Documents','Files','Messages','Calendar'], cloudAccess: 'Explore kywai Cloud',
+    cloudTitle: 'Your everyday apps, in Cloud.', cloudIntro: 'Connect your apps through Composio from My account. Each user authorizes their own accounts.', coming: 'In the Cloud pilot', cloudNames: ['Email','Documents','Files','Messages','Calendar'], cloudAccess: 'Explore kywai Cloud',
     extensionsTitle: 'More ways to extend your team', extensionNames: ['Skills','Plugins','Mods'], extensionBodies: ['Reusable skills for your tasks.','Packages of compatible skills and tools.','Commands, automations and kywai panels.'], compatibility: 'See compatibility and requirements', empty: 'No connections in this category.',
   },
   pt: {
@@ -35,7 +35,7 @@ export const ESCAPARATE = {
     connectorsTitle: 'Mais ferramentas. Mais possibilidades.', connectorsIntro: 'Conecte serviços para seus agentes pesquisarem, programarem, navegarem e criarem.', catalogue: 'Explorar conexões', desktop: 'Catálogo MCP · Desktop', desktopNote: 'Configure dentro do kywai. A disponibilidade depende do agente e dos requisitos de cada serviço.',
     filters: ['Todas','Código','Web e pesquisa','Criatividade'], connect: 'Como conectar', docs: 'Documentação', steps: ['Abra kywai → Ajustes → Extensões → Servidores MCP.', 'Busque este serviço no catálogo e adicione sua conexão.', 'Escolha agentes compatíveis e teste a conexão antes de ativá-la.'], needsKey: 'Requer seu token ou chave do serviço.', noKey: 'Não requer chave na configuração em destaque.',
     descriptions: ['Repositórios, issues e pull requests.', 'Navegador que clica e tira capturas.', 'Documentação atualizada de bibliotecas.', 'Perguntas sobre repositórios públicos.', 'Converta páginas web em texto.', 'Rastreie sites e extraia dados.', 'Navegação web para agentes.', 'Pesquisa na internet com fontes.', 'Pixel art, personagens e animações.', 'Análise do seu site ou aplicativo.', 'Raciocínio passo a passo.'],
-    cloudTitle: 'Seus apps do dia a dia no Cloud.', cloudIntro: 'Estamos preparando conexões com o Composio. Cada usuário autorizará suas próprias contas.', coming: 'Em preparação', cloudNames: ['E-mail','Documentos','Arquivos','Mensagens','Calendário'], cloudAccess: 'Conhecer o kywai Cloud',
+    cloudTitle: 'Seus apps do dia a dia no Cloud.', cloudIntro: 'Conecte seus apps com o Composio em Minha conta. Cada usuário autoriza suas próprias contas.', coming: 'No piloto do Cloud', cloudNames: ['E-mail','Documentos','Arquivos','Mensagens','Calendário'], cloudAccess: 'Conhecer o kywai Cloud',
     extensionsTitle: 'Mais formas de ampliar sua equipe', extensionNames: ['Skills','Plugins','Mods'], extensionBodies: ['Habilidades reutilizáveis nas suas tarefas.','Pacotes de habilidades e ferramentas compatíveis.','Comandos, automações e painéis do kywai.'], compatibility: 'Ver compatibilidade e requisitos', empty: 'Nenhuma conexão nesta categoria.',
   },
   fr: {
@@ -47,7 +47,7 @@ export const ESCAPARATE = {
     connectorsTitle: 'Plus d’outils. Plus de possibilités.', connectorsIntro: 'Connectez des services pour permettre aux agents de chercher, coder, naviguer et créer.', catalogue: 'Explorer les connexions', desktop: 'Catalogue MCP · Bureau', desktopNote: 'À configurer dans kywai. La disponibilité dépend de l’agent et des exigences du service.',
     filters: ['Tous','Code','Web et recherche','Créativité'], connect: 'Comment connecter', docs: 'Documentation', steps: ['Ouvrez kywai → Réglages → Extensions → Serveurs MCP.', 'Recherchez ce service dans le catalogue et ajoutez sa connexion.', 'Choisissez des agents compatibles et testez la connexion avant de l’activer.'], needsKey: 'Votre token ou clé du service est nécessaire.', noKey: 'Aucune clé requise dans sa configuration proposée.',
     descriptions: ['Dépôts, issues et pull requests.', 'Un navigateur qui clique et prend des captures.', 'Documentation à jour des bibliothèques.', 'Questions sur les dépôts publics.', 'Transformez les pages web en texte.', 'Parcourez les sites et extrayez des données.', 'Navigation web pour les agents.', 'Recherche internet avec des sources.', 'Pixel art, personnages et animations.', 'Analyse de votre site ou application.', 'Raisonnement étape par étape.'],
-    cloudTitle: 'Vos apps quotidiennes, dans Cloud.', cloudIntro: 'Nous préparons les connexions via Composio. Chaque utilisateur autorisera ses propres comptes.', coming: 'En préparation', cloudNames: ['E-mail','Documents','Fichiers','Messages','Calendrier'], cloudAccess: 'Découvrir kywai Cloud',
+    cloudTitle: 'Vos apps quotidiennes, dans Cloud.', cloudIntro: 'Connectez vos apps via Composio depuis Mon compte. Chaque utilisateur autorise ses propres comptes.', coming: 'Dans le pilote Cloud', cloudNames: ['E-mail','Documents','Fichiers','Messages','Calendrier'], cloudAccess: 'Découvrir kywai Cloud',
     extensionsTitle: 'D’autres façons d’étendre votre équipe', extensionNames: ['Skills','Plugins','Mods'], extensionBodies: ['Compétences réutilisables pour vos tâches.','Ensembles de compétences et outils compatibles.','Commandes, automatisations et panneaux kywai.'], compatibility: 'Voir la compatibilité et les prérequis', empty: 'Aucune connexion dans cette catégorie.',
   },
   zh: {
@@ -59,7 +59,7 @@ export const ESCAPARATE = {
     connectorsTitle: '更多工具，更多可能。', connectorsIntro: '连接服务，让智能体研究、编程、浏览和创作。', catalogue: '探索连接', desktop: 'MCP 目录 · 桌面版', desktopNote: '在 kywai 中配置。可用性取决于智能体和各服务的要求。',
     filters: ['全部','代码','网页与研究','创作'], connect: '如何连接', docs: '文档', steps: ['打开 kywai → 设置 → 扩展 → MCP 服务器。','在目录中查找此服务并添加连接。','选择兼容的智能体，测试连接后再启用。'], needsKey: '需要你自己的服务 token 或密钥。', noKey: '目录中的默认配置不需要密钥。',
     descriptions: ['仓库、issue 和 pull request。','点击网页并截取屏幕的浏览器。','最新的软件库文档。','询问公开仓库的相关问题。','将网页转换为文本。','抓取网站并提取数据。','为智能体提供网页浏览能力。','带来源的互联网研究。','像素画、角色与动画。','网站或应用的数据分析。','逐步推理。'],
-    cloudTitle: '在 Cloud 中连接日常应用。', cloudIntro: '我们正在通过 Composio 准备连接功能。每位用户将授权自己的账户。', coming: '准备中', cloudNames: ['邮件','文档','文件','消息','日历'], cloudAccess: '了解 kywai Cloud',
+    cloudTitle: '在 Cloud 中连接日常应用。', cloudIntro: '通过 Composio 在“我的账户”中连接你的应用。每位用户授权自己的账户。', coming: 'Cloud 试用中可用', cloudNames: ['邮件','文档','文件','消息','日历'], cloudAccess: '了解 kywai Cloud',
     extensionsTitle: '更多团队扩展方式', extensionNames: ['Skills','插件','Mods'], extensionBodies: ['可重复使用的任务技能。','兼容的技能和工具包。','kywai 命令、自动化与面板。'], compatibility: '查看兼容性和要求', empty: '该分类暂无连接。',
   },
   hi: {
@@ -157,8 +157,8 @@ export const ESCAPARATE = {
      "कदम-दर-कदम तर्क।"
     ],
     "cloudTitle": "आपके रोज़ के ऐप, Cloud में।",
-    "cloudIntro": "हम Composio के ज़रिए कनेक्शन तैयार कर रहे हैं। हर उपयोगकर्ता अपने खुद के खाते अधिकृत करेगा।",
-    "coming": "तैयारी में",
+    "cloudIntro": "Composio के ज़रिए “मेरा खाता” से अपने ऐप जोड़ें। हर उपयोगकर्ता अपने खुद के खाते अधिकृत करता है।",
+    "coming": "Cloud पायलट में उपलब्ध",
     "cloudNames": [
      "ईमेल",
      "दस्तावेज़",
@@ -191,7 +191,7 @@ export const CONEXIONES = [
   ['DeepWiki','DW','code','https://deepwiki.com',false],
   ['Fetch','F','web','https://github.com/modelcontextprotocol/servers',false],
   ['Firecrawl','FC','web','https://github.com/firecrawl/firecrawl-mcp-server',true],
-  ['Lightpanda','LP','web','https://lightpanda.io',false],
+  ['Obscura','OB','web','https://github.com/h4ckf0r0day/obscura',false],
   ['Perplexity','P','web','https://github.com/perplexityai/modelcontextprotocol',true],
   ['PixelLab','PX','creative','https://www.pixellab.ai/vibe-coding',true],
   ['PostHog','PH','code','https://posthog.com/docs/model-context-protocol',true],
@@ -210,7 +210,7 @@ export function renderEscaparate(id,{s,composio,composioData,guides,t,url,base,i
   }
   if(id==='conectores') {
     const categories=['all','code','web','creative']
-    const guideIds=['github','playwright','context7','deepwiki','fetch','firecrawl','lightpanda','perplexity','pixellab','posthog','sequential-thinking']
+    const guideIds=['github','playwright','context7','deepwiki','fetch','firecrawl','obscura','perplexity','pixellab','posthog','sequential-thinking']
     const cards=CONEXIONES.map(([name,initial,category],i)=>`<article class="connector-card" data-connect-category="${category}"><div class="connector-summary"><span class="connector-monogram tone-${i%4}" aria-hidden="true">${brandSymbol(name,base,category==='code'?'code':category==='creative'?'video':'globe')}</span><span class="connector-title">${esc(name)}<small>MCP</small></span><p>${esc(s.descriptions[i])}</p><a class="connector-action" aria-label="${esc(guides.open+' · '+name)}" href="${url('guias','#'+guideIds[i])}">${esc(guides.open)} <span aria-hidden="true">→</span></a></div></article>`).join('')
     const connectionArt=`<div class="connection-art" aria-hidden="true"><svg viewBox="0 0 460 300" fill="none"><path d="M230 150 70 60M230 150 390 60M230 150 70 240M230 150 390 240M230 150H30m200 0h200"/></svg><div class="connection-core"><img src="${base}assets/kywai-simbolo.svg" width="76" height="76" alt=""></div>${['GitHub','Playwright','Perplexity','PostHog'].map((name,i)=>`<span class="connection-node connection-node-${i}">${brandSymbol(name,base,name==='Playwright'?'globe':'plug')}<small>${name}</small></span>`).join('')}</div>`
     return `<section class="page-intro showcase-intro connector-visual-intro" id="extensions"><div class="wrap"><p class="eyebrow">kywai</p><div class="connector-visual-layout"><div><h1>${esc(composio.title)}</h1><p class="lede">${esc(composio.intro)}</p><a class="text-link" href="${url('guias')}">${esc(guides.open)} →</a></div>${connectionArt}</div></div></section>${renderComposio({s:composio,data:composioData,base,esc})}<section class="showcase-page"><div class="wrap"><h2 class="compact-heading">${esc(composio.desktop)}</h2><aside class="guide-entry"><div><h2>${esc(guides.quickTitle)}</h2><p>${esc(guides.quickBody)}</p></div><a class="btn btn-primary" href="${url('guias','#deepwiki')}">${esc(guides.start)} →</a></aside><div class="catalog-heading" id="connection-catalog"><div><h2>${esc(s.desktop)}</h2><p>${esc(s.desktopNote)}</p></div><div class="connector-filters" role="group" aria-label="${esc(s.catalogue)}">${s.filters.map((label,i)=>`<button type="button" data-connect-filter="${categories[i]}" aria-pressed="${i===0}">${esc(label)}</button>`).join('')}</div></div><div class="connector-grid">${cards}</div><p class="connector-empty" hidden>${esc(s.empty)}</p><details class="compatibility-details"><summary>${esc(s.compatibility)}</summary><p>${esc(t['extensions.limits'])}</p></details><h2 class="compact-heading">${esc(s.extensionsTitle)}</h2><div class="extension-mini-grid">${s.extensionNames.map((name,i)=>`<article><span class="feature-icon">${icon(['folder','plug','sliders'][i])}</span><h3>${esc(name)}</h3><p>${esc(s.extensionBodies[i])}</p></article>`).join('')}</div><div class="showcase-cta"><a class="btn btn-primary" href="${url('descargas')}">${esc(s.download)} →</a><a class="text-link" href="${url('precios')}">${esc(s.pricing)} →</a></div></div></section>`
