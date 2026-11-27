@@ -5786,6 +5786,10 @@ La primera vez que la escribes deja la rutina **«Repaso de habilidades»**, los
 - **Voz limpia y nivelada**: sin zumbidos graves, sin ruido de fondo y al volumen de las redes (−14 LUFS).
 - **Color** retocado suave; con `color:cálido`, `color:frío`, `color:contraste` o `color:ninguno` cambia.
 - **Subtítulos** quemados en grupos de hasta 3 palabras, la que suena en amarillo (`sin subtítulos` los quita).
+  Desde la 1.57.0 se elige el estilo con `subtítulos:naranja` (la palabra que suena en naranja), `subtítulos:blanco`
+  (el grupo entero en blanco, sin palabra marcada) o `subtítulos:palabra` (una sola palabra gigante cada vez, en el
+  tercio de abajo, como en los reels de historias; idea de un reel de aidylikestech). Sin nada, el amarillo de
+  siempre. Vale igual en `/recortes`. Código: `CaptionStyle` y `buildAss` en `src/main/footage.ts`.
 - Sale con el formato de la grabación; con `vertical` o `cuadrado`, recortada siguiendo a quien habla.
 
 **«/recortes [n] [lo que buscas]»** con un vídeo largo (una charla, un pódcast, un directo) saca los **n mejores
@@ -7226,6 +7230,30 @@ imagen a vídeo; kywai lo hace así (`src/shared/videoCine.ts`, `src/main/videoC
 - Fase 2 (no hecha): «Corto animado» en three.js (personajes 2D en mundo 3D, sin generador de IA) con las habilidades
   Motion Skills y Three.js Skills (MIT) como fuentes opcionales; un tipo de créditos `video` para cobrarlo en el portal.
 
+**Cine IA con créditos kywai** (`nivel:`, 1.58.0, 27 nov 2026). Pedido por Yil: en la nube, quien no tiene clave de Gemini
+también puede hacer cortos, pagando con créditos (1 crédito = 1 centavo de USD). Cuatro formas de hacerlo, en el selector de
+/video → Cine IA (marca `nivel:api|rapido|medio|calidad|premium`, solo con `tipo:cine`):
+- **Mi API** (`api`, la de siempre): tu clave de Gemini, a cargo de tu cuenta de Google. No gasta créditos.
+- **Rápido / Medio / Calidad / Premium**: se animan en RunPod («Public Endpoints», la misma clave `KYWAI_RUNPOD_CLAVE` del
+  portal) y se cobran por segundo de vídeo: Rápido 3 (Pruna P-Video 720p), Medio 15 (Wan 2.6 720p), Calidad 23 (Veo 3.1 Fast
+  1080p), Premium 135 (Seedance 2.5 1080p). Tabla en `CINE_CREDIT_LEVELS` (`src/shared/videoCine.ts`) y `LEVELS`
+  (`portal/video_ia.py` en kywai-cloud): si cambian en uno, cambian en el otro. El margen es el de siempre (×1,5 sobre lo que
+  cobra el proveedor).
+- **El flujo no cambia**: el agente escribe el plan, kywai dibuja personajes y planos (con referencias, por `/api/imagen`: 8
+  créditos el plano con Gemini, 2 la hoja de un personaje con la GPU), enseña el guion gráfico y **espera «Seguir» o
+  «Parar»**. Con créditos, el aviso dice cuántos cuesta animarlo (y hasta cuántos con repeticiones), cuántos ya se cobraron en
+  imágenes y cuántos le quedan; si no llegan, lo avisa antes de pulsar «Seguir».
+- **Sin elegir nivel**: si hay clave de Gemini, `api`; si no (y es kywai Cloud), `rapido`. Fuera de la nube solo existe `api`
+  (`cineLevelFor` en `orchestrator.ts`).
+- **El portal** (`portal/video_ia.py`, rutas `/api/video…`): crea el trabajo (202), el espacio pregunta cada 5 s y baja el MP4
+  (`/archivo`). Cobra al pedir (`credit_spend`, tipo `video`) y **devuelve los créditos si el plano falla** o tarda más de 15
+  min. Topes: `KYWAI_VIDEO_SEGUNDOS_DIA` (300 s por cuenta y día) y `KYWAI_VIDEO_A_LA_VEZ` (3). La imagen de arranque se sirve a
+  RunPod con una dirección secreta de un solo uso (`/api/video/entrada/<token>`). Se guarda el coste real que dice RunPod
+  (`coste_usd`) para ajustar los precios.
+- **Sin comprobar** (a medir con ≈5 USD en la cuenta de administración tras el despliegue): el tamaño vertical de Wan, el audio
+  y los labios de Pruna/Wan, el precio real de Veo a 1080p y las condiciones de reventa de RunPod y de cada modelo.
+- Órbita (Android) todavía no conoce la marca `nivel:`.
+
 **Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
 cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
 para siempre); «Detener» también lo cierra todo. Si lo que se trabó era el plató 3D, se intenta **una vez** sin plató
@@ -7770,6 +7798,18 @@ segmentos que corre hasta el último punto y entonces se para y parpadea; abajo,
 franja negra y dos paneles **Antes** / **Después** con una demostración pequeña que se repite (el mismo botón, tarjeta o
 campo hecho mal y bien). 1–2,5 s por punto; la voz solo dice el nombre de cada uno. Usa el motor del «Diseño suizo
 animado» (`swiss-motion`). También se pide con «estilo lista contrarreloj», «contrarreloj» o «cronómetro».
+
+**Un personaje, diez estilos** (`kywai-ten-styles`, desde el 27 de noviembre de 2026, idea de un reel de tonistelk:
+solo la mecánica, nada de su marca ni de su texto) es un clip vertical de 16–20 s donde **el mismo personaje hace lo
+mismo en la misma habitación diez veces**, cada una en un estilo de animación: plastilina, anime, pixel art, vector
+plano, cómic, 3D, cartoon, low-poly, cuento y piezas de ladrillo. Al lado va una lista numerada con el estilo activo
+en brillante y el corte cae justo cuando apoya el pie, para que no se note el salto; al final, una rejilla con los diez
+y una tarjeta «Comenta «PALABRA» para los prompts». Por defecto el personaje es un oficinista con cajas, o el que pidas;
+con «diez estilos de <producto>» enseña tu producto en cada uno. Cada estilo toma su forma de dibujar de uno que kywai ya
+tiene (`cel-anime-80s`, `pixel-rpg`, `lowpoly-island`, `brick-toy`, plastilina, cómic y cuento animado de «pintar con
+código», y descripciones para vector plano y 3D). **Guarda `prompts.md` junto a la película**, con un prompt listo para
+pegar en un modelo de imagen o vídeo por cada estilo. Si pides menos estilos u otros, vale (de 3 a 12). Usa el motor del
+«Diseño suizo animado» (`swiss-motion`). También se pide con «estilo diez estilos», «10 estilos» o «un personaje».
 
 **Collage de revista** (`kywai-paper-collage`, desde el 16 de noviembre de 2026) sale de los explicadores en collage de
 papel de canales editoriales (tipo Vox; solo la gramática visual, la guía la escribió kywai). Toda la película es un
