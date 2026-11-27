@@ -1586,8 +1586,8 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     actividad («OmniRoute no responde: Hermes sigue con los modelos gratis de OpenRouter»). «Quitar cuenta o clave» y
     quitar el agente la borran. Sin reserva, avisa del motivo como antes.
   - **OmniRoute en tu espacio** (`omniRouteSpace.ts`, `omniroute.ts`). La imagen del espacio trae OmniRoute instalado
-    y cada espacio enciende el suyo en 127.0.0.1:20128 (`ensureOmniRouteForHermes`), sin panel
-    (`OMNIROUTE_HEADLESS=1`), solo dentro del contenedor (`OMNIROUTE_SERVER_HOST=127.0.0.1`) y con 512 MB de memoria
+    y cada espacio enciende el suyo en 127.0.0.1:20128 (`ensureOmniRouteForHermes`), con su panel web (hasta la 1.53 iba sin él,
+    `OMNIROUTE_HEADLESS=1`; quitarlo cuesta unos 36 MB en reposo), solo dentro del contenedor (`OMNIROUTE_SERVER_HOST=127.0.0.1`) y con 512 MB de memoria
     como tope (`--max-old-space-size=512`). **Si el Hermes del espacio lo usa, se queda encendido siempre** (Yil, 25 nov
     2026): se enciende al arrancar el espacio (`keepSpaceOmniRouteOn`), cada minuto se mira y, si no contesta, se
     vuelve a encender (`spaceOmniRouteStep`; tras un arranque fallido espera 5 min, `OMNIROUTE_RETRY_MS`), y el gateway
@@ -1607,6 +1607,18 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
     queda sin cupo, Hermes sigue con la reserva de OpenRouter. En un espacio nuevo o formateado, el config.yaml de Hermes
     no tiene sección `model:` y sin ella Hermes se cree sin configurar: al escribir el proveedor, kywai la añade con ese
     proveedor y su modelo (`upsertHermesProvider`).
+  - **El panel real de OmniRoute de tu espacio (v1.54.0).** «Configura Hermes» → OmniRoute → **«Abrir el panel de OmniRoute»**
+    (solo en la app de escritorio conectada a kywai cloud) abre en una ventana propia el mismo panel que verías en
+    127.0.0.1:20128/home (proveedores, rutas, reglas, claves, cuotas), para editarlo como quieras. **No se pone en
+    internet**: la app abre un túnel local (`omniRoutePanelTunnel.ts`, 127.0.0.1 en un puerto al azar, con un código de
+    sesión en una cookie propia, comprobando el nombre del servidor contra DNS rebinding y sin dejar pasar las cookies del
+    panel) que reenvía a `/api/omniroute-panel/…` del espacio con la llave de ESE dispositivo; el espacio
+    (`omniRoutePanelProxy.ts`, `serveOmniRoutePanel` en `webServer.ts`) comprueba que sea una app de escritorio emparejada
+    (Bearer de dispositivo, nunca la cookie del navegador ni un móvil) y le pone al panel la llave de la terminal
+    (`x-omniroute-cli-token`), que no sale del espacio. Antes de abrir, la app llama a `omniRoutePanelReady`
+    (`ensureSpacePanel`): lo enciende y, si arrancó sin panel (404 en `/home`), lo reinicia una vez (`restartOmniRoute`; Hermes
+    no lo nota más que un momento). Mientras el panel se usa no se apaga por falta de uso (`touchOmniRoute`). Un espacio que
+    aún no se ha actualizado contesta que pulses «Actualizar ahora». Desde el navegador o el móvil no se abre: usa la app de escritorio.
   - **Hermes con tu suscripción de ChatGPT o Claude en la nube, con su propio inicio de sesión** (`hermes-codex` y
     `hermes-claude` en `cloudAccountSpecs`). Desde el 25 nov 2026 es **lo que sale primero** en la bienvenida y en la
     ficha de Hermes de Mis agentes («Usar mi Claude», «Usar mi ChatGPT»); el OmniRoute del espacio y la clave de
@@ -4966,6 +4978,24 @@ ventana estrecha o móvil, pasa a la pestaña **Espacio**. Si ocultas el panel c
   Opus (webm u ogg, o m4a en Safari), unos 0,2 MB por minuto. En **Mi cuenta** (cuenta.kywai.app) una nota de voz sale
   como un archivo para descargar.
 
+- **Llamadas de voz** (desde la 1.53.0): en la conversación de un amigo, el **icono del teléfono** de arriba a la
+  derecha (junto al «⋯») le llama. A tu amigo le suena un **timbre** (dos pitidos dobles que se repiten, canal de
+  efectos) y sale una **tarjeta** arriba, en cualquier parte de kywai, con **Contestar** y **Rechazar** (con kywai en
+  segundo plano, la app de escritorio enseña además un aviso del sistema con su nombre). Suena 45 segundos; si nadie
+  contesta, a quien llamó le sale «no ha contestado» y a quien no contestó, «Llamada perdida de…». Durante la llamada la
+  tarjeta enseña **«En llamada · 3:07»**, **Silenciar micrófono** y **Colgar**; mientras tanto se puede seguir
+  trabajando. Solo entre amigos, **una llamada a la vez** por persona (quien está en una llamada da «ocupado»), sin
+  llamadas de grupo y sin gastar créditos. El icono no sale si el navegador no tiene micrófono o WebRTC (el navegador lo
+  exige HTTPS); la primera vez pide permiso de micrófono. Cómo funciona: la voz es **WebRTC** (Opus) directa entre las
+  dos apps, y si no consigue conectar directo, pasa por el **servidor de paso de Cloudflare** (`/api/turn`, el mismo del
+  vídeo del navegador de kywai, ver `browserTurn.ts`). **No se graba ni se guarda audio** y no pasa por el portal. El
+  portal de Mi cuenta solo es la centralita de la señal (`portal/llamadas.py` de kywai-cloud: `POST /api/llamadas`,
+  `GET /api/llamadas/actual`, `POST /api/llamadas/<id>/<aceptar|rechazar|colgar|senal>`): guarda quién llama a quién y
+  pasa la oferta, la respuesta y las direcciones ICE; borra todo una hora después. La app mira al portal cada 3 s (5 s
+  con kywai oculto) para saber si te llaman y cada 1 s durante la llamada; si una de las dos apps lleva 20 s sin
+  preguntar, el portal da la llamada por caída. Máximo 10 llamadas nuevas por minuto. Código: `lib/friendCall.ts` (motor
+  y tienda `useCall`), `ui/sidebar/CallBar.tsx` (tarjeta) y el icono en `FriendsPanel.tsx`. **Hace falta kywai Cloud con
+  la versión de la nube que trae `llamadas.py`**: sin ella, llamar da un aviso y no pasa nada más.
 - **Tu ID de kywai**: púlsalo para copiarlo y pásaselo a quien quieras tener de amigo.
 - **Añadir**: escribe el ID de tu amigo (da igual con guion o en minúsculas). Le llega la solicitud y, si lo tiene
   activado, un correo con el botón «Ver la solicitud».
