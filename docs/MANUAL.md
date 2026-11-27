@@ -581,6 +581,17 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
     (`Yiku21/kywai`, su `publicado/codigo.txt` en esa etiqueta). Un cambio de la app llega a la nube con la Release (9:00 UTC
     o cuando se pide «Publicar escritorio»), a la vez que al escritorio. Lo de kywai-cloud (portal, imagen, scripts) sigue
     desplegándose al fusionar. Nunca baja de versión: si lo desplegado ya es más nuevo que la Release, espera a la siguiente.
+- **Un solo botón, cuando las dos están listas (1.62.0, Yil 27 nov 2026: «un solo botón de actualizar, que solo aparezca que
+  tiene una update cuando esté lista en local y en la nube con la misma versión, y cuando le des actualizas los 2»).** En el
+  cliente de escritorio conectado a kywai Cloud (`oneButtonMode`, `updateReady` en `updateEquipo.ts`), el aviso de versión
+  nueva (⚙ amarillo, «Actualizar kywai…» del menú, la franja de abajo y ⚙ → Actualizaciones) solo sale cuando el espacio tiene
+  la versión lista (`updatePending.pending`) **y** este equipo ve esa misma versión (`deviceInfo.latest`) o no tiene nada que
+  instalar (ya la tiene, error al mirar, o solo puede abrir la página de descarga). Si solo una de las dos la tiene, no hay
+  aviso y «Actualizar este equipo…» deja de brillar; en ⚙ → Actualizaciones se explica que falta una. Al llegar una versión
+  del espacio se vuelve a mirar este equipo al momento y, mientras no coincidan, cada 2 min. El motor del espacio manda
+  `cloud: true` en `updatePending` también sin nada pendiente (`readPending` en `cloudBusy.ts`) para que la interfaz sepa
+  que habla con kywai Cloud. Al pulsar «Actualizar ahora» van los dos (ver el apartado de arriba). «Actualizar este equipo…» en
+  Ajustes → Acerca de sigue como vía manual. Una app anterior a esto sigue con los dos avisos separados.
 - **Desde Órbita**: ☰ → Ajustes → Conexión → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
   Ajustes ya dice si hay cambios nuevos en GitHub (con los últimos títulos); «Actualizar el servidor» (pide
   confirmación) lo descarga, compila, instala y reinicia. Mientras tanto Órbita se queda sin conexión unos minutos y
@@ -6860,20 +6871,26 @@ plan que aprobar, sin informes ni archivos sueltos.
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
 - **Con el asistente por diapositivas** (escritorio y web; desde la 1.60.0; antes eran desplegables, 1.43.0): al escribir
-  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 6» y una barra
-  de pasos arriba. En este orden: **Formato y duración** (Reel vertical, Vídeo o Largo horizontales), **Tipo de vídeo**
+  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 7» y una barra
+  de pasos arriba. En este orden: **Dónde quieres hacerlo** (1.63.0: **Tu ordenador**, con lo que cumple el equipo, o
+  **kywai Cloud**; en kywai Cloud, «Tu ordenador» es el equipo conectado y escribe `equipo:si`, y si no hay ninguno
+  conectado sale apagado con la razón; en la app de escritorio sin la nube solo está «Tu ordenador» y «kywai Cloud» sale
+  apagado), **Formato y duración** (1.63.0: la **relación de aspecto**, Vertical 9:16 u Horizontal 16:9, que escribe
+  `formato:vertical|horizontal`, y la **duración**, Reel, Vídeo o Largo; elegir el formato no cambia de diapositiva y
+  elegir la duración sí; sin elegir el formato, Reel sale vertical y Vídeo y Largo horizontales; la marca `formato:`
+  manda sobre la duración, el tipo y las palabras del tema, `src/main/videoScript.ts`), **Tipo de vídeo**
   (rápido con texto animado, dibujos con presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D»,
   «Cine IA» o «Sorpréndeme»), **Personajes** (ninguno, los robots de kywai, los que hayas creado o «Agregar personaje»),
   **Estilo** (todos juntos por orden alfabético, con su muestra: los de película y los aspectos de «Imágenes con IA», que
   puedes probar antes con tu escena; ya no existe «El de kywai (rápido)»), **Voz** (una voz o un diálogo de dos; las voces
   de todos los idiomas juntas, en femeninas y masculinas, con ▶ para oírlas) y **Calidad** (el nivel de Cine IA con
-  créditos o la calidad del Escenario 3D, y las opciones: repasar el guion, estructura de reel, «Hacerlo en mi equipo»…).
+  créditos o la calidad del Escenario 3D, y las opciones: repasar el guion, estructura de reel, versión ligera…).
   **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
   salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
   «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
   escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
-  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. Todavía no se pueden elegir aparte el formato ni el
-  idioma (el vídeo sale en el de la app) ni hay muestra de imagen en cada tipo ni Ming en la lista de voces: llegan después.
+  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. Todavía no se puede elegir aparte el idioma (el
+  vídeo sale en el de la app) ni hay muestra de imagen en cada tipo ni Ming en la lista de voces: llegan después.
   Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
@@ -6884,7 +6901,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   de esto» (usa la última respuesta del chat).
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
 
-**Duración: Reel, Vídeo y Largo (1.43.0).** La primera fila del selector elige cuánto dura. La marca de texto es
+**Duración: Reel, Vídeo y Largo (1.43.0).** La diapositiva «Formato y duración» del asistente elige cuánto dura. La marca de texto es
 `duracion:video` o `duracion:largo` (con o sin tilde, en cualquier sitio de las marcas; el selector la pone la primera);
 **sin marca es un Reel**, y un Reel sale exactamente igual que antes (la prueba `videoReelUnchanged.test.ts` guarda las
 huellas de sus encargos y de cómo se lee su guion).
