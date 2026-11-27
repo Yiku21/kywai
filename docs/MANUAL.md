@@ -567,6 +567,20 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
     muestra **«Actualizar este equipo…»** en amarillo (lleva a Ajustes → Acerca de).
   - Al pulsar «Comprobar de nuevo» el aviso se enciende o se apaga según lo que se vea; si no se pudo consultar
     GitHub, se queda como estaba. El color es `--update` (más oscuro en los temas claros).
+- **Nube y escritorio, siempre en la misma versión (27 nov 2026, Yil).** Dos piezas:
+  - **«Actualizar ahora» también actualiza este equipo** (`src/renderer/src/lib/updateEquipo.ts`). En la app de
+    escritorio conectada a kywai Cloud, el botón (el aviso de abajo y ⚙ → Actualizaciones) pide al servidor el cambio del
+    espacio (~20 s) y deja una marca en el `localStorage` (`kywai.tambienEquipo`, vale 30 min y sobrevive a la recarga de la
+    página). Cuando el espacio ya no tiene nada pendiente (`updatePending` sin `cloud`+`pending`), la app busca la versión
+    de este equipo (`clientActions().checkUpdate`) y, si hay una más nueva, la instala (`installUpdate`): se cierra y se
+    reabre sola, como con «Actualizar este equipo». Solo ocurre porque la persona pulsó el botón; la app nunca se
+    reinicia por su cuenta. Si esta app solo puede abrir la página de descarga (Mac abierto desde el .dmg), no la abre sola:
+    queda el aviso amarillo de ⚙. Una app de escritorio anterior a esto no tiene `installUpdate` y sigue como antes.
+  - **La nube sigue a la Release.** El vigilante de la nube (`auto-desplegar.py`, repositorio kywai-cloud) ya no despliega
+    el último commit de `master` de kywai-original: despliega el código de la **última Release de escritorio terminada**
+    (`Yiku21/kywai`, su `publicado/codigo.txt` en esa etiqueta). Un cambio de la app llega a la nube con la Release (9:00 UTC
+    o cuando se pide «Publicar escritorio»), a la vez que al escritorio. Lo de kywai-cloud (portal, imagen, scripts) sigue
+    desplegándose al fusionar. Nunca baja de versión: si lo desplegado ya es más nuevo que la Release, espera a la siguiente.
 - **Desde Órbita**: ☰ → Ajustes → Conexión → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
   Ajustes ya dice si hay cambios nuevos en GitHub (con los últimos títulos); «Actualizar el servidor» (pide
   confirmación) lo descarga, compila, instala y reinicia. Mientras tanto Órbita se queda sin conexión unos minutos y
@@ -3045,9 +3059,12 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
 
 - **Generar imágenes con…**
   - **Automático** (de fábrica): lo gratis primero. Tus modelos locales (Draw Things o ComfyUI) → **tu ChatGPT** →
-    tu clave de Gemini → en kywai cloud, la GPU de kywai **solo si apagas «preguntarme antes de gastar créditos»**
-    (viene encendido) → el motor gratis de internet (borrador). Si se saltó la GPU para no gastar, el chat lo dice y
+    tu clave de Gemini → en kywai cloud, Imágenes kywai **solo si apagas «preguntarme antes de gastar créditos»**
+    (viene encendido) → el motor gratis de internet (borrador). Si se saltó Imágenes kywai para no gastar, el chat lo dice y
     ofrece «Rehacer con…».
+  - **Imágenes kywai** (solo kywai cloud; antes «GPU de kywai», renombrada el 27 nov 2026): **segunda opción, justo debajo de
+    «Automático»**. Las imágenes se generan en la nube de kywai (la GPU de kywai, sin cargar el equipo del usuario) y no
+    hay nada que configurar: 2 créditos, 5 en HD. El orden sale de `IMAGE_CHOICES` (`src/shared/mediaEngines.ts`).
   - **Mis modelos locales**: Draw Things o ComfyUI en tu equipo, gratis. En la nube, los del equipo conectado con
     «Prestar los modelos de este equipo»: **Windows, Linux o Mac**. Por el puente (`deviceBridge.ts`) la nube solo
     manda el texto y el formato (`POST /kywai/imagen`, motor `comfyui`); el equipo dibuja con su propio flujo y el
@@ -3059,7 +3076,6 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
     cuenta). Codex deja la imagen en la carpeta de trabajo o en `~/.codex/generated_images` y kywai la copia
     (`src/main/codexImage.ts`).
   - **Mi clave de Gemini**: la cobra Google, no kywai.
-  - **GPU de kywai** (solo kywai cloud): 2 créditos, 5 en HD.
   - Las suscripciones de **Gemini y Claude no generan imágenes fuera de su app** (comprobado en su documentación el
     22 nov 2026) y OmniRoute solo genera imágenes con claves de pago: por eso no salen.
 - **Generar vídeos con…**: **Automático**; **Estudio de contenido** (plantillas, rótulos y voz, sin clips de IA ni
@@ -3068,7 +3084,7 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
   suscripción genera vídeo fuera de su app.
 - **Primero pregunta** (23 nov 2026, Yil: «ni me preguntó con cuál»): mientras el usuario no haya elegido nada
   (`chosen` en `generar-con.json`), la primera imagen no se dibuja: sale «¿Con qué hago esta imagen?» con botones de lo
-  que tiene a mano (su ChatGPT, sus modelos locales, su clave de Gemini, la GPU de kywai con su precio y «Lo gratis que
+  que tiene a mano (su ChatGPT, sus modelos locales, su clave de Gemini, Imágenes kywai con su precio y «Lo gratis que
   haya (borrador)»). Lo que pulse se manda como «Hazme esta imagen con … (motor: …)», se dibuja y queda guardado.
   Elegir en Ajustes también cuenta. Las rutinas no preguntan. Si solo hay una opción, no pregunta.
 - **Con un motor concreto, solo ese**: si no sale, el chat dice por qué y ofrece los demás. Lo que pidas en el
@@ -6843,18 +6859,22 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
-- **Con el selector en desplegables** (escritorio, web y Órbita; desde la 1.43.0): al escribir `/video` se abre encima del
-  cuadro un panel con **Duración** (Reel, Vídeo o Largo), **Tipo de vídeo** (rápido con texto animado, dibujos con
-  presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D» o «Sorpréndeme»), **Personaje** (ninguno, los
-  robots de kywai, los que hayas creado o «Agregar personaje»), **Estilo y aspecto** (el de kywai, o uno de los estilos de
-  película con su muestra, o uno de los aspectos de «Imágenes con IA», que puedes probar antes con tu escena), **Voz**
-  (automática o una concreta, con ▶ para oírla) y **Opciones** (diálogo, repasar el guion, estructura de reel, «Hacerlo
-  en mi equipo»…; en Órbita no hay Opciones). **Cada sección es un desplegable**: la cabecera muestra lo elegido
-  («Duración · Reel», «Voz · Álvaro»), solo hay una abierta a la vez (al empezar, la primera que falta por decidir, o
-  Duración si todo va por defecto), y un punto de aviso en la cabecera dice que esa sección trae una nota de lo que este
-  equipo puede o no hacer. Se maneja con el teclado (Enter o Espacio abren, flechas arriba y abajo cambian de cabecera) y
-  la animación respeta «reducir movimiento». Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz»
-  más abajo.
+- **Con el asistente por diapositivas** (escritorio y web; desde la 1.60.0; antes eran desplegables, 1.43.0): al escribir
+  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 6» y una barra
+  de pasos arriba. En este orden: **Formato y duración** (Reel vertical, Vídeo o Largo horizontales), **Tipo de vídeo**
+  (rápido con texto animado, dibujos con presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D»,
+  «Cine IA» o «Sorpréndeme»), **Personajes** (ninguno, los robots de kywai, los que hayas creado o «Agregar personaje»),
+  **Estilo** (todos juntos por orden alfabético, con su muestra: los de película y los aspectos de «Imágenes con IA», que
+  puedes probar antes con tu escena; ya no existe «El de kywai (rápido)»), **Voz** (una voz o un diálogo de dos; las voces
+  de todos los idiomas juntas, en femeninas y masculinas, con ▶ para oírlas) y **Calidad** (el nivel de Cine IA con
+  créditos o la calidad del Escenario 3D, y las opciones: repasar el guion, estructura de reel, «Hacerlo en mi equipo»…).
+  **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
+  salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
+  «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
+  escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
+  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. Todavía no se pueden elegir aparte el formato ni el
+  idioma (el vídeo sale en el de la app) ni hay muestra de imagen en cada tipo ni Ming en la lista de voces: llegan después.
+  Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
@@ -6957,8 +6977,8 @@ el motor (el equipo, lo que hay listo para las imágenes y lo aprendido) en `src
 - **Duración recomendada**: la más larga que sale en un tiempo razonable (Escenario: el nivel automático cabe en el tiempo de
   Blender de esa duración; el resto: unos 90 min como mucho). Ejemplo: en el Mac mini, un Escenario Largo sale con el nivel
   rápido (≈3 h); en un PC de 8 GB sin gráfica, un Largo no sale y se recomienda un Vídeo.
-- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): el apartado desplegable **Tu equipo y calidad**
-  (antes de Opciones) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
+- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): la diapositiva **Calidad**
+  (la última) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
   la calidad (Automática, Alta, Rápida, cada una con su nivel y lo que cuesta) y **Usar lo recomendado**: pone `calidad:auto`,
   la voz y, solo si la duración elegida no sale en tiempo razonable, la más larga que sí sale (nunca sube la que elegiste).
   Las estimaciones del selector usan las tasas del equipo (`estimateVideoTime` con `escenarioPerVideoSecond` e
@@ -7253,6 +7273,8 @@ también puede hacer cortos, pagando con créditos (1 crédito = 1 centavo de US
 - **Sin comprobar** (a medir con ≈5 USD en la cuenta de administración tras el despliegue): el tamaño vertical de Wan, el audio
   y los labios de Pruna/Wan, el precio real de Veo a 1080p y las condiciones de reventa de RunPod y de cada modelo.
 - Órbita (Android) todavía no conoce la marca `nivel:`.
+
+(1.60.0) Ajustes → Multimedia ya no muestra «GPU de kywai · Próximamente» en «Generar vídeos con…»: esa fila era un hueco anterior a los niveles con créditos. En kywai Cloud, en su lugar sale una nota que manda al Estudio de vídeo → Cine IA; fuera de la nube no sale nada (los créditos solo existen en la nube).
 
 **Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
 cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
