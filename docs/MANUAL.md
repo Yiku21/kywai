@@ -3156,6 +3156,35 @@ porque solo la movía la voz. Desde la 1.13.2 (`src/main/imagePlan.ts`, usado en
   qué encender: en un Mac, Draw Things con su API Server; en kywai cloud, «Prestar los modelos de este equipo» en la
   app de escritorio (la nube no ve el Draw Things ni el ComfyUI de tu Mac sin él: su 127.0.0.1 es el servidor).
 
+### Una tarea de vídeo que no avanza se corta sola (1.55.1)
+
+El 26 nov 2026, tres películas de «/video» (la tanda de 3 reels del turno de noche) llevaban 34 min «Trabajando» con «sin
+novedades desde hace 34 min». Lo que pasaba:
+
+- **La del PC no estaba colgada**, tardó 33 min en hacerse en el PC conectado, pero los avances del PC no contaban como
+  novedad del agente: la tarjeta decía «sin novedades». Ahora cada paso del PC pone al día la «última señal».
+- **El PC hace una película a la vez** (un solo puesto para la gráfica: `slot` en `bridgeClient.ts`). Las demás esperaban
+  su turno sin decir nada; la nube solo veía «Mandando la película…». Ahora el PC avisa con un paso marcado `queued`
+  («En cola en este equipo: está terminando otro trabajo»; `QUEUED_STEP` en `src/shared/videoStall.ts`). Las apps
+  antiguas no mandan la marca: allí la espera cuenta como silencio y se corta a los 25 min.
+- **Nadie cortaba una tarea de vídeo que no avanzaba**: el corte de 20 min solo existe para los agentes con terminal, y
+  NVIDIA (OpenCode) o un PC que contesta «sigo vivo» lo esquivan.
+
+Desde la 1.55.1, toda tarea de «/video» (con agente o hecha por el equipo conectado) tiene un vigilante
+(`videoStallGuard`, `src/main/orchestrator.ts`; los tiempos y el veredicto, en `src/shared/videoStall.ts`):
+
+- **12 min sin novedades** (`VIDEO_STALL.warnMin`): el chat lo dice, una vez por silencio.
+- **25 min sin novedades** (`cutMin`): kywai la corta, la deja como fallida con el motivo y en **Te necesita** salen
+  **Reintentar** (`settleBlocked(…, 'retry')`: la misma tarea, el mismo agente, otra vuelta) y **Pasársela a otro agente**.
+  Lo hecho sigue en la carpeta. Al cortarla, el PC se entera (la nube cuelga y su «sigo vivo» recibe un 410) y deja de
+  trabajar en ella.
+- **En cola** esperando turno en el equipo no cuenta como silencio: el tope es `queueMaxMin` (2 h).
+- Cuenta como «novedad» cualquier paso, línea o avance del agente o del equipo. Los vídeos montados a mano siguen con su
+  propio vigilante (`videoByHandGuard`, 30 min) y el montaje en sí con el de los trabajos de fondo (`longJob.ts`).
+
+Pruebas: `videoStall.test.ts` (veredicto), `videoStallFlow.test.ts` (corte y «Reintentar» de punta a punta con un equipo
+que se queda callado), `bridgeClient.test.ts` (el aviso «en cola») y `filmOnDevice.test.ts` (la marca llega a la nube).
+
 ### Los agentes retoman su sesión en las continuaciones
 
 Cuando una petición continúa, amplía o corrige lo que un agente hizo en la anterior («ahora añade el teléfono al
@@ -4174,6 +4203,10 @@ su configuración. Las listas salen de la caché de Hermes, sin llamadas de pago
 `hermes model --refresh` en la terminal del equipo donde corre kywai (el Mac).
 Los servidores propios de `providers:` (OmniRoute…) salen con su nombre de `config.yaml`; se reconocen aunque
 la caché de Hermes guarde su dirección con una huella al final (`…/v1#…`) o con `localhost` en vez de `127.0.0.1`.
+**En kywai cloud (v1.55.2)** no hay terminal para `hermes model`, así que la caché de Hermes está vacía: si el proveedor
+con el que trabaja Hermes no está en ella, la lista sale de los modelos que kywai guardó al conectarlo
+(`kywai-modelos.json`, `hermesModelsFor`) y, con el OmniRoute del espacio sin lista guardada, se pide al OmniRoute
+encendido (`GET /v1/models` con la clave de Hermes) y se guarda. Antes decía «Hermes todavía no tiene listas de modelos».
 
 ### Muse (Meta)
 
@@ -4996,6 +5029,23 @@ ventana estrecha o móvil, pasa a la pestaña **Espacio**. Si ocultas el panel c
   preguntar, el portal da la llamada por caída. Máximo 10 llamadas nuevas por minuto. Código: `lib/friendCall.ts` (motor
   y tienda `useCall`), `ui/sidebar/CallBar.tsx` (tarjeta) y el icono en `FriendsPanel.tsx`. **Hace falta kywai Cloud con
   la versión de la nube que trae `llamadas.py`**: sin ella, llamar da un aviso y no pasa nada más.
+- **Chats grupales** (desde la 1.55.0): en la pestaña **Chats**, el botón **«Nuevo grupo»** pide un nombre (hasta 40
+  caracteres) y los amigos que entran (hasta **20 personas contigo**, solo **amigos tuyos**). Quien lo crea es el
+  **administrador**: desde el «⋯» de la conversación → «Miembros y ajustes» cambia el nombre, **añade amigos suyos** y
+  **quita** miembros; cualquiera puede **salir del grupo** (si se va el administrador, pasa a serlo el miembro más
+  antiguo; si no queda nadie, el grupo y sus mensajes se borran). Los miembros se ven entre sí (**nombre e ID**) aunque
+  no sean amigos entre ellos; quien entra ve el historial del grupo. En la lista de Chats el grupo sale junto a las
+  conversaciones, ordenado por lo último que se escribió, con «Fulano: texto», la hora y sus mensajes sin leer (que
+  suman al número de «Amigos» y hacen sonar el aviso; el aviso del sistema dice «Mensajes nuevos en <grupo>»). Cada
+  mensaje de otra persona lleva su nombre encima. **Solo texto** (2.000 caracteres, 30 mensajes por minuto por persona):
+  sin archivos, sin notas de voz y **sin llamadas de grupo** (las llamadas siguen siendo de uno a uno). Máximo 50 grupos
+  por persona. Cómo funciona: `portal/grupos.py` de kywai-cloud (tablas `grupos`, `grupo_miembros`, `grupo_mensajes`,
+  `grupo_leido`; `GET/POST /api/grupos`, `GET /api/grupos/<id>/mensajes?desde=N`, `POST /api/grupos/<id>/<mensaje|anadir|quitar|nombre|salir>`);
+  `GET /api/amigos` trae también `grupos` y suma sus sin leer a `pendientes`. La app lo pide con `friendsGroupCreate`,
+  `friendsGroupMessages`, `friendsGroupSend` y `friendsGroupAct` (`src/main/friends.ts`); la interfaz está en
+  `ui/sidebar/GroupChat.tsx` (crear, conversación y miembros) y en la lista de `FriendsPanel.tsx`. En **Mi cuenta**
+  (cuenta.kywai.app) los grupos todavía no aparecen. **Hace falta kywai Cloud con la versión de la nube que trae
+  `grupos.py`**: sin ella, el botón «Nuevo grupo» da un aviso y no pasa nada más.
 - **Tu ID de kywai**: púlsalo para copiarlo y pásaselo a quien quieras tener de amigo.
 - **Añadir**: escribe el ID de tu amigo (da igual con guion o en minúsculas). Le llega la solicitud y, si lo tiene
   activado, un correo con el botón «Ver la solicitud».
