@@ -1,6 +1,7 @@
 # Publica kywai de escritorio en las Releases de este repositorio (el escaparate público Yiku21/kywai).
 #
-# El código de la app vive en un repositorio PRIVADO (Yiku21/kywai-original). Una vez al día (9:00 UTC, las 3 de la
+# El código de la app vive en un repositorio PRIVADO (Yiku21/kywai-codigo; desde el 27 nov 2026, kywai-original está
+# congelado). Una vez al día (9:00 UTC, las 3 de la
 # madrugada en México centro) este flujo mira si su master tiene algo nuevo; si lo tiene, sale UNA versión con todo lo
 # fusionado ese día (regla de Yil, 25 nov 2026: una versión al día). Para publicar antes, «Run workflow» a mano:
 #   1. Copia aquí lo que es público de verdad: la APK de Órbita (android/release), el MANUAL, docs/mods, la LICENSE y
@@ -38,7 +39,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CODIGO_REPO: git@github.com:Yiku21/kywai-original.git
+  CODIGO_REPO: git@github.com:Yiku21/kywai-codigo.git
   CODIGO_RAMA: master
 
 jobs:
