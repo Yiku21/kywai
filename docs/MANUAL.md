@@ -4943,6 +4943,29 @@ te añaden de amigo, tú aceptas o rechazas, y luego os escribís. Está en la b
 número cuando hay solicitudes o mensajes sin leer), y también en **Mi cuenta → Amigos** (cuenta.kywai.app). Los dos
 sitios ven lo mismo.
 
+**Dónde se abre (desde la 1.52.0).** Ya no es una ventana flotante que tapa el trabajo: **Amigos es una pestaña del
+panel de la derecha**, el del Espacio digital (el 3D). Lo abres con el botón **Amigos** de la barra lateral, con el
+interruptor **Espacio | Amigos** de la cabecera de ese panel, con el aviso del sistema o con «Abrirlo» de la ayuda. El
+chat de la izquierda sigue libre para trabajar mientras hablas. Mientras Amigos está abierto el 3D se para (gasta
+menos); al volver a «Espacio» sigue donde estaba. Si el panel del 3D estaba oculto, se abre solo; si había un chat de
+al lado o el navegador de kywai ocupando ese sitio, se cierran (el navegador se vuelve a abrir desde su botón). En
+ventana estrecha o móvil, pasa a la pestaña **Espacio**. Si ocultas el panel con Amigos abierto, Amigos se cierra con
+él. Se acuerda de la pestaña y de la conversación que mirabas al volver del 3D.
+
+- **Dos botones**, «Amigos» y «Chats». **Amigos** lista a todos tus amigos (con buscador por nombre o ID; un clic abre su
+  conversación). **Chats** lista tus conversaciones por última actividad, con el último mensaje («Nota de voz», el
+  nombre del archivo…), la hora y los sin leer; solo salen los amigos con los que ya hablaste. El número de **Chats**
+  suma los mensajes sin leer. Con una conversación abierta, pulsar cualquiera de los dos botones vuelve a su lista.
+- **Menú «⋯»** (arriba a la derecha del panel): tu ID (clic para copiar), añadir por ID, solicitudes recibidas y
+  enviadas, invitaciones a proyectos compartidos y el aviso por correo. Lleva un puntito si hay algo por responder.
+  Cada conversación tiene además su propio «⋯» con **Quitar amigo**.
+- **Notas de voz** (desde la 1.52.0): el micrófono junto al cuadro de escribir graba (pide permiso la primera vez), con
+  el tiempo y una onda; la papelera la descarta y ➤ la envía. Dura hasta 5 minutos y no se manda si es de menos de 1
+  segundo. En la conversación sale con ▶ / ⏸, una barra y la duración, y se oye ahí mismo (una a la vez); también se
+  puede descargar. Es un archivo más: se guarda 30 días y cuenta para los 500 MB y los 50 envíos al día. Se graba en
+  Opus (webm u ogg, o m4a en Safari), unos 0,2 MB por minuto. En **Mi cuenta** (cuenta.kywai.app) una nota de voz sale
+  como un archivo para descargar.
+
 - **Tu ID de kywai**: púlsalo para copiarlo y pásaselo a quien quieras tener de amigo.
 - **Añadir**: escribe el ID de tu amigo (da igual con guion o en minúsculas). Le llega la solicitud y, si lo tiene
   activado, un correo con el botón «Ver la solicitud».
@@ -4954,7 +4977,7 @@ sitios ven lo mismo.
   texto con él o mandarlo solo, y verás el porcentaje mientras sube. Las imágenes se ven en la conversación y todo se
   descarga con un clic. Se guardan 30 días; después el mensaje dice «Ya no está». Cada cuenta puede tener 500 MB de
   archivos enviados a la vez y mandar 50 al día.
-- **Quitar** deja de ser amigos y borra la conversación para los dos. No se le avisa. También borra los archivos.
+- **Quitar amigo** (menú «⋯» de la conversación) deja de ser amigos y borra la conversación para los dos. No se le avisa. También borra los archivos.
 - **Avisarme por correo de las solicitudes nuevas** se puede apagar.
 - **Aviso de mensajes nuevos** (desde la 1.35.0): cuando un amigo te escribe o te manda una solicitud, el número rojo
   del botón **Amigos** sube y late un momento, y suena la **marimba de amigos** (tres golpes de madera que suben,
@@ -4973,10 +4996,16 @@ En la instalación propia (self host) no hay cuentas, así que el botón no sale
 **Cómo funciona por dentro.** Los amigos y los mensajes viven en el portal de Mi cuenta (`portal/amigos.py` de
 kywai-cloud). La app los pide desde el servidor de tu espacio (`src/main/friends.ts`) a
 `https://cuenta.kywai.app/api/amigos`, con el mismo secreto de espacio que usa la voz incluida (`KYWAI_VOZ_URL` y
-`KYWAI_VOZ_SECRETO`). Si no están, `friendsState` responde `available: false` y el botón no aparece. El panel es
-`src/renderer/src/ui/sidebar/FriendsDialog.tsx`; el número del botón, la marimba y el aviso del sistema los lleva
+`KYWAI_VOZ_SECRETO`). Si no están, `friendsState` responde `available: false` y el botón no aparece. El número del botón, la marimba y el aviso del sistema los lleva
 `src/renderer/src/lib/friendsAlert.ts` (compara los `sin_leer` de cada amigo y las solicitudes entre una mirada y la
-siguiente; el sonido es `friendMessage` en `lib/audio.ts`). Los archivos pasan por el servidor del espacio sin guardarse en él:
+siguiente; el sonido es `friendMessage` en `lib/audio.ts`). Las pestañas de Amigos y Chats salen de `GET /api/amigos`, que desde la 1.52.0 trae a cada amigo con su `ultimo` mensaje
+(texto recortado a 80, hora, si es mío y, si lleva archivo, su nombre y si es una nota de voz). Una nota de voz es un
+archivo llamado `nota-de-voz-<AAAAMMDD>-<HHMMSS>-<segundos>s.<webm|ogg|m4a>`: la nube lo reconoce por ese nombre
+(`AUDIOS` en `portal/amigos.py`), lo marca `audio: true` y lo deja oír con `?ver=1` (CSP con `media-src 'self'`, `sandbox`
+y `nosniff`); la duración va en el nombre porque la grabación del navegador no la trae (`voiceNoteSeconds`,
+`src/shared/friends.ts`). La grabación es `src/renderer/src/lib/voiceNote.ts`. El panel
+(`src/renderer/src/ui/sidebar/FriendsPanel.tsx`) se monta dentro de `.stage` del espacio, en `App.tsx`; el interruptor
+Espacio | Amigos está en `SpaceHeader.tsx`. Los archivos pasan por el servidor del espacio sin guardarse en él:
 `POST /api/amigos-archivo/<ID>?nombre=…` reenvía el cuerpo al portal y `GET /api/amigos-archivo/<ID>/<n>` reenvía la
 descarga (`webServer.ts`). El portal los guarda en `amigos-archivos/` y los sirve siempre con CSP `sandbox` y `nosniff`.
 
@@ -7942,7 +7971,7 @@ Las que no llevan nada detrás (`/model`, `/uso`, `/puedo`, `/nuevo`) se hacen n
 el cuadro para que escribas lo de detrás. Al escribir **«@»** sale la lista de agentes, cada uno con su modelo a la
 derecha, para hablarle directamente.
 
-**Quién firma el trabajo de una orden.** Cuando una orden de kywai (`/crecer`, `/video`, `/seo`, `/marketing`, `/instagram`…) hace trabajar a un agente, sus mensajes en el chat salen firmados **«kywai · con Claude»** (o el agente que sea) y con la cotorra de kywai, no solo «Claude»: la orden es de kywai y el agente es quien la hace en tu equipo. En el espacio 3D y 2D, mientras un agente hace la orden, kywai / Hermes sale también trabajando («Coordinando…») y queda libre al acabar. `/directo` y `@Agente` no cambian: ahí eliges tú al agente y sale con su nombre. Para programadores: el motor marca esos mensajes con `viaKywai` (`pushMessage` en `src/main/orchestrator.ts`, con `isKywaiOrder` de `src/shared/chatCommands.ts`) y `AgentMessage` (`Messages.tsx`) los dibuja con `AgentAvatar kywai`; `coordinateOrder` / `orderEnded` (mismo archivo del motor) ponen a quien coordina «trabajando» mientras dura la orden.
+**Quién firma el trabajo de una orden.** Cuando una orden de kywai (`/crecer`, `/video`, `/seo`, `/marketing`, `/instagram`…) hace trabajar a un agente, sus mensajes en el chat salen firmados **«kywai · con Claude»** (o el agente que sea) y con la cotorra de kywai, no solo «Claude»: la orden es de kywai y el agente es quien la hace en tu equipo. En el espacio 3D y 2D, mientras un agente hace la orden, kywai / Hermes sale también trabajando («Coordinando…») y queda libre al acabar. `/directo` y `@Agente` no cambian: ahí eliges tú al agente y sale con su nombre. **Los dos avatares (1.50.3):** cuando kywai y el agente trabajan juntos salen los dos en el chat, la cotorra y, pegado abajo a la derecha, el robot del agente más pequeño y sin fondo; cuando el agente trabaja solo, sale solo su avatar. Para programadores: el motor marca esos mensajes con `viaKywai` (`pushMessage` en `src/main/orchestrator.ts`, con `isKywaiOrder` de `src/shared/chatCommands.ts`) y `AgentMessage` (`Messages.tsx`) los dibuja con `AgentAvatar kywai`; `coordinateOrder` / `orderEnded` (mismo archivo del motor) ponen a quien coordina «trabajando» mientras dura la orden.
 
 Una plantilla o un mod con el nombre de una orden de kywai no sale en la lista (manda la de kywai). En Órbita,
 `/uso` abre «Uso y coste», `/nuevo` abre un chat nuevo y `/recuerda` lo anota el servidor (contesta en el chat, sin
