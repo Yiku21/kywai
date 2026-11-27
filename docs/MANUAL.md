@@ -6871,7 +6871,7 @@ plan que aprobar, sin informes ni archivos sueltos.
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
 - **Con el asistente por diapositivas** (escritorio y web; desde la 1.60.0; antes eran desplegables, 1.43.0): al escribir
-  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 7» y una barra
+  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 8» y una barra
   de pasos arriba. En este orden: **Dónde quieres hacerlo** (1.63.0: **Tu ordenador**, con lo que cumple el equipo, o
   **kywai Cloud**; en kywai Cloud, «Tu ordenador» es el equipo conectado y escribe `equipo:si`, y si no hay ninguno
   conectado sale apagado con la razón; en la app de escritorio sin la nube solo está «Tu ordenador» y «kywai Cloud» sale
@@ -6880,18 +6880,25 @@ plan que aprobar, sin informes ni archivos sueltos.
   elegir la duración sí; sin elegir el formato, Reel sale vertical y Vídeo y Largo horizontales; la marca `formato:`
   manda sobre la duración, el tipo y las palabras del tema, `src/main/videoScript.ts`), **Tipo de vídeo**
   (rápido con texto animado, dibujos con presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D»,
-  «Cine IA» o «Sorpréndeme»), **Personajes** (ninguno, los robots de kywai, los que hayas creado o «Agregar personaje»),
+  «Cine IA» o «Sorpréndeme»; 1.64.0: cada tarjeta lleva un **dibujo de referencia** de cómo se compone y su descripción),
+  **Personajes** (ninguno, los robots de kywai, los que hayas creado o «Agregar personaje»),
   **Estilo** (todos juntos por orden alfabético, con su muestra: los de película y los aspectos de «Imágenes con IA», que
   puedes probar antes con tu escena; ya no existe «El de kywai (rápido)»), **Voz** (una voz o un diálogo de dos; las voces
-  de todos los idiomas juntas, en femeninas y masculinas, con ▶ para oírlas) y **Calidad** (el nivel de Cine IA con
-  créditos o la calidad del Escenario 3D, y las opciones: repasar el guion, estructura de reel, versión ligera…).
+  de todos los idiomas juntas, en femeninas y masculinas, con ▶ para oírlas; 1.64.0: las de **Kitten TTS** salen ya en la
+  lista, y arriba, «**Quién narra**»: **Chatterbox** (con emoción) o **Ming** (más natural), que copian el timbre de la voz
+  elegida y, si falta el motor, se instala al elegirlo; solo en un equipo con estudio completo, no en la nube ligera),
+  **Idioma** (1.64.0: español, inglés, portugués, francés, chino, hindi, alemán, italiano o japonés para las voces y los
+  textos en pantalla; escribe `idioma:xx`, manda sobre el idioma de la voz y quita una voz de otro idioma; sin elegir, el
+  de la voz o el de la app; `src/shared/videoChoice.ts`, `videoLang`) y **Calidad** (1.64.0: **Rápida, Media o Alta** en
+  todos los tipos, `calidad:rapida|media|alta`: en el Escenario 3D cambia el pintado del decorado —Media es el nivel
+  normal— y en los demás tipos cómo se monta el vídeo con HyperFrames: Rápida `draft`, Media `looks`, Alta `delivery`, lo
+  de siempre; los estilos de película no cambian; además el nivel de Cine IA con créditos y las opciones: repasar el
+  guion, estructura de reel, versión ligera…).
   **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
   salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
   «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
   escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
-  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. Todavía no se puede elegir aparte el idioma (el
-  vídeo sale en el de la app) ni hay muestra de imagen en cada tipo ni Ming en la lista de voces: llegan después.
-  Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
+  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
