@@ -4395,7 +4395,7 @@ Skills, Planning with Files, UI UX Pro Max, Taste Skill, Emil Kowalski Skills, A
 Scientific Skills y Stop Slop. El 22 nov 2026 llegaron Make Interfaces Feel Better (detalles finos de interfaz:
 animaciones, alineación óptica, radios concéntricos, sombras, zonas de clic) y Loopy (bucles de hacer, comprobar y
 corregir con un final claro; solo publica un bucle en Loop Library si el usuario lo pide), y después Claude SEO (auditoría SEO a fondo, 29
-habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). El 25 nov 2026 (v1.34.0) llegó vgpu (`vercel-labs/vgpu`, MIT), la librería WebGPU de Vercel pensada para agentes: efectos 3D, luz y shaders (lava, cristal, partículas) en webs que se compilan con npm, con su galería y sus órdenes `npx vgpu docs`, `examples` y `check`. El 26 nov 2026 (v1.46.1, vigía ronda 7) llegó Hyper Elements (`hyper-elements/hyper-elements`, MIT, del equipo de Unlayer), con dos habilidades: `hyper-elements` (correos que salen bien en Outlook y Gmail, páginas, documentos y PDF, e imágenes PNG o SVG, todo con componentes de React de `@hyper-elements/react`; el agente instala el paquete en el proyecto si falta y comprueba el diseño con `validate()`/`outline()`) y `email-testing` (ver un correo en Outlook, Gmail, Apple Mail y otros clientes, gratis y en el equipo, con `@hyper-elements/email-clients`). Ninguna lanza órdenes al cargarse. Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
+habilidades) y Social Media Skills (estrategia, calendario y textos para redes). El 24 nov 2026 (v1.27.3) se sumaron I Have ADHD (respuestas con el siguiente paso primero y pasos numerados; se activa con /i-have-adhd y se apaga con «stop adhd mode») y Career Ops (buscar trabajo: evaluar ofertas, CV, cartas, entrevistas; para sus modos necesita el programa career-ops y lo pregunta antes de instalarlo). El mismo día (v1.29.11) llegaron las Reglas de Karpathy (no suponer, lo más sencillo, cambios quirúrgicos y una meta comprobable). El 25 nov 2026 (v1.34.0) llegó vgpu (`vercel-labs/vgpu`, MIT), la librería WebGPU de Vercel pensada para agentes: efectos 3D, luz y shaders (lava, cristal, partículas) en webs que se compilan con npm, con su galería y sus órdenes `npx vgpu docs`, `examples` y `check`. El 26 nov 2026 (v1.46.1, vigía ronda 7) llegó Hyper Elements (`hyper-elements/hyper-elements`, MIT, del equipo de Unlayer), con dos habilidades: `hyper-elements` (correos que salen bien en Outlook y Gmail, páginas, documentos y PDF, e imágenes PNG o SVG, todo con componentes de React de `@hyper-elements/react`; el agente instala el paquete en el proyecto si falta y comprueba el diseño con `validate()`/`outline()`) y `email-testing` (ver un correo en Outlook, Gmail, Apple Mail y otros clientes, gratis y en el equipo, con `@hyper-elements/email-clients`). Ninguna lanza órdenes al cargarse. El 26 nov 2026 (v1.50.0, reel de duncanrogoff) llegó Cybersecurity Skills (`mukul975/Anthropic-Cybersecurity-Skills`, Apache-2.0): de sus 818 habilidades solo entran las de defender y revisar lo que se programa, las de los temas `web-application-security`, `api-security`, `cloud-security`, `container-security`, `devsecops`, `supply-chain-security`, `ai-security`, `cryptography` y `vulnerability-management` (unas 250; se filtran por el campo `subdomain:` de su SKILL.md con `subdomains` en `PACK_SOURCES`, sin mayúsculas ni guiones). Las de ataque, malware, forense, control industrial y pruebas de intrusión se quedan fuera a propósito. Con la fuente nueva se añadió `max` (tope de habilidades por fuente, 150 por defecto): Scientific Skills, que ya tiene más de 160, sube a 250 y no pierde las últimas. Get Shit Done se quedó fuera: no trae SKILL.md, su instalador genera las habilidades con hooks propios y se solapa con Superpowers y Planning with Files. De estas solo se copian los SKILL.md y sus archivos: los hooks y los instaladores que
 traen algunas (Planning with Files, Taste Skill) no se ejecutan. Una habilidad en la raíz de su repositorio lleva sus
 carpetas (como `references/`), menos las de pruebas y las ocultas; con `only`, si la misma sale copiada en varias
 carpetas, vale la primera. Fuera a propósito: ECC y gstack (marcos con hooks que se solapan con Superpowers), Caveman
@@ -5054,12 +5054,17 @@ pedir su clave. Ahora, al arrancar el espacio, `adoptMovedKeys` (`src/main/clave
 reserva de OpenRouter de Hermes) a su nombre de la nube, salvo que la nube ya tenga una suya. Claude, Codex y Gemini con
 tu cuenta siguen pidiendo volver a entrar (tabla de arriba).
 
-**Hermes con el OmniRoute de tu equipo, desde la nube.** En «Configura Hermes» → OmniRoute, la ventana enseña el panel
-y la contraseña del OmniRoute de tu ordenador, pero dentro del espacio `localhost:20128` es el OmniRoute del propio
-espacio, que no conoce la clave de tu ordenador («No aceptó esa clave»). Ahora, sin dirección o con `localhost:20128`,
-«Comprobar ahora» y «Guardar y probar» van por el relevo (`127.0.0.1:20129`, `cloudHermesOmniRoute` en
-`src/main/omniroute.ts`) sin clave; si tu ordenador no presta su OmniRoute, la ventana pide encender «Conectar kywai
-cloud con este PC». Una dirección pública se usa tal cual.
+**Hermes con OmniRoute, desde la nube (1.50.2, 27 nov 2026).** En «Configura Hermes» → OmniRoute, en kywai cloud «OmniRoute»
+es el del **espacio** (viene en su imagen y está siempre encendido: Hermes trabaja con él aunque tu ordenador esté
+apagado y desde cualquier dispositivo), no el de tu PC. Antes la ventana mandaba a «Instalar y preparar OmniRoute» en
+este equipo (Elizabeth, 26 nov: se lo instalaba en su PC). Ahora la pestaña enseña «Conectar mi Claude» / «Conectar mi
+ChatGPT» (abren Mi cuenta, donde se inicia sesión en el OmniRoute del espacio) y «Comprobar ahora»: sin dirección o con
+`localhost:20128`, `connectHermesEndpoint` (`src/main/hermesConnect.ts`) prepara y enciende el OmniRoute del espacio
+(`ensureSpaceOmniRoute`), mira que tenga una suscripción conectada (si no, dice que la conectes), pide para Hermes su
+clave propia (`spaceHermesKey`) y deja Hermes con él (con la clave de OpenRouter de reserva si la había).
+`cloudHermesOmniRoute` (`src/main/omniroute.ts`) decide a dónde va: `space` (vacío o 20128), relevo `127.0.0.1:20129`
+sin clave (el de tu ordenador, solo con «Prefiero usar el OmniRoute de mi PC»; si tu ordenador no lo presta, pide
+encender «Conectar kywai cloud con este PC») o una dirección pública tal cual. En tu equipo (sin nube) no cambia nada.
 
 **Cómo funciona por dentro.** `src/main/mudanza.ts` (sin Electron, lo usan los dos lados): junta lo que se lleva, lo
 escribe como un paquete de registros `[cabecera][bytes][SHA-256]` y lo parte en trozos de 16 MB cifrados con
@@ -5350,6 +5355,22 @@ Dos más salieron de los reels del 19 nov 2026:
 - **Postiz** (remoto en `https://mcp.postiz.com/mcp`): programar y publicar en más de 30 redes desde el agente. Pide
   `Bearer` y la clave de Postiz (Ajustes → Developers → Public API). Postiz es AGPL: kywai solo se conecta a su servicio,
   no copia su código. `/instagram` sigue publicando con Apps conectadas; Postiz es para quien ya lo usa o quiere su calendario.
+Dos más del reel de duncanrogoff (26 nov 2026, v1.50.0; los dos se añaden a mano desde el catálogo, kywai no los enciende solos):
+- **Browser Use** (MIT, `uvx --from browser-use==1.0.8 browser-use --cli-mcp`, sin clave): el agente maneja el Chrome que tengas
+  abierto (con tus sesiones) o, si no se puede, un Chromium propio sin ventana, escribiendo Python con las funciones de
+  `browser_exec` (abrir pestañas, pulsar, escribir, leer, capturas). No hay herramienta que ejecute el agente completo de Browser Use:
+  el modelo del propio agente escribe el código. kywai lo lanza con `ANONYMIZED_TELEMETRY=false` y la versión fija (la propia
+  documentación avisa de que las versiones nuevas rompen cosas). Sus navegadores en la nube (`browser_login`) los paga el usuario
+  aparte. `browser_exec` ejecuta Python en el equipo con los archivos del usuario: va como cualquier otro agente con terminal.
+  No es para Hermes (para eso tiene Obscura y browse). Para webs normales basta Playwright u Obscura.
+- **agentmemory** (Apache-2.0, `npx -y @agentmemory/mcp@0.9.33`, sin clave): memoria que dura entre tareas y se comparte entre Claude,
+  Codex, Gemini y Hermes (`memory_recall`, `memory_save`…); guarda en `~/.agentmemory` del equipo. Es el servidor mínimo del
+  paquete (sin el motor, el visor ni los ganchos de captura automática: los agentes guardan y buscan cuando se lo piden o cuando su
+  habilidad se lo recuerda). Va con las 17 habilidades «agentmemory» (`plugin/skills` del repositorio, en Habilidades). Es el único
+  de estos dos que también se apunta en `~/.hermes/config.yaml` (`HERMES_HOME_PACKAGES`), así Hermes recuerda también al coordinar.
+  No sustituye a la memoria del proyecto de kywai (Proyectos, memoria y consumo): esa sigue siendo la del chat. Esto es para lo
+  que aprenden los agentes mientras trabajan. No se ha probado con un agente real en un equipo del dueño: se añadió siguiendo
+  su documentación.
 **Chrome DevTools** (oficial de Chrome, Apache-2.0) da al agente la consola, las peticiones de red, las trazas de rendimiento
 y capturas de una web: sirve para saber por qué una página falla o va lenta (Playwright y Obscura navegan; este depura).
 **Stitch** es el servidor de Google Stitch (diseño de pantallas con IA): pide la clave de Stitch y va con las habilidades
@@ -7544,7 +7565,17 @@ película: el concepto en una frase, los fotogramas por segundo y cada beat con 
 impacto, salto entre poses → fotograma de barrido); las de 3D, además, la de «escena 3D viva». Cuando el agente
 termina, **kywai comprueba el MP4 con ffmpeg** (`checkFilmFile` en `videoStudio.ts`, reglas en `src/main/filmCheck.ts`):
 pantallas negras de más de 0,8 s, imagen congelada 4 s o más, silencio total 4 s o más, sin pista de sonido o menos de
-5 s (se perdonan los fundidos del principio y del final y el cierre quieto de hasta 5 s). En los estilos 3D
+5 s (se perdonan los fundidos del principio y del final y el cierre quieto de hasta 5 s). **Tamaño y cuadro lleno**
+(1.50.1, 26 nov 2026): mide el ancho y el alto reales (`sizeIssue`) y, si el formato pedido era vertical y el vídeo es
+horizontal (o al revés, o cuadrado), lo devuelve diciendo que hay que cambiar el lienzo **y** la captura del render, no
+solo el diseño; y mira un fotograma cada 2 s con `cropdetect` (`fillIssue`): si la zona no negra es siempre la misma y
+ocupa entre el 25 % y el 85 % del cuadro, devuelve «la imagen no llena el cuadro» con las medidas. Salió así en un sketch
+de Yil (`/video tipo:sketch personaje:robots-kywai estilo:blueprint … equipo:si`): un MP4 de 1920×1080 con una página
+vertical de 1080 px de ancho arriba a la izquierda y el 44 % en negro, con cabezas y títulos cortados; kywai solo
+miraba pantallas negras enteras y el revisor pedía «ajusta el encuadre», así que Codex movía el rótulo y el vídeo se
+entregó con el aviso de «requiere intervención». Una escena oscura no cuenta (su recuadro cambia de un fotograma a
+otro). La hoja de contacto toma su ancho de la forma real del vídeo, y el encargo de la película exige el tamaño exacto,
+sin franjas negras, y que el agente lo compruebe con `ffprobe`. En los estilos 3D
 (`FILM_3D`) mira además si **parece un dibujo plano**: saca 6 fotogramas de 96 px de ancho y, si en la mitad o más
 de los que no son casi negros los 12 colores más usados cubren el 65 % de la imagen o más (`FLAT_SHARE`, colores
 agrupados de 4 en 4 niveles), la devuelve pidiendo modelos con volumen, luz con sombras y materiales. El umbral se
