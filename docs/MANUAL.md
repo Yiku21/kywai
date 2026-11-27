@@ -4,11 +4,6 @@ Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [READ
 
 El [vídeo de 30 segundos](https://kywai.app/es/#video) muestra un proyecto repartido entre varios agentes, cuatro escenarios y un prototipo funcionando dentro de la app, con música original y textos en inglés. Las tomas resumen distintas fases del trabajo. El MP4, la portada y los detalles de la grabación están en [docs/video](video/README.md).
 
-**NVIDIA Inception (desde el 16 nov 2026):** kywai es miembro del programa NVIDIA Inception. El distintivo oficial (portal de
-Inception → Resources → Marketing with NVIDIA → Member Badge) está en `docs/img/readme/nvidia-inception.svg` y sale arriba de
-los README, con la línea legal de NVIDIA al final. Normas de NVIDIA: no cambiar colores ni proporciones, nunca más grande que
-el logo de kywai, escribir «NVIDIA Inception program» (nunca «Inception» a secas ni «Nvidia»).
-
 kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
 que se ve: interfaz, avisos, Órbita, ventana, instalador de Windows (`kywai-Setup-<versión>.exe`, «kywai Setup»), sus
 accesos directos, «Aplicaciones instaladas», `kywai.exe` y la app del Mac (`kywai.app`). Lo interno conserva el
@@ -151,9 +146,22 @@ Se pega una línea en una terminal y kywai queda instalada y abierta con la últ
   desplegables: «¿Es seguro?», «¿Ha salido un error?» y «¿Y después?». Los textos están en `web/textos.mjs` (5 idiomas);
   si cambian los mensajes de los scripts, hay que cambiar también estos.
 
-- Los scripts son `scripts/instalar-kywai.ps1` y `scripts/instalar-kywai.sh`. En el repositorio público, `web/build.mjs` los copia tal cual a la web como
+- Los scripts son `scripts/instalar-kywai.ps1` y `scripts/instalar-kywai.sh`. `web/build.mjs` los copia tal cual a la web como
   `install.ps1` e `install.sh`, y `publicar-web.yml` vuelve a publicar la web cuando cambian. Si se cambia un script, se cambia en
   `scripts/` (nunca en `web/dist/`).
+
+- **NVIDIA Inception (desde el 16 nov 2026):** kywai es miembro del programa NVIDIA Inception. El distintivo oficial (del portal
+  de Inception → Resources → Marketing with NVIDIA → Member Badge) está en `web/assets/marcas/nvidia-inception.svg` y en
+  `docs/img/readme/nvidia-inception.svg`; sale bajo las tres ventajas de la portada (`home.inception` en `web/presentacion.mjs`),
+  en el pie de la web y arriba de los README, con la línea legal de NVIDIA en el pie. Normas de NVIDIA: no cambiar colores ni
+  proporciones, nunca más grande que el logo de kywai, escribir «NVIDIA Inception program» (nunca «Inception» a secas ni «Nvidia»).
+- **La cotorra que te mira en kywai.app:** en «Nuestra visión» de la portada, en lugar del símbolo, está la cotorra que gira la
+  cabeza hacia el ratón y pone caras al tocarla (ver «La cotorra que te mira»). Es `web/assets/mascota/mascota.js` (sin
+  dependencias, basado en page-mascot, MIT, con su aviso en la cabecera) con las mismas dos hojas de la app; vale para
+  cualquier `<button data-mascota data-direcciones=… data-caras=…>`. En móvil esa columna no se ve.
+- **Botón «Mi cuenta» de kywai.app:** el menú, el pie y la página Cloud enlazan a `https://cuenta.kywai.app/?lang=xx` con el
+  idioma de la página que se está viendo (`en`, `es`, `pt`, `fr`, `zh`; ver `cuenta` en `web/build.mjs`). Así Mi cuenta se abre en
+  el mismo idioma que la web; allí un botón arriba a la derecha permite cambiarlo y se recuerda en ese navegador.
 - Los dos buscan la última versión en la API de GitHub y, si no responde (límite de peticiones sin cuenta), la deducen de la
   redirección de `releases/latest`. Con `KYWAI_VERSION=0.1.252` (o `$env:KYWAI_VERSION` en Windows) instalan una versión concreta.
 - **Windows:** baja `kywai-Setup-<versión>.exe` a la carpeta temporal y lo ejecuta en silencio (`/S`): se instala para el usuario,
@@ -1000,7 +1008,7 @@ carpeta…» pide primero la del servidor (el explorador de arriba) y luego la d
   streaming (sin cargarlos enteros en memoria) y conservan su fecha de modificación.
 - **Cambió solo en un lado**: pasa al otro.
 - **Cambió en los dos lados**: si el contenido es el mismo, no pasa nada; si es distinto se **conservan las dos
-  versiones**: la de este equipo queda como `nombre (conflicto PC-Yil 2026-10-12 15-30).ext`, la del servidor se baja con
+  versiones**: la de este equipo queda como `nombre (conflicto PC-Casa 2026-10-12 15-30).ext`, la del servidor se baja con
   su nombre, y la copia se sube en la ronda siguiente. Avisa con una notificación y queda en la lista de avisos.
 - **Borrado en un lado**: se borra en el otro **mandándolo a la papelera** (la de este equipo o la del servidor, nunca
   borrado del todo) y se avisa. Si en un lado se editó mientras lo borraban en el otro, **gana la edición**.
@@ -2184,12 +2192,12 @@ lleva `permission` con su estado.
   Arreglo 1.5.2: el agente añadido guarda como proveedor su motor (`ollama`, `lmstudio`…), no `qwen`, así que
   «Configura» lo reconoce también por `isLocalEngine(agent.provider)`; antes salía «Usa la sesión de su programa» sin
   selector. Si el equipo ya tiene modelos, el aviso de la esquina ofrece además «Usar otro programa…» (paso `engine`).
-  Arreglo 1.6.2: en kywai cloud, tras «Añadir», la ventana «Configura» se quedaba en «Preparando el agente…» si el
+  Arreglo 1.6.1: en kywai cloud, tras «Añadir», la ventana «Configura» se quedaba en «Preparando el agente…» si el
   aviso `config.updated` llegaba tarde (por ejemplo mientras la nube se actualiza). Ahora `AddAgent` mete la
   configuración devuelta al momento (`applyConfig` en `store/cowork.ts`) y `ConfigureAgent` vuelve a pedirla cada 3 s
   mientras no ve el agente. La espera a que la nube vea el equipo pasa de 30 s a 60 s (`DEVICE_TRIES`) y el aviso de
   error tiene «Volver a probar».
-  Arreglo 1.6.2: pulsar «Usar este» en otro programa ya listo (por ejemplo Colibri con LM Studio en uso) solo abría
+  Arreglo 1.6.1: pulsar «Usar este» en otro programa ya listo (por ejemplo Colibri con LM Studio en uso) solo abría
   la lista de modelos y el agente seguía en el programa de antes. Ahora `prepareLocalEngine` pasa el agente al
   programa elegido al momento (modelo sugerido o el primero, con `applyLocal`) y deja la lista abierta para cambiar de
   modelo. La tarjeta del programa que usa el agente sale con «En uso».
@@ -2575,7 +2583,7 @@ En «Uso y coste» cada petición guarda su vía (`lane`: direct, agent o full) 
   Ahora `warmHermes` (`src/main/agents/hermes.ts`) lo enciende ANTES de poner el reloj, en la prueba y en el triaje;
   la columna «Tarda» es solo lo que tarda su modelo, y si OmniRoute no enciende, la tabla dice eso y no «no responde».
   La prueba pide la palabra en modo rápido (`quick`: sin razonar y con una sola herramienta en Hermes).
-- **OmniRoute despierto con kywai abierto (v1.15.6).** Medido el 23 nov con 2 CPU, como un espacio: arrancar OmniRoute
+- **OmniRoute despierto con kywai abierto (v1.13.5).** Medido el 23 nov con 2 CPU, como un espacio: arrancar OmniRoute
   en frío tras un rato apagado lleva de 5 a 48 s (su carpeta pesa ~650 MB y, tras 20 min sin uso, el disco ya no la
   tiene en memoria); Hermes en sí solo añade ~2 s por consulta. Por eso «¿merece la pena tener tantos agentes?» tardó
   un minuto: el arranque se comía los 25 s de la respuesta al momento y la petición pasaba al plan completo. Ahora, al
@@ -4194,8 +4202,6 @@ de su respuesta sale una **tarjeta de preguntas**, como la de Claude, en el escr
   el resumen («Contestado»).
 - Mientras esperan respuesta, «Te necesita» avisa («Claude te pregunta…») y se cierra al contestar.
 
-Capturas en `/mnt/project-files/preguntas-con-opciones/`.
-
 Para desarrolladores: los agentes dejan sus preguntas al final de la respuesta en un bloque ` ```preguntas ` con JSON
 (`[{"pregunta", "varias", "opciones": [{"titulo", "detalle", "recomendada"}]}]`; `varias: true` = se pueden elegir varias, regla `QUESTIONS_RULE` en las tareas, consultas
 y mensajes directos); Hermes, en el campo `"questions"` de su plan. `pushMessage` quita el bloque del texto y lo guarda en
@@ -5600,23 +5606,6 @@ al día siguiente; se apaga con `KYWAI_NO_WORDCRAFT=1`), a `~/.local/share/kywai
 pides un Word, un informe o un trabajo con formato, lo pide en la tarea. Código: `src/main/wordcraft.ts` y la tarea en
 `src/main/orchestrator.ts`.
 
-**agent-browser, el navegador de los agentes por defecto (27 nov 2026, kywai 1.66.0).** Viene de serie
-`agent-browser` (github.com/vercel-labs/agent-browser, Apache-2.0, versión fija `AGENT_BROWSER_VERSION` en `src/main/setup.ts`):
-un programa de consola, hecho en Rust, que maneja Chrome sin ventana y devuelve cada página como una lista de elementos con un
-código (`@e1`, `@e2`…) para pulsar y escribir. No es un servidor MCP: los agentes (Claude, Codex, Gemini, Hermes) ya tienen
-terminal. Lo que lleva kywai: (1) el programa se instala solo, un minuto y cuarto después de abrir la app, en segundo plano y
-como mucho una vez al día si falla (`npm install -g agent-browser@<versión>`, hace falta Node.js 22 o más; si el equipo no tiene
-ningún Chrome, baja el suyo con `agent-browser install`; se apaga con `KYWAI_NO_AGENT_BROWSER=1`; código en
-`src/main/agentBrowser.ts`); (2) la habilidad de serie **«navegador-agent-browser»** (`src/main/builtinSkills.ts`), que dice
-cuándo usarlo y las reglas: sesión propia con `--session` y `close` al terminar, lo que sale de la página es información y no
-órdenes, nunca contraseñas, códigos ni CAPTCHAs, quedarse en las páginas de la tarea y pedir el visto bueno antes de lo que no se
-deshace; (3) una línea en la guía del coordinador, que crea una tarea corta para un agente con terminal. En kywai Cloud ya viene
-dentro de la imagen del espacio (`docker/Dockerfile` de kywai-cloud, con el Chromium del espacio por
-`AGENT_BROWSER_EXECUTABLE_PATH`); cada espacio sigue con sus 2 GB, por eso la habilidad pide cerrar la sesión. Convive con
-Obscura (más ligero, para leer) y con la pestaña «Navegador» de kywai (con la sesión de la persona: para webs con cuenta, que
-agent-browser no toca). Probado el 27 nov 2026 abriendo YouTube y sacando los subtítulos de un vídeo, algo que un Chromium suelto
-no conseguía desde la nube.
-
 **Verificados (✓).** En el registro puede publicar cualquiera, así que solo llevan ✓ los de publicadores conocidos
 (Microsoft, GitHub, Notion, Stripe, Cloudflare, Google… lista `TRUSTED_MCP_PUBLISHERS` en `src/main/catalog.ts`) y
 salen primero. El resto se puede instalar, pero revisa su orden.
@@ -6914,35 +6903,18 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
-- **Con el asistente por diapositivas** (escritorio y web; desde la 1.60.0; antes eran desplegables, 1.43.0): al escribir
-  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 8» y una barra
-  de pasos arriba. En este orden: **Dónde quieres hacerlo** (1.63.0: **Tu ordenador**, con lo que cumple el equipo, o
-  **kywai Cloud**; en kywai Cloud, «Tu ordenador» es el equipo conectado y escribe `equipo:si`, y si no hay ninguno
-  conectado sale apagado con la razón; en la app de escritorio sin la nube solo está «Tu ordenador» y «kywai Cloud» sale
-  apagado), **Formato y duración** (1.63.0: la **relación de aspecto**, Vertical 9:16 u Horizontal 16:9, que escribe
-  `formato:vertical|horizontal`, y la **duración**, Reel, Vídeo o Largo; elegir el formato no cambia de diapositiva y
-  elegir la duración sí; sin elegir el formato, Reel sale vertical y Vídeo y Largo horizontales; la marca `formato:`
-  manda sobre la duración, el tipo y las palabras del tema, `src/main/videoScript.ts`), **Tipo de vídeo**
-  (rápido con texto animado, dibujos con presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D»,
-  «Cine IA» o «Sorpréndeme»; 1.64.0: cada tarjeta lleva un **dibujo de referencia** de cómo se compone y su descripción),
-  **Personajes** (ninguno, los robots de kywai, los que hayas creado o «Agregar personaje»),
-  **Estilo** (todos juntos por orden alfabético, con su muestra: los de película y los aspectos de «Imágenes con IA», que
-  puedes probar antes con tu escena; ya no existe «El de kywai (rápido)»), **Voz** (una voz o un diálogo de dos; las voces
-  de todos los idiomas juntas, en femeninas y masculinas, con ▶ para oírlas; 1.64.0: las de **Kitten TTS** salen ya en la
-  lista, y arriba, «**Quién narra**»: **Chatterbox** (con emoción) o **Ming** (más natural), que copian el timbre de la voz
-  elegida y, si falta el motor, se instala al elegirlo; solo en un equipo con estudio completo, no en la nube ligera),
-  **Idioma** (1.64.0: español, inglés, portugués, francés, chino, hindi, alemán, italiano o japonés para las voces y los
-  textos en pantalla; escribe `idioma:xx`, manda sobre el idioma de la voz y quita una voz de otro idioma; sin elegir, el
-  de la voz o el de la app; `src/shared/videoChoice.ts`, `videoLang`) y **Calidad** (1.64.0: **Rápida, Media o Alta** en
-  todos los tipos, `calidad:rapida|media|alta`: en el Escenario 3D cambia el pintado del decorado —Media es el nivel
-  normal— y en los demás tipos cómo se monta el vídeo con HyperFrames: Rápida `draft`, Media `looks`, Alta `delivery`, lo
-  de siempre; los estilos de película no cambian; además el nivel de Cine IA con créditos y las opciones: repasar el
-  guion, estructura de reel, versión ligera…).
-  **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
-  salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
-  «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
-  escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
-  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. **Responsive** (1.65.2): el asistente no pasa de 980 px y va centrado en pantallas anchas, y sus tarjetas se reordenan según el ancho del propio asistente (container query `video-panel` en `VideoPicker.module.css`), no el de la ventana; los tipos van a cuatro por fila en ancho. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
+- **Con el selector en desplegables** (escritorio, web y Órbita; desde la 1.43.0): al escribir `/video` se abre encima del
+  cuadro un panel con **Duración** (Reel, Vídeo o Largo), **Tipo de vídeo** (rápido con texto animado, dibujos con
+  presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D» o «Sorpréndeme»), **Personaje** (ninguno, los
+  robots de kywai, los que hayas creado o «Agregar personaje»), **Estilo y aspecto** (el de kywai, o uno de los estilos de
+  película con su muestra, o uno de los aspectos de «Imágenes con IA», que puedes probar antes con tu escena), **Voz**
+  (automática o una concreta, con ▶ para oírla) y **Opciones** (diálogo, repasar el guion, estructura de reel, «Hacerlo
+  en mi equipo»…; en Órbita no hay Opciones). **Cada sección es un desplegable**: la cabecera muestra lo elegido
+  («Duración · Reel», «Voz · Álvaro»), solo hay una abierta a la vez (al empezar, la primera que falta por decidir, o
+  Duración si todo va por defecto), y un punto de aviso en la cabecera dice que esa sección trae una nota de lo que este
+  equipo puede o no hacer. Se maneja con el teclado (Enter o Espacio abren, flechas arriba y abajo cambian de cabecera) y
+  la animación respeta «reducir movimiento». Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz»
+  más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
@@ -6952,7 +6924,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   de esto» (usa la última respuesta del chat).
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
 
-**Duración: Reel, Vídeo y Largo (1.43.0).** La diapositiva «Formato y duración» del asistente elige cuánto dura. La marca de texto es
+**Duración: Reel, Vídeo y Largo (1.43.0).** La primera fila del selector elige cuánto dura. La marca de texto es
 `duracion:video` o `duracion:largo` (con o sin tilde, en cualquier sitio de las marcas; el selector la pone la primera);
 **sin marca es un Reel**, y un Reel sale exactamente igual que antes (la prueba `videoReelUnchanged.test.ts` guarda las
 huellas de sus encargos y de cómo se lee su guion).
@@ -6971,7 +6943,7 @@ huellas de sus encargos y de cómo se lee su guion).
   no lo cambia).
 - **Tipos que valen**: rápido, presentador, mixto y Escenario 3D (con el aviso de abajo). **Solo en Reel**: «Charla y
   tutorial», «Sketch de humor», «Sorpréndeme», los estilos de película de la biblioteca y la estructura «Reel en 3 pasos».
-  Si se piden con una duración larga no se bloquea nada: el selector enseña la etiqueta «Duración Reel» (y, en la diapositiva de estilos, una nota con el porqué y el botón «Cambiar a Reel», que conserva el formato), el chat lo dice al
+  Si se piden con una duración larga no se bloquea nada: el selector enseña la nota «Solo en Reel», el chat lo dice al
   empezar y el vídeo sale como rápido con el estilo de kywai (`longChoice` en `src/shared/videoPreflight.ts`).
 - **Escenario 3D en Vídeo y Largo**: se permite, con un aviso visible del tiempo (Blender pinta unos 2 s por fotograma a
   24 fps, unos 45 s de pintado por segundo de vídeo: un Vídeo, de 1 h 36 min a 3 h 12 min; un Largo, de 4 h a 8 h). Nunca se
@@ -7045,8 +7017,8 @@ el motor (el equipo, lo que hay listo para las imágenes y lo aprendido) en `src
 - **Duración recomendada**: la más larga que sale en un tiempo razonable (Escenario: el nivel automático cabe en el tiempo de
   Blender de esa duración; el resto: unos 90 min como mucho). Ejemplo: en el Mac mini, un Escenario Largo sale con el nivel
   rápido (≈3 h); en un PC de 8 GB sin gráfica, un Largo no sale y se recomienda un Vídeo.
-- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): la diapositiva **Calidad**
-  (la última) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
+- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): el apartado desplegable **Tu equipo y calidad**
+  (antes de Opciones) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
   la calidad (Automática, Alta, Rápida, cada una con su nivel y lo que cuesta) y **Usar lo recomendado**: pone `calidad:auto`,
   la voz y, solo si la duración elegida no sale en tiempo razonable, la más larga que sí sale (nunca sube la que elegiste).
   Las estimaciones del selector usan las tasas del equipo (`estimateVideoTime` con `escenarioPerVideoSecond` e
@@ -7272,7 +7244,7 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
 quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
 ese 3D, sin gráfica y con 2 GB, no terminaba nunca. Ahora el selector de `/video` mira lo elegido contra lo que tiene el
 equipo y lo dice **antes de enviar**, debajo de la barra del vídeo:
-- **No se puede aquí** (en la nube: los estilos de película, que llevan «Se hace en tu ordenador» en su tarjeta y, en la diapositiva de estilos, una nota con el botón «Hacerlo en mi ordenador», y los robots
+- **No se puede aquí** (en la nube: los estilos de película, que llevan «Solo en tu equipo» en su tarjeta, y los robots
   de kywai en el plató 3D): explica qué y ofrece **«Hacerlo en versión ligera»**, que cambia solo eso por lo más
   parecido que sí sale (sin película: estilo de kywai; robots: dibujados en cada plano si hay con qué dibujar, o un vídeo
   rápido sin ellos). Elegirla añade la marca `ligero:si`.
@@ -7317,32 +7289,6 @@ imagen a vídeo; kywai lo hace así (`src/shared/videoCine.ts`, `src/main/videoC
   hacer un primer plano real y mirar la respuesta.
 - Fase 2 (no hecha): «Corto animado» en three.js (personajes 2D en mundo 3D, sin generador de IA) con las habilidades
   Motion Skills y Three.js Skills (MIT) como fuentes opcionales; un tipo de créditos `video` para cobrarlo en el portal.
-
-**Cine IA con créditos kywai** (`nivel:`, 1.58.0, 27 nov 2026). Pedido por Yil: en la nube, quien no tiene clave de Gemini
-también puede hacer cortos, pagando con créditos (1 crédito = 1 centavo de USD). Cuatro formas de hacerlo, en el selector de
-/video → Cine IA (marca `nivel:api|rapido|medio|calidad|premium`, solo con `tipo:cine`):
-- **Mi API** (`api`, la de siempre): tu clave de Gemini, a cargo de tu cuenta de Google. No gasta créditos.
-- **Rápido / Medio / Calidad / Premium**: se animan en RunPod («Public Endpoints», la misma clave `KYWAI_RUNPOD_CLAVE` del
-  portal) y se cobran por segundo de vídeo: Rápido 3 (Pruna P-Video 720p), Medio 15 (Wan 2.6 720p), Calidad 23 (Veo 3.1 Fast
-  1080p), Premium 135 (Seedance 2.5 1080p). Tabla en `CINE_CREDIT_LEVELS` (`src/shared/videoCine.ts`) y `LEVELS`
-  (`portal/video_ia.py` en kywai-cloud): si cambian en uno, cambian en el otro. El margen es el de siempre (×1,5 sobre lo que
-  cobra el proveedor).
-- **El flujo no cambia**: el agente escribe el plan, kywai dibuja personajes y planos (con referencias, por `/api/imagen`: 8
-  créditos el plano con Gemini, 2 la hoja de un personaje con la GPU), enseña el guion gráfico y **espera «Seguir» o
-  «Parar»**. Con créditos, el aviso dice cuántos cuesta animarlo (y hasta cuántos con repeticiones), cuántos ya se cobraron en
-  imágenes y cuántos le quedan; si no llegan, lo avisa antes de pulsar «Seguir».
-- **Sin elegir nivel**: si hay clave de Gemini, `api`; si no (y es kywai Cloud), `rapido`. Fuera de la nube solo existe `api`
-  (`cineLevelFor` en `orchestrator.ts`).
-- **El portal** (`portal/video_ia.py`, rutas `/api/video…`): crea el trabajo (202), el espacio pregunta cada 5 s y baja el MP4
-  (`/archivo`). Cobra al pedir (`credit_spend`, tipo `video`) y **devuelve los créditos si el plano falla** o tarda más de 15
-  min. Topes: `KYWAI_VIDEO_SEGUNDOS_DIA` (300 s por cuenta y día) y `KYWAI_VIDEO_A_LA_VEZ` (3). La imagen de arranque se sirve a
-  RunPod con una dirección secreta de un solo uso (`/api/video/entrada/<token>`). Se guarda el coste real que dice RunPod
-  (`coste_usd`) para ajustar los precios.
-- **Sin comprobar** (a medir con ≈5 USD en la cuenta de administración tras el despliegue): el tamaño vertical de Wan, el audio
-  y los labios de Pruna/Wan, el precio real de Veo a 1080p y las condiciones de reventa de RunPod y de cada modelo.
-- Órbita (Android) todavía no conoce la marca `nivel:`.
-
-(1.60.0) Ajustes → Multimedia ya no muestra «GPU de kywai · Próximamente» en «Generar vídeos con…»: esa fila era un hueco anterior a los niveles con créditos. En kywai Cloud, en su lugar sale una nota que manda al Estudio de vídeo → Cine IA; fuera de la nube no sale nada (los créditos solo existen en la nube).
 
 **Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
 cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
@@ -7856,6 +7802,18 @@ el problema, amarillo la pregunta, verde la solución, cian el concepto) y abajo
 que suena en una pastilla cian. Robots grises son «la forma de antes», uno naranja la solución y un muñeco con gafas
 eres tú; en los pasos salen puntos de progreso (■■□). Usa el motor de «Piezas de construcción» (`brick-toy`) y lleva
 la lista de escena 3D viva. También se pide con «estilo robots de bloques», «voxel» o «bloques».
+
+**Vías de neón** (`kywai-neon-rails`, desde la 1.63.0) sale del ritmo de un reel vertical de 47 s que explicaba una
+herramienta de IA (solo su estructura y su aspecto, nada de su marca, sus logos ni su texto). Es una escena 3D de
+juguete, de noche, donde la idea viaja por **vías de neón amarillo** que se curvan, se parten en dos («tú» frente a «la
+herramienta», una vía lenta y otra rápida), acaban en una puerta de luz o en un pedestal, y la cámara las sigue.
+Tarjetas de reel y muñecos de madera beis son el reparto; contadores que suben (2/10 → 9/10, 53.863 → 100.000 vistas),
+un cable que conecta una cosa con otra, una lupa sobre una rejilla de ideas y una gráfica con la caída marcada «aquí se
+van». Los subtítulos salen palabra a palabra y la palabra clave se rodea con un recuadro amarillo. Un solo color de
+acento (amarillo) sobre negro. Una escena por idea, de 2 a 4 s; los datos inventados llevan la etiqueta «ILUSTRATIVO» y
+no se usan logos ajenos (símbolos sencillos propios). Usa el motor de «Piezas de construcción» (`brick-toy`) y lleva la
+lista de escena 3D viva. Se pide con «estilo vías de neón», «neon rails» o «reel explicativo», y «/crecer» lo tiene
+entre los estilos de reel vertical (`NIGHT_SHIFT_STYLES`). Guía en `src/main/kywaiFilmGuides.ts`.
 
 **Anuncio de app** (`kywai-app-promo`, desde el 12 de noviembre de 2026) sale de la estructura de un reel vertical de
 32 s que anunciaba una herramienta para convertir modelos 3D en sprites (solo su ritmo y sus recursos, nada de su
@@ -10353,7 +10311,7 @@ modelo 3D o aspecto lo conservan.
 La técnica (dibujo pintado en capas, ojos SVG que siguen al ratón y reacciones al tocar) se inspira en AnyModelBot
 (licencia MIT); los dibujos son nuestros, no los suyos.
 
-**«Personajes» solo en Ajustes (Yil, 23 nov 2026, v1.6.7).** kywai ya no usa el estilo «Personajes» para enseñarse: se
+**«Personajes» solo en Ajustes (Yil, 23 nov 2026, v1.6.5).** kywai ya no usa el estilo «Personajes» para enseñarse: se
 puede seguir eligiendo (va el último del selector, `SKINS` en `scene/characters.ts`) y quien ya lo tenía lo conserva,
 pero no sale en ningún otro sitio. Lo que se ve por defecto es «Formas animadas» o, donde hace falta un dibujo
 fijo, los robots «Clásico». La copia de las imágenes de los «Robots de kywai» de «/video» en
@@ -10650,6 +10608,12 @@ suscripciones no gasta créditos. Se ven y se recargan en Mi cuenta → **Crédi
   Con **Pro Max**, «Escribir a soporte» (Mi cuenta → Ayuda y cuenta) manda el correo marcado como prioritario.
   Bajar cambia el precio desde la próxima renovación y solo se puede si los archivos caben. Las ampliaciones de espacio
   cuestan solo la diferencia sobre lo que trae el plan (con Pro, 100 GB +3 $ y 130 GB +8 $).
+- **La cuenta de administración no paga mensualidad ni tiene límite de créditos** (23 nov 2026, 1.14.2). Las cuentas de
+  `PILOT_ADMIN_UIDS` del portal tienen siempre todo lo de kywai Pro Max sin suscripción: «Plan y pagos» dice «Cuenta de
+  administración · Sin mensualidad» (0 $ al mes), en Créditos el saldo sale «Ilimitados» y no hay recargas ni cambios de
+  plan. Lo que usa (aspectos, 3D, voz, imágenes, acciones de apps) no descuenta nada y queda apuntado a 0 en Movimientos;
+  `GET /api/creditos` devuelve `ilimitado: true`. Si tenía una suscripción de prueba, el portal la cancela en Stripe y el
+  espacio sigue en marcha. En el panel de cuentas su columna de suscripción dice «Sin mensualidad · Créditos ilimitados».
 - **Pagos reales (25 nov 2026):** Mi cuenta cobra de verdad cuando el servidor tiene la clave real de Stripe
   (`sk_live_…`); con una de prueba todo sigue siendo de prueba. El modo sale de la clave y nunca se mezclan. El paso se
   hace una vez en el servidor con `python3 /opt/kywai/portal/stripe_modo_real.py` (pide la clave sin mostrarla, crea el
@@ -11103,20 +11067,20 @@ obligatoria: sin ffmpeg falla), ahora en macOS de verdad y con su tarjeta gráfi
 Studio (puerto 1234) y Ollama (11434) responden, tienen un modelo y contestan a un mensaje corto
 (`scripts/e2e/local.e2e.mjs`). Si uno no está abierto, su prueba se salta; para exigirlo, en GitHub → Settings →
 Secrets and variables → Actions → Variables, `KYWAI_EXIGIR_LOCAL=lmstudio,ollama`. Si algo falla, GitHub manda un
-correo y el detalle queda en Actions. Corre en la «máquina de pruebas» del Mac mini y solo en kywai-original.
+correo y el detalle queda en Actions. Corre en la «máquina de pruebas» del Mac mini y solo en kywai-codigo.
 
 **La máquina de pruebas del Mac mini.** Es el programa oficial de GitHub (un «self-hosted runner») instalado en el Mac
 mini: GitHub solo avisa y el Mac hace el trabajo, así que no gasta minutos. En ella corren «Probar», «Publicar Órbita»,
 «Noche en el Mac mini» y, en kywai-cloud, «Comprobar portal». Instalación, una vez por repositorio, en el Mac mini: en
 GitHub, el repositorio → Settings → Actions → Runners → New self-hosted runner → macOS, copiar el token (caduca en una
-hora) y ejecutar `bash scripts/instalar-pruebas-mac.sh <token>` (kywai-original) o
-`bash scripts/instalar-pruebas-mac.sh <token> kywai-cloud`. Quedan como servicios en `~/kywai-pruebas` y
+hora) y ejecutar `bash scripts/instalar-pruebas-mac.sh <token>` (kywai-codigo) o
+`bash scripts/instalar-pruebas-mac.sh <token> kywai-cloud`. Quedan como servicios en `~/kywai-codigo-pruebas` y
 `~/kywai-pruebas-cloud` y arrancan solos al iniciar sesión.
 **Varias a la vez, sin cola (23 nov 2026).** Las pruebas de un PR tardan unos 3 minutos, pero con una sola máquina se
 hacían de una en una y, con varios hilos fusionando, cada PR esperaba 15 o 25 minutos en cola. Por eso: el Mac mini
-tiene **3 máquinas de pruebas** de kywai-original (`bash scripts/instalar-pruebas-mac.sh <token> kywai-original 3`;
-un token vale para las tres y las ya instaladas se dejan como están; quedan en `~/kywai-pruebas`, `~/kywai-pruebas-2` y
-`~/kywai-pruebas-3`); cada PR ocupa **un solo turno** (las pruebas de Órbita van dentro del mismo trabajo y se saltan en
+tiene **3 máquinas de pruebas** de kywai-codigo (`bash scripts/instalar-pruebas-mac.sh <token> kywai-codigo 3`;
+un token vale para las tres y las ya instaladas se dejan como están; quedan en `~/kywai-codigo-pruebas`, `~/kywai-codigo-pruebas-2` y
+`~/kywai-codigo-pruebas-3`, con los nombres `kywai-codigo-mac-mini`, `-2` y `-3`); cada PR ocupa **un solo turno** (las pruebas de Órbita van dentro del mismo trabajo y se saltan en
 un segundo si no cambia `android/`); cada rama tiene **una sola prueba viva** (la nueva cancela la vieja, también la
 lanzada a mano: grupo `probar-<rama>`), y sin la caché de npm de GitHub, que en el Mac no servía (ahorra ~30 s). Como
 pueden correr varias pruebas a la vez, ninguna prueba debe escuchar en un puerto fijo: usar el puerto 0 o uno al azar
@@ -11124,18 +11088,17 @@ pueden correr varias pruebas a la vez, ninguna prueba debe escuchar en un puerto
 primera vez; el portal usa el `python3.12` de Homebrew. Nunca se usa en el repositorio público. La web, los
 instaladores y las Releases siguen en el escaparate público, donde los minutos son gratis.
 Su flujo «Publicar escritorio» saca **una versión al día** (desde la 1.31.0, a las 9:00 UTC) con todo lo fusionado en
-kywai-original desde la anterior; para publicar antes se lanza a mano («Run workflow»). Antes miraba cada 10 minutos.
+kywai-codigo desde la anterior; para publicar antes se lanza a mano («Run workflow»). Antes miraba cada 10 minutos.
 
-**Espejo de kywai-codigo** (desde la 1.31.0, `.github/workflows/espejo-codigo.yml`): cada push a master de
-kywai-original se copia solo en master de `Yiku21/kywai-codigo`, en el Mac mini, así los dos repositorios privados
-están siempre a la misma versión sin portar cada mejora a mano. Está **apagado** hasta que exista el secreto. Para
-encenderlo (una vez): en el Mac mini, `ssh-keygen -t ed25519 -N "" -C espejo-codigo -f ~/espejo-codigo`; en
-kywai-codigo → Settings → Deploy keys → Add deploy key, pegar `~/espejo-codigo.pub` y marcar **Allow write access**;
-en kywai-original → Settings → Secrets and variables → Actions → New repository secret `KYWAI_ESPEJO_LLAVE` con el
-contenido de `~/espejo-codigo`; después borrar los dos archivos del Mac y lanzar el flujo a mano una vez. La primera
-vez guarda el master antiguo de kywai-codigo en la rama `respaldo/antes-del-espejo` (las dos historias son distintas)
-y lo sustituye por el de kywai-original; si master de kywai-codigo tiene protección contra force-push, hay que
-quitarla. Desde entonces los PR van solo a kywai-original.
+**Un solo repositorio de código (26 nov 2026).** `Yiku21/kywai-codigo` es el único repositorio de código y es donde corren las pruebas, la noche y Órbita (Mac mini). `Yiku21/kywai-original` queda archivado
+y no se toca más. El espejo (`espejo-codigo.yml`, que nunca llegó a encenderse) y la web vieja (`web/`, que ya vive solo
+en el escaparate `Yiku21/kywai`) se quitaron. Para pasar el Mac mini: en kywai-codigo activar Actions, añadir los
+secretos `ORBITA_KEYSTORE_BASE64`, `ORBITA_KEYSTORE_PASSWORD`, `ORBITA_KEY_ALIAS` y `ORBITA_KEY_PASSWORD`, instalar
+las máquinas de pruebas nuevas (no chocan con las de kywai-original: usan otras carpetas y otros nombres) con `bash scripts/instalar-pruebas-mac.sh <token> kywai-codigo 3`;
+las viejas se quitan aparte, al archivar kywai-original (`cd ~/kywai-pruebas && ./svc.sh uninstall && ./config.sh remove --token <token nuevo>`).
+El escaparate baja el código con la llave de solo lectura `KYWAI_CODIGO_LLAVE`: hay que añadirla también como Deploy key
+de kywai-codigo y cambiar `CODIGO_REPO` en su flujo «Publicar escritorio». El servidor del Mac mini cambia su remote con
+`git remote set-url origin https://github.com/Yiku21/kywai-codigo.git`.
 Las pruebas abren la app con su propia carpeta de datos (`KYWAI_APPDATA_PRUEBAS`), sin tocar la del kywai instalado.
 Las pruebas del zip de «Archivos del servidor» descomprimen con `bsdtar` (en Linux, paquete `libarchive-tools`);
 sin él comprueban el zip sin descomprimirlo.
@@ -11165,6 +11128,47 @@ scripts/       instalación y actualización en Mac y Linux, accesos de Windows,
 Para retomar el desarrollo desde otro chat u otro equipo (arquitectura, reglas del repositorio, trampas conocidas y
 pendientes), ver [CONTEXTO-DEL-PROYECTO.md](CONTEXTO-DEL-PROYECTO.md).
 
+### La web kywai.app
+
+La web pública vive en `web/` y se publica sola en GitHub Pages (`.github/workflows/publicar-web.yml`) con cada
+push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
+
+| Archivo | Qué es |
+|---|---|
+| `web/textos.mjs`, `web/secciones.mjs`, `web/presentacion.mjs`, `web/escaparate.mjs` y `web/guias.mjs` | Textos, nombres de las secciones y rutas en inglés, español, portugués, francés y chino. El generador falla si falta una clave |
+| `web/plantilla.html` | Cabecera, metadatos y pie comunes, con huecos `{{clave}}` |
+| `web/paginas/` | Portada y fragmentos de apoyo e instalación por terminal |
+| `web/visuales.mjs` y `web/catalogo-visual.json` | Vistas de agentes, los 22 temas, dispositivos y recorrido ilustrado, con textos del catálogo real |
+| `web/iconos.mjs` y `web/assets/marcas/` | Iconos propios y símbolos de Simple Icons (CC0) para reconocer los servicios |
+| `web/assets/site.css` y `web/assets/site.js` | Diseño compartido, menú, tema claro/oscuro y actualización de enlaces de descarga |
+| `web/descargas.json` | Versión y archivos publicados comprobados: alternativa disponible aunque falle la API de GitHub |
+| `web/comprobar.mjs` | Comprueba las 60 páginas y sus vistas previas, enlaces, idiomas, anclas y comportamiento de descargas (requiere dependencias de desarrollo) |
+| `web/build.mjs` | Genera doce páginas por idioma en `web/dist/`, más páginas legales, CNAME, sitemap y robots |
+| `web/assets/` | Logo, fuentes, capturas por idioma, robots y el vídeo comprimido |
+
+- La política en `web/legal/privacidad.html` se publica en `/privacidad/`, en español e inglés. Distingue instalación propia y kywai Cloud, describe cuentas, pagos de prueba, proveedores, cookies de sesión y solicitudes de datos por correo. El pie de los cinco idiomas remite a esa información sin prometer ausencia de cookies en el portal.
+- `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
+- La portada presenta la coordinación de agentes con un diagrama, una captura del producto identificada como vista previa, tres ejemplos de encargos seleccionables por teclado y el vídeo real en una ventana con cierre y pausa. La visión se distingue del estado actual: escritorio disponible, Cloud en piloto y Composio en preparación. Incluye un enlace de contacto para colaboraciones e inversión.
+- El símbolo de la portada gira con un halo pulsante y cuatro etiquetas recorren la órbita sin rotar el texto. Al pasar el cursor, enfocar con teclado o tocar una etiqueta, la órbita se pausa y aparece una explicación traducida. Un segundo toque, Escape o salir del control permite cerrar la descripción. Con movimiento reducido, el diagrama permanece estático y conserva las explicaciones.
+- Funciones resume las capacidades en seis tarjetas visuales (equipo, estudio, rutinas, proyecto, herramientas y control), una muestra de temas y accesos rápidos. Las explicaciones completas quedan en un desplegable.
+- Conectores muestra los once servicios destacados del catálogo MCP real, con filtros por categoría e instrucciones de conexión por servicio. Se configuran en la aplicación, no desde esta web. Las apps de Composio para Cloud aparecen en un bloque separado con su estado «En preparación». La configuración y las cuentas de cada usuario son independientes.
+- Las guías están en `/es/guias/` y su equivalente por idioma, con un enlace directo por servicio (por ejemplo `#github`). Se abren desde cada tarjeta, desde el bloque de primera conexión y desde Ayuda. Detallan seis pasos con los botones reales de la app: Explorar catálogo, Instalar y Guardar y probar; explican tokens, requisitos, asignación al agente y una prueba en el chat. DeepWiki es el punto de partida sin clave adicional. Las claves se introducen en kywai, nunca en la web. Sin JavaScript, todas las guías siguen accesibles.
+- Agentes presenta los avatares, el catálogo de 34 agentes y dos alternativas locales (LM Studio y Ollama), con búsqueda y filtros. Temas incluye las 22 opciones reales, filtros por familia y vista previa navegable por teclado. Dispositivos combina capturas y diagramas de alojamiento propio/Cloud. Cómo funciona ofrece cinco etapas ilustradas, sin ejecutar tareas.
+- Las miniaturas de temas se copian sin modificar desde `src/renderer/src/assets/temas/`: son muestras del modo Demo, con sus nombres e identificadores reales. Para sincronizar nombres, traducciones, agentes y miniaturas tras cambiar el catálogo: arrancar `npm run web` y ejecutar `node web/sincronizar-catalogo.cjs` (Playwright instalado; `KYWAI_CHROMIUM` permite indicar un Chromium local). Las pruebas de la web comprueban que no falte ningún tema del selector.
+- Privacidad y términos tienen nombres completos en una fila propia del pie de todas las páginas. Sus documentos bilingües comparten logo, tipografía y tema con la web; los enlaces desde idiomas distintos del español abren la sección inglesa.
+- Hay páginas separadas para inicio, cómo funciona, funciones, agentes, conectores, dispositivos, temas, descargas, Cloud, precios y ayuda. Por ejemplo: `/es/`, `/es/agentes/`, `/es/descargas/` y `/es/cloud/`. El inicio inglés usa `/download/`; cada idioma conserva sus propias rutas.
+- La primera visita en inglés lleva al idioma del navegador y conserva la sección. Elegir idioma en el menú se recuerda; también se recuerda el tema claro u oscuro. Los enlaces antiguos a las secciones se redirigen a su página. No hay cookies de seguimiento.
+- Para verificar el conjunto: `node web/comprobar.mjs` (tras instalar las dependencias del repositorio). Revisa tanto publicación como vista previa y prueba la descarga sin red.
+- El vídeo de la web (`web/assets/video/presentacion.mp4`, 30 s, 1920×1080, unos 16 MB) está montado con Remotion a partir de grabaciones reales de Launch Lab: agentes trabajando en distintas fases, cuatro escenarios y un prototipo interactivo. Su portada es `portada.jpg`; los detalles están en [docs/video](video/README.md). Para cambiarlo, sustituir ambos archivos y actualizar `video.caption` en los cinco idiomas de `web/textos.mjs`.
+- Descargas presenta cuatro tarjetas: macOS (Apple silicon e Intel), Windows, Linux (x64 y ARM64) y Android (Órbita), con pasos de instalación. La instalación por terminal está en un desplegable al final. Se resalta el sistema del visitante sin adivinar el chip de un Mac. Ver [Con una sola orden](#con-una-sola-orden-lo-más-fácil).
+- Solo Descargas consulta la última Release de GitHub. Sus enlaces ya contienen archivos reales de `web/descargas.json`, por lo que funcionan sin JavaScript o si GitHub no responde. La respuesta de la API solo puede sustituirlos por archivos del repositorio oficial. Actualizar la instantánea al publicar una nueva web.
+- La tarjeta Android enlaza a la APK oficial de Órbita. El botón grande de la portada lleva a la tarjeta del sistema detectado, donde se explican los pasos. En iPhone/iPad no se recomienda el instalador de macOS: se indica acceso web y ausencia de instalador nativo de iOS.
+- Precios (`web/precios.mjs`, 19 nov 2026) muestra cuatro planes: Gratis (0 USD, alojamiento propio, con tu clave de Meshy y sin galería), Cloud (10 USD), Pro (25 USD, «Recomendado») y Pro Max (50 USD). Cada plan de pago empieza con «Todo lo de …, y además:» y lista sus cifras (espacio, créditos, acciones de apps, RAM, agentes a la vez, tareas programadas, proyectos compartidos, Crea tu agente incluido, copias). Las líneas que empiezan por `*` aún no están hechas y salen en gris con la etiqueta «Próximamente»: al programar una, se le quita el `*`. Aclara que tus suscripciones de IA se pagan al proveedor y que el piloto no hace cobros reales.
+- La página Cloud explica el piloto privado y las funciones aún no activas (cobros reales, compra de créditos y almacenamiento). La página Conectores presenta Composio como integración en preparación; conectar Composio al chat no activa conexiones para los clientes de kywai.
+- Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.
+- La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a https://ko-fi.com/yilsander (donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a https://ko-fi.com/yilsander/tiers (membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
+- El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
+
 ### Licencia
 
 Desde el 20 nov 2026 kywai **no es de código abierto**: el código vive en repositorios privados y lo público es solo el
@@ -11173,3 +11177,11 @@ y `"license": "SEE LICENSE IN LICENSE"` en `package.json`): cualquiera puede usa
 quiera, pero no copiarlo, repartirlo, modificarlo, descompilarlo ni revenderlo. Las versiones del 19 y 20 nov 2026
 salieron con la FSL-1.1-ALv2 y las anteriores con MIT; quien ya las tenga conserva esos derechos. La licencia no da
 derecho a usar la marca kywai. Cada README lo dice en su sección final, y la web en el pie y en los términos.
+
+### Web: agentes, órbitas y catálogo de conectores
+
+La presentación permite usar uno o varios agentes y elegir cualquiera para coordinar. El catálogo muestra 36 marcas oficiales, incluidos los modelos locales, con sus fuentes en `web/agentes-marcas.json`. No implica un equipo predeterminado.
+
+Las etiquetas de inicio recorren las elipses SVG dibujadas: usan la geometría del mismo trazado y alternan su profundidad respecto al logo. Cada etiqueta tiene un periodo y un sentido propios. Al abrir su descripción con ratón, teclado o toque se pausa únicamente esa etiqueta; las demás siguen su recorrido. Todas respetan la preferencia de movimiento reducido. Mi cuenta destaca en la cabecera, también en móvil.
+
+Conectores muestra una copia consultable del catálogo público de Composio (1.743 servicios en esta actualización), con búsqueda completa y más resultados por tandas. Las primeras 36 marcas se sirven localmente. El estado de la conexión Cloud indica «en preparación» hasta configurar la integración propia; explorar el catálogo no conecta cuentas. Cada usuario deberá autorizar sus propias cuentas. Las 11 conexiones MCP de escritorio y sus guías siguen disponibles en la misma página.
