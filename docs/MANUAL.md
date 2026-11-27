@@ -590,8 +590,14 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   aviso y «Actualizar este equipo…» deja de brillar; en ⚙ → Actualizaciones se explica que falta una. Al llegar una versión
   del espacio se vuelve a mirar este equipo al momento y, mientras no coincidan, cada 2 min. El motor del espacio manda
   `cloud: true` en `updatePending` también sin nada pendiente (`readPending` en `cloudBusy.ts`) para que la interfaz sepa
-  que habla con kywai Cloud. Al pulsar «Actualizar ahora» van los dos (ver el apartado de arriba). «Actualizar este equipo…» en
-  Ajustes → Acerca de sigue como vía manual. Una app anterior a esto sigue con los dos avisos separados.
+  que habla con kywai Cloud. Al pulsar «Actualizar ahora» van los dos (ver el apartado de arriba). **En Ajustes → Acerca de hay una sola fila**
+  (1.64.0, Yil: «¿no dejamos solo un botón para actualizar?»): con kywai Cloud desaparece la fila «Actualizar este equipo…» y
+  queda «Buscar actualizaciones…» / «Actualizar kywai…», que abre ⚙ → Actualizaciones. Ese diálogo lo cuenta todo: si el
+  espacio tiene la versión lista y este equipo la misma, «Actualizar ahora» actualiza los dos; si el espacio ya está en la versión
+  nueva (se cambió estando apagado) y solo falta este equipo, sale «Actualizar este equipo» (`deviceWaiting` en
+  `UpdateDialog.tsx`; para saberlo, `refreshDeviceUpdate` guarda `cloudVersion`, la versión del espacio, leída de
+  `checkForUpdates().cloud.version`); y si este equipo ve una versión que el espacio aún prepara, dice que se espera. Una
+  app anterior a esto sigue con los dos avisos separados.
 - **Desde Órbita**: ☰ → Ajustes → Conexión → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
   Ajustes ya dice si hay cambios nuevos en GitHub (con los últimos títulos); «Actualizar el servidor» (pide
   confirmación) lo descarga, compila, instala y reinicia. Mientras tanto Órbita se queda sin conexión unos minutos y
@@ -5080,8 +5086,10 @@ ventana estrecha o móvil, pasa a la pestaña **Espacio**. Si ocultas el panel c
   días.
 - **Tus amigos**: pulsa uno para abrir la conversación. Enter envía y Mayús+Enter salta de línea. Los mensajes nuevos
   llegan solos (se miran cada 4 segundos con el panel abierto).
-- **Archivos**: el clip junto al mensaje adjunta un archivo de hasta 100 MB (también se puede pegar). Puedes escribir un
-  texto con él o mandarlo solo, y verás el porcentaje mientras sube. Las imágenes se ven en la conversación y todo se
+- **Archivos**: el clip junto al mensaje adjunta archivos de hasta 100 MB cada uno (también se pueden pegar). Desde la 1.65.0
+  puedes elegir varios a la vez (hasta 10): salen en una lista junto al mensaje, quitas los que no quieras y se mandan
+  seguidos con un solo envío. Puedes escribir un texto (va con el primero) o mandarlos solos, y verás el porcentaje
+  mientras sube cada uno. Las imágenes se ven en la conversación y todo se
   descarga con un clic. Se guardan 30 días; después el mensaje dice «Ya no está». Cada cuenta puede tener 500 MB de
   archivos enviados a la vez y mandar 50 al día.
 - **Quitar amigo** (menú «⋯» de la conversación) deja de ser amigos y borra la conversación para los dos. No se le avisa. También borra los archivos.
@@ -5345,6 +5353,25 @@ sirve»**: cualquier equipo con la app puede ayudar; lo que cambia es cuánto ta
   app antigua que recibe un 400 repite sin esos campos. El trabajo nuevo `install` del puente solo acepta un id del
   catálogo o un paquete con formato válido, y la app lo vuelve a comprobar (`validProgramRef`).
 
+### El agente local se llama como su modelo (1.65.1)
+
+El agente «Modelo local» (el de fábrica se llamaba «Qwen») toma el nombre del modelo que usa: con
+`inkling-2-mini-colibri` se llama **Inkling 2 Mini**, con `qwen3:14b`, **Qwen3 14B**. Ese nombre sale en el título
+de «Configura …», en la ficha, en la etiqueta del robot en el 3D y en las menciones con `@`, y cambia solo cuando
+eliges otro modelo (en Ajustes → Local o en «Configura …»), cuando termina una descarga de Ollama o cuando kywai cloud
+pasa a otro de tus equipos con otro modelo. El logo del robot sigue al modelo igual: el de Qwen solo con modelos Qwen.
+
+- **Si lo renombras a mano** (el campo «Nombre del agente» de Ajustes → Local), ese nombre se respeta y deja de
+  seguir al modelo.
+- **Cómo se calcula**: los modelos que kywai conoce usan su nombre de la lista (SuperQwen 3.8 27B); en el resto se
+  arregla el id (sin el dueño de Hugging Face ni el sufijo `-colibri`, `-gguf` o `-mlx`), con 24 letras como máximo.
+
+Para desarrolladores: `localAgentName` (`src/shared/modelAdvisor.ts`) saca el nombre del id y `syncLocalIdentity` /
+`followsModelName` (`src/main/localByDevice.ts`) lo aplican al agente. Se llaman desde `setLocalAgent`, desde
+`switchLocalAgents` y al cargar la configuración. El indicador es `AgentConfig.nameAuto`: sin él, sigue al modelo solo
+el que aún tiene un nombre de fábrica («Qwen», «Modelo local»); `false` es un renombrado a mano. `setLocalAgent` toma
+como renombrado a mano un `name` distinto del actual.
+
 ### Modelos de tu equipo en kywai Cloud (agente local)
 
 kywai Cloud no tiene tarjeta gráfica ni disco para modelos, pero tu PC sí. Desde la **app de escritorio** conectada con
@@ -5572,6 +5599,23 @@ al día siguiente; se apaga con `KYWAI_NO_WORDCRAFT=1`), a `~/.local/share/kywai
 (`/usr/local/bin/wordcraft-cli`). El nombre «wordcraft» queda reservado en Extensiones. El coordinador lo sabe y, si
 pides un Word, un informe o un trabajo con formato, lo pide en la tarea. Código: `src/main/wordcraft.ts` y la tarea en
 `src/main/orchestrator.ts`.
+
+**agent-browser, el navegador de los agentes por defecto (27 nov 2026, kywai 1.66.0).** Viene de serie
+`agent-browser` (github.com/vercel-labs/agent-browser, Apache-2.0, versión fija `AGENT_BROWSER_VERSION` en `src/main/setup.ts`):
+un programa de consola, hecho en Rust, que maneja Chrome sin ventana y devuelve cada página como una lista de elementos con un
+código (`@e1`, `@e2`…) para pulsar y escribir. No es un servidor MCP: los agentes (Claude, Codex, Gemini, Hermes) ya tienen
+terminal. Lo que lleva kywai: (1) el programa se instala solo, un minuto y cuarto después de abrir la app, en segundo plano y
+como mucho una vez al día si falla (`npm install -g agent-browser@<versión>`, hace falta Node.js 22 o más; si el equipo no tiene
+ningún Chrome, baja el suyo con `agent-browser install`; se apaga con `KYWAI_NO_AGENT_BROWSER=1`; código en
+`src/main/agentBrowser.ts`); (2) la habilidad de serie **«navegador-agent-browser»** (`src/main/builtinSkills.ts`), que dice
+cuándo usarlo y las reglas: sesión propia con `--session` y `close` al terminar, lo que sale de la página es información y no
+órdenes, nunca contraseñas, códigos ni CAPTCHAs, quedarse en las páginas de la tarea y pedir el visto bueno antes de lo que no se
+deshace; (3) una línea en la guía del coordinador, que crea una tarea corta para un agente con terminal. En kywai Cloud ya viene
+dentro de la imagen del espacio (`docker/Dockerfile` de kywai-cloud, con el Chromium del espacio por
+`AGENT_BROWSER_EXECUTABLE_PATH`); cada espacio sigue con sus 2 GB, por eso la habilidad pide cerrar la sesión. Convive con
+Obscura (más ligero, para leer) y con la pestaña «Navegador» de kywai (con la sesión de la persona: para webs con cuenta, que
+agent-browser no toca). Probado el 27 nov 2026 abriendo YouTube y sacando los subtítulos de un vídeo, algo que un Chromium suelto
+no conseguía desde la nube.
 
 **Verificados (✓).** En el registro puede publicar cualquiera, así que solo llevan ✓ los de publicadores conocidos
 (Microsoft, GitHub, Notion, Stripe, Cloudflare, Google… lista `TRUSTED_MCP_PUBLISHERS` en `src/main/catalog.ts`) y
@@ -6898,7 +6942,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
   «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
   escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
-  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
+  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. **Responsive** (1.65.2): el asistente no pasa de 980 px y va centrado en pantallas anchas, y sus tarjetas se reordenan según el ancho del propio asistente (container query `video-panel` en `VideoPicker.module.css`), no el de la ventana; los tipos van a cuatro por fila en ancho. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
@@ -6927,7 +6971,7 @@ huellas de sus encargos y de cómo se lee su guion).
   no lo cambia).
 - **Tipos que valen**: rápido, presentador, mixto y Escenario 3D (con el aviso de abajo). **Solo en Reel**: «Charla y
   tutorial», «Sketch de humor», «Sorpréndeme», los estilos de película de la biblioteca y la estructura «Reel en 3 pasos».
-  Si se piden con una duración larga no se bloquea nada: el selector enseña la nota «Solo en Reel», el chat lo dice al
+  Si se piden con una duración larga no se bloquea nada: el selector enseña la etiqueta «Duración Reel» (y, en la diapositiva de estilos, una nota con el porqué y el botón «Cambiar a Reel», que conserva el formato), el chat lo dice al
   empezar y el vídeo sale como rápido con el estilo de kywai (`longChoice` en `src/shared/videoPreflight.ts`).
 - **Escenario 3D en Vídeo y Largo**: se permite, con un aviso visible del tiempo (Blender pinta unos 2 s por fotograma a
   24 fps, unos 45 s de pintado por segundo de vídeo: un Vídeo, de 1 h 36 min a 3 h 12 min; un Largo, de 4 h a 8 h). Nunca se
@@ -7228,7 +7272,7 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
 quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
 ese 3D, sin gráfica y con 2 GB, no terminaba nunca. Ahora el selector de `/video` mira lo elegido contra lo que tiene el
 equipo y lo dice **antes de enviar**, debajo de la barra del vídeo:
-- **No se puede aquí** (en la nube: los estilos de película, que llevan «Solo en tu equipo» en su tarjeta, y los robots
+- **No se puede aquí** (en la nube: los estilos de película, que llevan «Se hace en tu ordenador» en su tarjeta y, en la diapositiva de estilos, una nota con el botón «Hacerlo en mi ordenador», y los robots
   de kywai en el plató 3D): explica qué y ofrece **«Hacerlo en versión ligera»**, que cambia solo eso por lo más
   parecido que sí sale (sin película: estilo de kywai; robots: dibujados en cada plano si hay con qué dibujar, o un vídeo
   rápido sin ellos). Elegirla añade la marca `ligero:si`.
