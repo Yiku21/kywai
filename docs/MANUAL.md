@@ -5391,7 +5391,7 @@ como **Agente kywai**, con el modelo Ornith.
   herramientas que el agente local de LM Studio. **No tiene terminal** ni ve imágenes. Es rápido (unos 70 tokens por
   segundo) y va bien para tareas **cortas y acotadas**: resumir, ordenar, reescribir, cambios pequeños. Lo difícil sigue
   yendo a Claude o Codex: el coordinador lo trata como a un modelo local (no se lleva tareas difíciles, no verifica el
-  trabajo de otros ni dirige películas).
+  trabajo de otros ni dirige películas). Desde la 1.69.0 lo corto de texto va primero a él (apartado siguiente).
 - **Cuánto cuesta**: **1 crédito kywai cada 20 respuestas**, cobrado al empezar cada bloque de 20. Cada paso de una
   tarea con herramientas cuenta como una respuesta. Hay un tope de **30 respuestas por minuto** por cuenta. Lo gastado
   sale en ⚙ → «Uso y coste» → Créditos kywai, en la línea «Agente kywai».
@@ -5425,6 +5425,55 @@ créditos, 429 tope por minuto, 502 a 504 fuera de línea). La plantilla del age
 `src/shared/defaults.ts` y su entrada del catálogo lleva `cloudOnly`. Lo pone en el equipo `mergeConfig`
 (`src/main/config.ts`) cuando el espacio es de kywai Cloud y no está en `removedAgents`; `joinPlanners` decide el orden
 de coordinación al añadir otro agente.
+
+### El Agente kywai primero: respuestas rápidas, lo corto de texto y chats largos (1.69.0)
+
+En **kywai Cloud**, el Agente kywai ya no es solo «uno más para tareas cortas»: es el más rápido del equipo y no gasta
+la cuota de Claude, Codex ni de ningún otro, así que kywai lo usa **primero** para todo lo que hace bien. Nada depende
+solo de él: si no responde, no te quedan créditos o el encargo no cabe en su contexto, todo sigue como antes con tu
+coordinador y tus otros agentes, sin que tengas que hacer nada.
+
+- **Respuestas rápidas ⚡**: las preguntas sencillas (una duda, una cuenta, una traducción de una frase, «explícame qué
+  es…») las contesta él al momento, antes de preguntar a quien coordina. Es una sola respuesta, sin herramientas. Si
+  ve que hay que mirar algo del proyecto o hacer un trabajo, lo dice y sigue el camino de siempre (un agente lo mira, o
+  el coordinador hace el plan). Con una captura adjunta no entra: no ve imágenes.
+- **Lo corto de texto, a él**: en un plan, las tareas **fáciles** y **de texto** de resumir, clasificar, ordenar,
+  reescribir, traducir, corregir o sacar datos de un texto van al Agente kywai aunque el coordinador se las diera a
+  otro. El chat lo dice en «Ajustes de kywai al plan» («… la hace Agente kywai: es rápido para lo corto y no gasta la
+  cuota de Claude»). **No se mueve** lo difícil o mediano, lo que deja un archivo, lo que continúa una sesión, lo que
+  pide ver imágenes, vídeo o PDF, terminal, navegador, internet o programar, ni lo que tú pediste a un agente **por su
+  nombre**. Ante la duda, la tarea se queda con quien eligió el coordinador.
+- **Títulos de chats antiguos**: «Poner título con IA» (Historial) lo hace él; si no puede, sigue el modelo ligero de
+  antes sin dejar la tanda a medias.
+- **Chats largos**: en una conversación larga el equipo solo ve entero lo último; lo de antes iba recortado y lo que
+  acordaste al principio se acababa perdiendo. Ahora, al acabar una petición, el Agente kywai escribe en segundo plano
+  un **resumen de toda la conversación anterior** (qué quieres conseguir, tus decisiones con nombres, cifras y rutas tal
+  cual, qué se hizo y qué queda pendiente) y lo pone al día cada 8 mensajes nuevos. Ese resumen va en los encargos del
+  coordinador y de cada agente. No retrasa nada, y sin él se usa el recorte de siempre.
+- **Cuánto cuesta**: todo sale del mismo precio del Agente kywai, **1 crédito kywai cada 20 respuestas**. Cuenta como
+  una respuesta: cada respuesta rápida, cada tanda de 15 títulos, cada puesta al día del resumen de un chat y cada paso
+  de una tarea. Se ve en ⚙ → «Uso y coste» → Créditos kywai, línea «Agente kywai».
+- **Si no lo quieres**: apaga o quita el Agente kywai en «Mis agentes». Sin él, kywai trabaja como antes de esta versión.
+
+En la nube, además, el modelo propio hace dos cosas que no están en la app (kywai-cloud):
+
+- **Revisa cada pedido de imagen o vídeo antes de gastar** (`portal/revisor.py`): no se generan personas famosas o
+  reconocibles, la cara de otra persona real, menores en nada sexual, violento o dañino, ni sexo o desnudos. El aviso
+  dice por qué y que no se ha gastado nada. Solo lee el texto del pedido (las imágenes de referencia no las ve). Si el
+  modelo está apagado, ocupado o tarda más de 6 segundos, el pedido pasa sin revisar. La revisión de un pedido que sí
+  se genera cuenta como una respuesta del Agente kywai; un pedido rechazado no cuesta nada.
+- **Ordena los avisos de «Reportar un problema»** para Administración (`portal/problemas.py`): tipo, gravedad, un
+  resumen de una frase en español y si repite otro aviso abierto. A quien avisa no le cuesta nada.
+
+Por dentro: `src/shared/kywaiFirst.ts` (qué tareas van primero a él y si un encargo cabe en su contexto) y
+`validatePlan` en `src/main/orchestrator.ts` (el cambio de agente, que el reparto de carga no deshace);
+`triage` y `triageWith` (primero pregunta a `ownModelAgent()` y, si devuelve null, a quien coordina); `cheapTextAgent`
+y `retitleOnce` (títulos); `src/main/chatSummary.ts` (`summaryDue`, `summaryPrompt`, `olderLines`, guardado en
+`chat-summaries.json` del espacio de trabajo) con `maybeSummarizeChat` al acabar cada petición y `recentConversation`
+al montar los encargos. El adaptador manda las respuestas rápidas sin herramientas ni el mensaje de sistema que las
+anuncia (`quickWithoutTools` en `src/main/agents/lmstudio.ts`). Lo que sabe el coordinador de todo esto está en
+`teamLine` y en `src/main/coordinatorGuide.ts`. Pruebas: `src/shared/kywaiFirst.test.ts`,
+`src/main/kywaiFirstFlow.test.ts` y `src/main/chatSummary.test.ts`.
 
 ### Modelos de tu equipo en kywai Cloud (agente local)
 
@@ -6134,6 +6183,18 @@ fallan (sin clave, sin facturación, límite…) el vídeo no se pierde: lleva l
 Código: `src/main/videoMusic.ts` (`aiBackgroundMusic`), llamado desde `renderVideoNow` en `videoStudio.ts`; la preferencia
 es `aiMusic` en `generar-con.json` (`shared/mediaEngines.ts`). Solo vale en el estudio de vídeo (Reel, explicativo,
 charla…); Cine IA y los vídeos hechos en el equipo conectado no la usan.
+
+### Imágenes con una orden (`/imagen`)
+
+**«/imagen [vertical|horizontal] [alta calidad] qué quieres»** dibuja una imagen sin pasar por ningún agente: «/imagen
+un perro en la playa al atardecer», «/imagen vertical alta calidad retrato de una bruja». También valen `/imagenes`,
+`/image`, `/foto` y `/dibujo`. Sin forma sale cuadrada. Usa el motor de imágenes del usuario (`imageMaker.ts`, la misma
+cadena que las imágenes pedidas hablando, con «Rehacer con…» y la pregunta de con qué motor la primera vez); en kywai
+Cloud, Imágenes kywai: la normal con Qwen-Image (5 créditos) y, si el texto dice «alta calidad», «hd», «2k» o «4k»
+(`kywaiQualityOf`), Nano Banana Pro (27 créditos). Se ve en el chat con Abrir y Descargar y se guarda en `imagenes/` del
+proyecto. Código: `parseImageRequest` en `src/main/imageRequest.ts`, `sendImage` en el orquestador (reusa
+`drawPlannedImages`); Órbita tiene la misma orden en `ChatCommands.kt` (desde la 1.71.0; la 1.70.0 y anteriores no la tenían,
+y por eso al escribir «/imagen» no salía en la lista).
 
 ### Efectos de sonido (`/sonido`)
 
@@ -6992,7 +7053,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   guion, estructura de reel, versión ligera…).
   **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
   salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
-  o «Escenario 3D» no hay Personajes ni Estilo (ya vienen puestos); en «Cine IA» no hay Personajes pero sí una diapositiva de Estilo con ocho aspectos (1.69.0). En la última diapositiva, junto a «Listo:
+  o «Escenario 3D» no hay Personajes ni Estilo (ya vienen puestos); en «Cine IA» sí hay Personajes (ninguno o los que creaste; no los robots de kywai) y una diapositiva de Estilo con ocho aspectos (1.69.0 y 1.71.0). En la última diapositiva, junto a «Listo:
   escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
   unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. **Responsive**: el asistente no pasa de 980 px y va centrado en pantallas anchas, y sus tarjetas se reordenan según el ancho del propio asistente (container query `video-panel` en `VideoPicker.module.css`), no el de la ventana; los tipos van a cuatro por fila en ancho. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
@@ -7401,6 +7462,7 @@ elegido y música; los de kywai salían todos con el mismo dibujo 3D y sin músi
   (`aiBackgroundMusic`); si no, los acordes sintetizados de siempre (`synthMusic`, sin derechos y sin gastar). `joinWithMusicArgs`
   la mezcla a un 55 % de volumen y la **baja sola mientras alguien habla** (`sidechaincompress`), y deja todo a −14 LUFS. Si algo
   falla, el corto sale sin música (nunca se pierde por la música).
+- **Personaje** (1.71.0): en el selector de Cine IA vuelve la diapositiva de Personajes (antes se saltaba y Yil no podía elegir; 28 nov 2026): «Ninguno» (kywai inventa los personajes) o un personaje guardado, que va al encargo con su aspecto y sus imágenes (`cinePrompt`). Elegirlo marca el tipo como puesto a mano, así no se vuelve a «Rápido» solo.
 - Sigue pendiente (Yil lo sabe): que «Sorpréndeme» pueda elegir Cine IA; el nivel propio con LTX-2.3 en RunPod y «Repetir este plano».
 
 **Cine IA con créditos kywai** (`nivel:`, desde la 1.67.0). En la nube, quien no tiene clave de Gemini también puede hacer
