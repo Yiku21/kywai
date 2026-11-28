@@ -5392,7 +5392,7 @@ Para desarrolladores: `localAgentName` (`src/shared/modelAdvisor.ts`) saca el no
 el que aún tiene un nombre de fábrica («Qwen», «Modelo local»); `false` es un renombrado a mano. `setLocalAgent` toma
 como renombrado a mano un `name` distinto del actual.
 
-### Agente kywai: el modelo propio de kywai en kywai Cloud (1.68.0)
+### Agente kywai: el modelo propio de kywai, en kywai Cloud y en la app de tu equipo (1.68.0)
 
 En **kywai Cloud**, cada espacio trae ya en su equipo el **Agente kywai**: un agente que viene conectado desde el
 primer momento y no necesita suscripción, cuenta ni clave. Usa el **modelo propio de kywai** (hoy Ornith 1.5, un modelo abierto con licencia MIT),
@@ -5417,15 +5417,34 @@ como **Agente kywai**, con el modelo Ornith.
 - **Si no puede**: sin créditos, el agente queda apartado un rato como «sin cuota» y la tarea pasa a otro agente del
   equipo; si llegas al tope por minuto, la tarea se repite sola al rato; si el modelo no responde, el agente sale como
   «No disponible» y vuelve solo cuando el modelo vuelve.
-- **Dónde sale**: solo en kywai Cloud. Viene **ya en el equipo** de cada espacio: los nuevos desde que se crean y los
+- **Dónde sale**: en kywai Cloud viene **ya en el equipo** de cada espacio: los nuevos desde que se crean y los
   de antes en cuanto se actualizan. Si lo quitas, no vuelve a aparecer solo; puedes volver a ponerlo desde «Añadir un
-  agente» (el catálogo lo enseña solo si el portal tiene el modelo encendido). En una instalación propia no existe.
+  agente» (el catálogo lo enseña solo si el portal tiene el modelo encendido). Desde la 1.73.0 también se puede usar
+  en la **app instalada en tu equipo**, con tu cuenta kywai (apartado «En la app de tu equipo», más abajo).
 - **Quién coordina**: en un espacio recién creado coordina él, porque no hay nadie más. En cuanto conectas tu primer
   agente (Claude, Codex, Hermes…), ese pasa a coordinar y el Agente kywai queda para las tareas cortas. Si ya tenías
   equipo, tu coordinador no cambia. Al elegir agente en la bienvenida de Mi cuenta, el Agente kywai sigue activo.
 - **Privacidad**: los archivos se quedan en tu espacio. Al modelo solo viaja el texto de la petición, por una conexión
   privada entre el servidor de kywai y el equipo del modelo, sin pasar por ninguna empresa de IA. El razonamiento
   interno del modelo no se enseña en la respuesta (queda en el registro de la tarea).
+
+**En la app de tu equipo (1.73.0).** Quien usa kywai instalado en su ordenador (sin kywai Cloud) también puede tener
+el Agente kywai. No viene puesto: se añade desde **«Añadir un agente»**, donde sale con la etiqueta «Con tu cuenta
+kywai». Solo pide **enlazar tu cuenta kywai** con ese equipo, sin ninguna clave:
+
+- Si ya la enlazaste en ⚙ → Ajustes → Conectores («Enlazar con mi cuenta kywai»), no hay nada más que hacer.
+- Si no, la ventana «Configura Agente kywai» trae el mismo botón: abre Mi cuenta en el navegador, enseña un código
+  para comprobar que es tu equipo y, al confirmar, el agente queda listo. Crear la cuenta es gratis.
+- **Cuesta lo mismo que en la nube**: 1 crédito kywai cada 20 respuestas, con el tope de 30 por minuto, y sale de los
+  créditos de esa cuenta (los ves en ⚙ → «Uso y coste»). No hace falta tener un espacio en kywai Cloud.
+- Si desenlazas el equipo (o quitas el enlace desde Mi cuenta), el agente sale como «No disponible» y dice que
+  necesita tu cuenta kywai; vuelve en cuanto la enlazas otra vez.
+- Con el modelo apagado en kywai, el catálogo no lo enseña a quien ya tiene la cuenta enlazada.
+
+Por dentro: fuera de la nube `kywaiPortal()` usa el portal y el token `kyl_…` de la extensión «Apps conectadas»
+(`setKywaiLinkedAccount`, que pone `src/main/index.ts`); el portal acepta ese token en `/api/modelo/estado` y en el
+permiso del chat (kywai-cloud, `portal/modelo_local.py`, función `quien`). `getKywaiAgent` devuelve además `cloud` y
+`needsLink`, y el enlace de la ventana es `KywaiIncluded` (`src/renderer/src/ui/setup/ConfigureAgent.tsx`).
 
 Por dentro: `src/main/agents/kywai.ts` (proveedor `kywai`). El espacio llama a `<portal>/api/modelo/v1/chat/completions`
 con el mismo secreto que la voz incluida (`KYWAI_VOZ_URL` y `KYWAI_VOZ_SECRETO`); `GET /api/modelo/estado` dice si está
@@ -7065,7 +7084,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   guion, estructura de reel, versión ligera…).
   **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
   salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
-  o «Escenario 3D» no hay Personajes ni Estilo (ya vienen puestos); en «Cine IA» sí hay Personajes (ninguno o los que creaste; no los robots de kywai) y una diapositiva de Estilo con ocho aspectos (1.69.0 y 1.71.0). En la última diapositiva, junto a «Listo:
+  o «Escenario 3D» no hay Personajes ni Estilo (ya vienen puestos); en «Cine IA» sí hay Personajes (ninguno o los que creaste; no los robots de kywai) y una diapositiva de Estilo con quince aspectos con imagen de muestra (1.69.0, 1.71.0 y 1.72.0). En la última diapositiva, junto a «Listo:
   escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
   unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. **Responsive**: el asistente no pasa de 980 px y va centrado en pantallas anchas, y sus tarjetas se reordenan según el ancho del propio asistente (container query `video-panel` en `VideoPicker.module.css`), no el de la ventana; los tipos van a cuatro por fila en ancho. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
@@ -7462,9 +7481,18 @@ ni créditos suficientes, sale el vídeo rápido de siempre y, si la razón la p
 
 **Cine IA: estilo visual y música de fondo (1.69.0).** Pedido por Yil (27 nov 2026): los cortos de ComfyUI tienen un aspecto
 elegido y música; los de kywai salían todos con el mismo dibujo 3D y sin música bajo las voces.
-- **Estilo**: el selector de Cine IA lleva una diapositiva «Estilo» con «Que elija kywai» y ocho aspectos (`CINE_LOOK_IDS` en
-  `src/shared/videoCine.ts`, sus textos en `src/shared/imageLooks.ts`): película 3D (`cine-3d`, el de siempre), anime de película
-  (`anime-cine`), acuarela de cuento (`acuarela-cuento`), plastilina, ganchillo, chibi 3D, cómic y realista. Se escribe como
+- **Estilo**: el selector de Cine IA lleva una diapositiva «Estilo» con «Que elija kywai» y quince aspectos (`CINE_LOOK_IDS` en
+  `src/shared/videoCine.ts`, sus textos en `src/shared/imageLooks.ts`): 3D de estudio (`cine-3d`, el de siempre, el «tipo Pixar»;
+  «pixar» sigue valiendo como palabra al escribir), anime, cartoon 2D, 2.5D de capas, realismo de cine, realista de móvil
+  (podcast o UGC), acuarela de cuento, plastilina, ganchillo, chibi 3D, cómic, pixel art, papel recortado, low-poly 3D y neón
+  cyberpunk. **Cada tarjeta lleva una imagen de muestra real** (1.72.0, pedida por Yil: «somos un software que cobra a clientes»):
+  la misma escena inventada (una niña de pelo rizado rojo con impermeable amarillo y un zorrito en una colina al atardecer) en cada
+  estilo, hecha una vez con Nano Banana Pro (Meshy, 9 créditos por imagen, ~180 en total con las dos imágenes de tipo) y guardada
+  como `src/renderer/src/assets/aspecto/look-<id>.webp` (640×360, ~35 KB); `LOOK_THUMBS` en `VideoPicker.tsx` las carga solas por el
+  nombre. Un aspecto sin imagen sigue con su degradado. Con «Probar con mi escena» (solo con ComfyUI, Draw Things o clave de
+  Gemini en este equipo, no en kywai Cloud) cada tarjeta pasa a ser tu propia escena. Las tarjetas «Cine IA» y «Escenario 3D» del
+  paso de tipo llevan también una imagen (`tipo-cine.webp`, `tipo-escenario.webp`, en `VideoKindArt.tsx`); las demás siguen con
+  su dibujo. Para cambiar una muestra: vuelve a generarla con el mismo texto del aspecto y deja el .webp con el mismo nombre. Se escribe como
   `aspecto:<id>` (o «estilo plastilina de…») y manda sobre lo que escriba el agente: `completeCine` pone `plan.look` con lo elegido.
   Sin elegir, el agente pone `"estilo"` en su plan (el que mejor cuente la historia) y, si falta o no vale, `cine-3d`. El mismo
   aspecto va en la hoja de cada personaje, en la imagen de cada plano y en el texto que se le da al modelo de vídeo
@@ -8848,7 +8876,8 @@ misma tarjeta y con el color del tema que tengas.
   cada chat de `GET /chats`. También va en **cada línea de log** del motor (`[sesión <id>]`, o `[sin sesión]` si no es
   trabajo de una conversación), en el registro de cada tarea (`traces/<tarea>.json`), en cada fallo del registro de
   salud (`health-log.json`, campo `session`) y en
-  **Reportar un problema** (la conversación abierta desde la que se escribe, o «sin sesión»).
+  **Reportar un problema** (la conversación abierta desde la que se escribe, o «sin sesión»; con la casilla «Adjuntar
+  esta conversación» también una copia de ella, ver «La rueda ⚙ y los Ajustes»).
   Es distinto de la sesión del CLI de cada agente, que es la que retoma su programa.
 - En un **proyecto**: **Nuevo chat en este proyecto** (N), **Añadir a Favoritos** (P), **Cambiar nombre** (R), **Abrir carpeta
   del proyecto** (O) y **Eliminar proyecto** (D, pulsa dos veces; ver [Eliminar un proyecto](#eliminar-un-proyecto)).
@@ -8937,13 +8966,28 @@ nueva cuando la hay (**Actualizar kywai…** o **Actualizar este equipo…**, en
 administración de kywai Cloud (Mi cuenta → Administración → **Problemas**), donde se marca Nuevo, Visto o Resuelto.
 Si dejas marcada la casilla, va con los datos que ayudan a encontrar el fallo, que se ven antes de enviar: versión de
 kywai, sistema (procesador y memoria), si es self host o kywai Cloud, idioma, el equipo desde el que escribes y los
-agentes encendidos (nombre, programa y modelo). **Nunca** van claves, contraseñas ni el texto de los chats. Desde
+agentes encendidos (nombre, programa y modelo). **Nunca** van claves ni contraseñas. El texto de los chats **no** va, salvo
+que marques la casilla **Adjuntar esta conversación** (1.74.0; apagada por defecto; solo sale si escribes desde un chat
+con mensajes): entonces viaja además una copia de **esa** conversación (los últimos 60 mensajes, hasta 4000 letras
+cada uno y 120 000 en total, sin claves, y de los archivos adjuntos solo cuántos hay) y **Ver lo que se enviará** enseña
+exactamente esa copia antes de enviar. En el portal se guarda aparte del aviso, solo los administradores la abren
+(Administración → Problemas → **Ver conversación**, solo lectura, sin descarga), cada apertura queda registrada (quién
+y cuándo, y se ve en el aviso) y se borra sola a los 14 días o antes con **Borrar la copia**. El panel también busca por
+session id. Desde
 kywai Cloud va con tu cuenta (para poder responderte); desde la self host va sin cuenta, con tu correo si lo dejas, y
 el portal limita los envíos seguidos para evitar spam. Siempre (marques o no la casilla) va el **ID de sesión** de la
 conversación abierta desde la que escribes, o «sin sesión» si no hay ninguna: delante del texto (`[sesión <id>]`) y
-en los datos; también en el informe de «Probar paso a paso». Solo el ID, nunca el título ni los mensajes de esa
-conversación. Código: `src/main/problemReport.ts`,
+en los datos; también en el informe de «Probar paso a paso». Sin la casilla de arriba, solo el ID, nunca el título ni los
+mensajes de esa conversación. Código: `src/main/problemReport.ts`, `src/main/chatTranscript.ts` (la copia),
 `ui/settings/ProblemReportDialog.tsx` y, en kywai-cloud, `portal/problemas.py`.
+
+**Citar un session id en el chat (1.74.0).** Si le escribes a Hermes (o a cualquier agente) «revisa la conversación
+<session id>», y ese id es de una conversación de **este mismo equipo** (de cualquier proyecto, no solo el actual), kywai
+adjunta a tu mensaje una copia suya (`conversacion-<8 primeras letras>.md`, recortada y sin claves) para que el agente la
+lea; antes cada agente solo veía la carpeta de su proyecto y un id de otro proyecto no se encontraba. Hasta 3 ids por
+mensaje; la conversación donde escribes no se adjunta a sí misma y las rutinas no lo hacen. Un id de otro ordenador, de
+otro espacio de kywai Cloud o del CLI de un agente (Claude Code, Codex…) no se resuelve: el coordinador lo dice. Código:
+`src/main/sessionLookup.ts` y `citedSessionAttachments` en `orchestrator.ts`.
 
 **Diagnóstico paso a paso (24 nov 2026, v1.21.10; idea de AnyModelBot).** «Probar» de un agente (Añadir un agente,
 Mis agentes de Mi cuenta) ya no dice solo «no responde»: enseña cuatro pasos, **Su programa** (está instalado),
@@ -10219,6 +10263,10 @@ Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el e
   porque casi todo brilla por sí mismo. Ahí lo que da vida son los circuitos del suelo: cada trazo sube y baja de brillo
   a su ritmo, así nunca laten todos a la vez (`circuitFrag` en `scene/shaders.ts`). Con **Reducir efectos** se quedan fijos.
 
+### Ilustraciones de las pantallas vacías
+
+Tareas, Resultados, Archivos, Rutinas, Secretos, Memoria, Mods y el reproductor de música llevan una ilustración propia cuando no tienen contenido, en lugar de un icono suelto. Son nueve imágenes webp de 320×320 (`src/renderer/src/assets/vacios/`), hechas con Nano Banana Pro con un mismo estilo (objetos 3D brillantes sobre grafito, con los colores de kywai: azul, naranja y verde; nunca morado ni azul noche) y se enseñan con el componente `EmptyArt` (`ui/common/EmptyArt.tsx`): tarjeta redondeada de 132 px (96 px junto al texto del reproductor) con borde y sombra, igual en todos los temas. Para una pantalla vacía nueva: añade su imagen en esa carpeta, su id en `EmptyArt` y úsala dentro de `.empty` con `emptyTitle` y `emptyText`. La imagen es decorativa (`alt=""`): el texto de debajo dice qué pasa. Las ocho tarjetas de «Tipo de vídeo» de `/video` (`VideoKindArt.tsx`) también son imágenes webp de 640×360 (`assets/aspecto/tipo-*.webp`) hechas con Nano Banana Pro, en lugar de los dibujos SVG de relleno de antes.
+
 ### Color de acento (rueda de color)
 
 Ajustes → General → Apariencia → **Color de acento**: arrastras el punto por la rueda y el color de los botones,
@@ -10962,7 +11010,9 @@ con los agentes; solo el saludo del chat nuevo se queda como pegatina. «Reducir
   con otro decorado dibujado con código (sin imágenes). En la **Mesa de ideas** el proyecto es un tablero de papel sobre
   una mesa de madera: cada agente trabaja sobre su hoja, los une un hilo rojo y lo entregado son sobres lacrados. En la
   **Aldea** cada agente tiene su casita-taller con el tejado de su color (la puerta se enciende mientras trabaja), las
-  casas se unen por caminos de piedra y las Entregas son el puesto del mercado. En el **Tren nocturno** cada agente va
+  casas se unen por caminos de piedra y las Entregas son el puesto del mercado. Desde la 1.74.0 la Aldea lleva ilustración
+  (`assets/espacio2d/escenas/aldea/{fondo,puesto,entregas,percha}.webp`, hechas con Nano Banana Pro en los colores de kywai: azul,
+  naranja y verde): un prado con camino y arroyo, la casita de cada agente, el puesto del mercado y la percha de la cotorra; si faltan, se dibujan con código como antes. En el **Tren nocturno** cada agente va
   en su compartimento, con el paisaje del atardecer pasando por la ventana, y los envíos viajan por los rieles de latón.
 - **Tema**: el tema puesto dibujado como escenario, como se explica arriba.
 
