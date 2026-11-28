@@ -6992,7 +6992,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   guion, estructura de reel, versión ligera…).
   **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
   salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
-  «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
+  o «Escenario 3D» no hay Personajes ni Estilo (ya vienen puestos); en «Cine IA» no hay Personajes pero sí una diapositiva de Estilo con ocho aspectos (1.69.0). En la última diapositiva, junto a «Listo:
   escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
   unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. **Responsive**: el asistente no pasa de 980 px y va centrado en pantallas anchas, y sus tarjetas se reordenan según el ancho del propio asistente (container query `video-panel` en `VideoPicker.module.css`), no el de la ventana; los tipos van a cuatro por fila en ancho. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
@@ -7370,6 +7370,39 @@ imagen a vídeo; kywai lo hace así (`src/shared/videoCine.ts`, `src/main/videoC
 - Fase 2 (no hecha): «Corto animado» en three.js (personajes 2D en mundo 3D, sin generador de IA) con las habilidades
   Motion Skills y Three.js Skills (MIT) como fuentes opcionales; un tipo de créditos `video` para cobrarlo en el portal.
 
+**Sin elegir nada, /video cuenta una historia (1.69.0).** Pedido por Yil (27 nov 2026): quien escribe solo `/video el tema`
+recibía un vídeo rápido de texto animado, no una historia con personajes, voz y sonido como los de ComfyUI. Ahora, **si no se
+elige tipo** (no hay marca `tipo:` en el texto), el encargo pasa a **Cine IA** (vertical salvo que el texto diga el formato) siempre
+que haya con qué pagarlo (`storyByDefaultCheck` en `src/main/orchestrator.ts`): tu clave de Gemini o, en kywai Cloud con el vídeo
+con IA puesto, créditos para un corto de unos 15 s con el nivel (`storyMinCredits`, unos 710 créditos en «Calidad»). Si no hay clave
+ni créditos suficientes, sale el vídeo rápido de siempre y, si la razón la puede arreglar el usuario (le faltan créditos), el chat lo dice.
+- **Manda lo elegido a mano**: cualquier `tipo:` (también `tipo:rapido`; por eso el selector escribe `tipo:rapido` si el usuario
+  pulsa «Rápido» a propósito, `VideoChoice.kindSet`), un estilo de película, Vídeo o Largo, la estructura de 3 pasos, un diálogo,
+  repasar el guion, «ligero» o «en tu equipo», la película de producto o un personaje de los robots de kywai.
+- **Nunca por su cuenta** (para no gastar créditos sin que alguien lo pida): «Crear vídeo de esto» (se cuenta lo que dice ese texto),
+  las rutinas, las tandas, las series y las publicaciones automáticas. La regla vive en `storyByDefaultOk` (`src/shared/videoCine.ts`).
+- **En el selector**: sin elegir tipo, «Cine IA» sale ya marcado si en este equipo se puede (`checkVideoChoice` devuelve
+  `storyByDefault`); el nivel que sale marcado es «Calidad» (`CINE_DEFAULT_LEVEL`). Elegir otro tipo, o «Rápido», lo cambia.
+- Antes de gastar en vídeo, el flujo es el de siempre: guion gráfico con el coste en créditos y «Seguir» o «Parar» (las imágenes del
+  guion, unos 170 créditos en un corto, ya están cobradas cuando se enseña).
+- Hermes lo sabe (`coordinatorGuide.ts`): para un vídeo explicativo o barato pone `tipo:rapido` en la orden.
+
+**Cine IA: estilo visual y música de fondo (1.69.0).** Pedido por Yil (27 nov 2026): los cortos de ComfyUI tienen un aspecto
+elegido y música; los de kywai salían todos con el mismo dibujo 3D y sin música bajo las voces.
+- **Estilo**: el selector de Cine IA lleva una diapositiva «Estilo» con «Que elija kywai» y ocho aspectos (`CINE_LOOK_IDS` en
+  `src/shared/videoCine.ts`, sus textos en `src/shared/imageLooks.ts`): película 3D (`cine-3d`, el de siempre), anime de película
+  (`anime-cine`), acuarela de cuento (`acuarela-cuento`), plastilina, ganchillo, chibi 3D, cómic y realista. Se escribe como
+  `aspecto:<id>` (o «estilo plastilina de…») y manda sobre lo que escriba el agente: `completeCine` pone `plan.look` con lo elegido.
+  Sin elegir, el agente pone `"estilo"` en su plan (el que mejor cuente la historia) y, si falta o no vale, `cine-3d`. El mismo
+  aspecto va en la hoja de cada personaje, en la imagen de cada plano y en el texto que se le da al modelo de vídeo
+  (`cineLookOf`, `cineKeyframePrompt`, `cineShotPrompt`).
+- **Música**: el plan lleva `"musica"` (`calma`, `normal` o `energia`). Al montar, `runCine` pide una pista a `deps.music`
+  (`realCineMusic` en `src/main/videoCine.ts`): con «Música de fondo con IA» encendido y clave de Gemini, Lyria
+  (`aiBackgroundMusic`); si no, los acordes sintetizados de siempre (`synthMusic`, sin derechos y sin gastar). `joinWithMusicArgs`
+  la mezcla a un 55 % de volumen y la **baja sola mientras alguien habla** (`sidechaincompress`), y deja todo a −14 LUFS. Si algo
+  falla, el corto sale sin música (nunca se pierde por la música).
+- Sigue pendiente (Yil lo sabe): que «Sorpréndeme» pueda elegir Cine IA; el nivel propio con LTX-2.3 en RunPod y «Repetir este plano».
+
 **Cine IA con créditos kywai** (`nivel:`, desde la 1.67.0). En la nube, quien no tiene clave de Gemini también puede hacer
 cortos, pagando con créditos (1 crédito = 1 centavo de USD). Cuatro formas de hacerlo, en el selector de /video → Cine IA
 (marca `nivel:api|rapido|medio|calidad|premium`, solo con `tipo:cine`):
@@ -7389,7 +7422,7 @@ cortos, pagando con créditos (1 crédito = 1 centavo de USD). Cuatro formas de 
   (`realImageFormat`) y, si no es PNG, la pasa a PNG de verdad con ffmpeg (`toPngArgs`). Sin esto, ffmpeg lee
   `plano-%02d.png` con el descodificador de PNG y falla con «No se pudo montar la hoja del guion gráfico: Error marking
   filters as finished». También arregla las imágenes que ya estaban en la carpeta de trabajo de un intento anterior.
-- **Sin elegir nivel**: si hay clave de Gemini, `api`; si no (y es kywai Cloud), `rapido`. Fuera de la nube solo existe `api`
+- **Sin elegir nivel**: si hay clave de Gemini, `api`; si no (y es kywai Cloud), `calidad` (Veo 3.1 Fast, 1080p con sonido; era `rapido` hasta la 1.68.x: Yil, 27 nov 2026, «lo que se paga con créditos, la mejor calidad»; `CINE_DEFAULT_LEVEL`). Fuera de la nube solo existe `api`
   (`cineLevelFor` en `orchestrator.ts`).
 - Órbita (Android) todavía no conoce la marca `nivel:`.
 
@@ -8726,10 +8759,23 @@ misma tarjeta y con el color del tema que tengas.
 - En una **conversación**: **Añadir a Favoritos** (P), **Cambiar nombre** (R; por defecto es el [título que le pone la IA](#título-automático-de-los-chats); el tuyo manda siempre),
   **Bifurcar** (F: una copia aparte, con los mensajes y las tareas, para seguir por otro camino sin tocar la
   original; se abre sola y los agentes empiezan sesión nueva en ella), **Mover a otro proyecto** (M; los agentes
-  empiezan sesión nueva allí; si era la abierta, su proyecto queda con una conversación nueva) y **Eliminar** (D,
+  empiezan sesión nueva allí; si era la abierta, su proyecto queda con una conversación nueva), **Copiar session id**
+  (S; ver debajo) y **Eliminar** (D,
   pulsa dos veces; va a `conversaciones/borradas/` dentro del proyecto, no se pierde del todo; si es la abierta,
   antes se empieza una nueva). Mover y eliminar no se puede mientras el equipo trabaja en esa conversación (la del
   punto azul), esté abierta o en segundo plano.
+- **ID de sesión** (1.70.0): cada conversación tiene un identificador propio (un UUID) que se le da al crearla y no
+  cambia nunca: ni al renombrarla, abrir otra y volver, moverla de proyecto (aunque cambie su `id` interno) ni al
+  reiniciar. Una bifurcación es otra conversación y lleva el suyo; una importada de otra app recibe uno al importarla;
+  las de antes reciben el suyo la primera vez que se cargan y se guarda. No sale en la cabecera: solo se copia con
+  **Copiar session id** del menú ⋯ (en el sitio de la fecha sale «Session id copiado» unos segundos), y en Órbita
+  manteniendo pulsado el chat. Va en `chatSessionId` del archivo `conversaciones/<id>.json` (y en `project.json` la
+  abierta), así que viaja igual en la copia de seguridad `.kywai` y en la mudanza a kywai Cloud; la API móvil lo da en
+  cada chat de `GET /chats`. También va en **cada línea de log** del motor (`[sesión <id>]`, o `[sin sesión]` si no es
+  trabajo de una conversación), en el registro de cada tarea (`traces/<tarea>.json`), en cada fallo del registro de
+  salud (`health-log.json`, campo `session`) y en
+  **Reportar un problema** (la conversación abierta desde la que se escribe, o «sin sesión»).
+  Es distinto de la sesión del CLI de cada agente, que es la que retoma su programa.
 - En un **proyecto**: **Nuevo chat en este proyecto** (N), **Añadir a Favoritos** (P), **Cambiar nombre** (R), **Abrir carpeta
   del proyecto** (O) y **Eliminar proyecto** (D, pulsa dos veces; ver [Eliminar un proyecto](#eliminar-un-proyecto)).
 
@@ -8819,7 +8865,10 @@ Si dejas marcada la casilla, va con los datos que ayudan a encontrar el fallo, q
 kywai, sistema (procesador y memoria), si es self host o kywai Cloud, idioma, el equipo desde el que escribes y los
 agentes encendidos (nombre, programa y modelo). **Nunca** van claves, contraseñas ni el texto de los chats. Desde
 kywai Cloud va con tu cuenta (para poder responderte); desde la self host va sin cuenta, con tu correo si lo dejas, y
-el portal limita los envíos seguidos para evitar spam. Código: `src/main/problemReport.ts`,
+el portal limita los envíos seguidos para evitar spam. Siempre (marques o no la casilla) va el **ID de sesión** de la
+conversación abierta desde la que escribes, o «sin sesión» si no hay ninguna: delante del texto (`[sesión <id>]`) y
+en los datos; también en el informe de «Probar paso a paso». Solo el ID, nunca el título ni los mensajes de esa
+conversación. Código: `src/main/problemReport.ts`,
 `ui/settings/ProblemReportDialog.tsx` y, en kywai-cloud, `portal/problemas.py`.
 
 **Diagnóstico paso a paso (24 nov 2026, v1.21.10; idea de AnyModelBot).** «Probar» de un agente (Añadir un agente,
