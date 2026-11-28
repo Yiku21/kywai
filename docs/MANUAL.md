@@ -5022,6 +5022,18 @@ reenvía cada llamada a tu sesión de Composio (con tu id de cuenta, nunca tu co
 pueden llegar a las cuentas de otra. El portal se lo comunica al espacio con `cloudSetConnectedApps`, que solo acepta
 llamadas directas del portal. En la instalación propia (self host) esta sección no existe todavía.
 
+**Qué agentes las llevan y qué se les dice (1.72.0).** Las apps conectadas llegan a Claude, Codex, Gemini y Hermes en las
+tareas normales, **y también en los mensajes directos a un agente y en las respuestas rápidas** (antes salían sin ellas:
+el agente buscaba `gh` y un token en el espacio, no los encontraba y decía «no tengo acceso a tu GitHub»). Esos dos casos
+llevan solo las apps conectadas, no las demás extensiones (arrancarlas tarda más que la consulta): es un servidor remoto, no
+arranca nada (`extensionsForRun`, `mcpExtrasOnly` para Claude). Además, el encargo de cada agente que las lleva y el triaje
+de quien coordina al contestar al momento dicen qué cuentas hay conectadas y que **no** se use `gh`, `git` ni tokens, sino
+COMPOSIO_SEARCH_TOOLS (`connectedAppsAgentNote` y `connectedAppsTriageNote`, en `src/main/cloudApps.ts`). GitHub por esta
+vía es su API (leer repositorios, archivos, ramas, issues y pull requests; con «Puede actuar», crear archivos, ramas y
+pull requests): **no hay `git clone`**. kywai no le pasa al espacio el token de GitHub de la persona a propósito: se
+saltaría «borrar bloqueado» y «solo leer». Un agente de catálogo (el que se lanza con otro programa) no lleva estas
+extensiones.
+
 ### Amigos en kywai Cloud
 
 En kywai Cloud cada cuenta tiene un **ID de kywai** de 8 caracteres (por ejemplo `7KQ4-M2XP`). Con él otras personas
@@ -9313,6 +9325,7 @@ acabado. Al pasar el ratón dice cómo va cada una; al pulsarla se abren todas l
 | Hermes | Con **OmniRoute en este equipo**: **dato real** de OmniRoute. kywai entra en su panel con la contraseña que le puso al prepararlo y lee `/api/usage/quota` y `/api/usage/provider-limits` al abrir la app y cada 5 min (no gasta uso). Si el modelo de Hermes es de un proveedor concreto (`cc/…` = Claude, `cx/…` = Codex…) enseña esa suscripción; si es un combo o «auto», la cuenta conectada con más margen. El % es el de su ventana más justa y el detalle lista todas. Si la contraseña no entra, no insiste en 30 min (su panel bloquea tras varios fallos). En **kywai cloud** (OmniRoute del espacio) entra con la llave de su API (`x-omniroute-cli-token`) en vez de la contraseña. OmniRoute solo pregunta la cuota a cada proveedor cada 70 min: si hay una conexión sin dato (recién conectada o recién encendido), kywai le pide actualizarla (`POST /api/usage/provider-limits`), como mucho una vez cada 10 min. Sin OmniRoute, o si está apagado o sin suscripciones, enseña los usos de hoy y de 7 días |
 | Antigravity CLI | **Dato real** (desde la 1.5.0): se pregunta a `agy -p /usage --output-format json` al abrir la app y cada 5 min (se resuelve sin llamar al modelo; hace falta agy 1.3 o más nueva y la sesión de Google iniciada). Google da un límite de 5 h y otro semanal por grupo de modelos («Gemini» y «Claude y GPT»): el % es el más justo del grupo con el que trabaja el agente (Gemini salvo que le elijas Claude o GPT) y el detalle lista todos. Si agy no está, no tiene sesión o es una versión vieja, el detalle dice cuál de las tres pasa y enseña los usos de hoy |
 | Codewhale | Paga **por uso**, no tiene %: con tu clave de DeepSeek (la que le pusiste al conectarlo, o `DEEPSEEK_API_KEY`) enseña el **saldo de tu cuenta de DeepSeek** («4,20 $», `GET api.deepseek.com/user/balance`, no gasta nada) al abrir la app y cada 5 min; en ámbar por debajo de 1 $ (7 ¥) y en rojo sin saldo. Con otro proveedor o sin clave en kywai, los usos de hoy y la explicación |
+| Agente kywai | No es una suscripción: se paga con **créditos kywai** (1.72.0). El panel se llama «Créditos kywai» y enseña los que te quedan (los del plan de este mes y los comprados, aparte en «Saldo»), a cuántas respuestas equivalen (créditos × 20, más lo que queda del crédito ya cobrado), lo que da el plan cada mes y el periodo («1 crédito cada 20 respuestas»). Con menos de 10 créditos sale en aviso y con 0 en «agotada»; la cuenta de administración sale «Sin límite». Los lee del portal de Mi cuenta (`/api/creditos`, el mismo dato de «Uso y coste») al abrir la app y cada minuto (como mucho cada 20 s); si no se pueden leer en 10 min, vuelve a la nota con el precio. Sin cuenta de kywai Cloud no hay panel de créditos |
 | Local | Sin cuota (ejecución en tu PC) |
 
 ⚙ → Ajustes → Agentes → Tu equipo → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
