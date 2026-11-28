@@ -575,7 +575,7 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
     muestra **«Actualizar este equipo…»** en amarillo (lleva a Ajustes → Acerca de).
   - Al pulsar «Comprobar de nuevo» el aviso se enciende o se apaga según lo que se vea; si no se pudo consultar
     GitHub, se queda como estaba. El color es `--update` (más oscuro en los temas claros).
-- **Nube y escritorio, siempre en la misma versión (27 nov 2026, Yil).** Dos piezas:
+- **Nube y escritorio, siempre en la misma versión (27 nov 2026, el dueño).** Dos piezas:
   - **«Actualizar ahora» también actualiza este equipo** (`src/renderer/src/lib/updateEquipo.ts`). En la app de
     escritorio conectada a kywai Cloud, el botón (el aviso de abajo y ⚙ → Actualizaciones) pide al servidor el cambio del
     espacio (~20 s) y deja una marca en el `localStorage` (`kywai.tambienEquipo`, vale 30 min y sobrevive a la recarga de la
@@ -589,7 +589,7 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
     (`Yiku21/kywai`, su `publicado/codigo.txt` en esa etiqueta). Un cambio de la app llega a la nube con la Release (9:00 UTC
     o cuando se pide «Publicar escritorio»), a la vez que al escritorio. Lo de kywai-cloud (portal, imagen, scripts) sigue
     desplegándose al fusionar. Nunca baja de versión: si lo desplegado ya es más nuevo que la Release, espera a la siguiente.
-- **Un solo botón, cuando las dos están listas (1.62.0, Yil 27 nov 2026: «un solo botón de actualizar, que solo aparezca que
+- **Un solo botón, cuando las dos están listas (1.62.0, el dueño 27 nov 2026: «un solo botón de actualizar, que solo aparezca que
   tiene una update cuando esté lista en local y en la nube con la misma versión, y cuando le des actualizas los 2»).** En el
   cliente de escritorio conectado a kywai Cloud (`oneButtonMode`, `updateReady` en `updateEquipo.ts`), el aviso de versión
   nueva (⚙ amarillo, «Actualizar kywai…» del menú, la franja de abajo y ⚙ → Actualizaciones) solo sale cuando el espacio tiene
@@ -599,7 +599,7 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   del espacio se vuelve a mirar este equipo al momento y, mientras no coincidan, cada 2 min. El motor del espacio manda
   `cloud: true` en `updatePending` también sin nada pendiente (`readPending` en `cloudBusy.ts`) para que la interfaz sepa
   que habla con kywai Cloud. Al pulsar «Actualizar ahora» van los dos (ver el apartado de arriba). **En Ajustes → Acerca de hay una sola fila**
-  (1.64.0, Yil: «¿no dejamos solo un botón para actualizar?»): con kywai Cloud desaparece la fila «Actualizar este equipo…» y
+  (1.64.0, el dueño: «¿no dejamos solo un botón para actualizar?»): con kywai Cloud desaparece la fila «Actualizar este equipo…» y
   queda «Buscar actualizaciones…» / «Actualizar kywai…», que abre ⚙ → Actualizaciones. Ese diálogo lo cuenta todo: si el
   espacio tiene la versión lista y este equipo la misma, «Actualizar ahora» actualiza los dos; si el espacio ya está en la versión
   nueva (se cambió estando apagado) y solo falta este equipo, sale «Actualizar este equipo» (`deviceWaiting` en
@@ -660,7 +660,7 @@ Como en OpenClaw: kywai se vincula a tu WhatsApp como un dispositivo más (igual
 kywai **solo lee y escribe tu chat contigo mismo**: nunca los chats con otras personas ni los grupos, y nunca escribe
 a nadie más. Se conecta hacia fuera (Baileys, el protocolo de WhatsApp Web), así que no hace falta abrir puertos: vale
 en el Mac mini, en el PC y en kywai Cloud. No es la API oficial para empresas (esa pide cuenta de Meta Business, otro
-número y una dirección pública; Yil eligió el QR el 20 nov): WhatsApp podría bloquear un número que se use como bot,
+número y una dirección pública; el dueño eligió el QR el 20 nov): WhatsApp podría bloquear un número que se use como bot,
 y por eso kywai no escribe a nadie más que a ti. La sesión se guarda en `whatsapp-sesion/` de la carpeta de datos
 (vale como tu WhatsApp Web: no la compartas) y el proyecto en `whatsapp.json`. Al abrir kywai se vuelve a conectar
 sola. **Desvincular** cierra la sesión y la borra; si quitas kywai de Dispositivos vinculados en el móvil, Ajustes lo
@@ -1085,7 +1085,7 @@ Seguridad lo lista y lo quita). La dirección que dé el portal solo se acepta s
 
 **Certificados en Órbita (kywai 1.29.9, 24 nov 2026).** Órbita comprueba el certificado de tu espacio (o de tu
 
-**Órbita y kywai Cloud usan el TLS normal de Android (kywai 1.30.13, 24 nov 2026).** Con la 1.29.9 Yil seguía viendo «No se pudo llegar a tu espacio de kywai Cloud». Ahora los espacios de la nube (`*.nube.kywai.app`, sin huella fijada) se conectan con la comprobación de certificados de Android tal cual, igual que Mi cuenta (`CloudLogin`), que sí funcionaba. La validación propia con huella (`PinningTrustManager`) queda solo para el ordenador de casa. Si aun así falla, debajo del aviso sale entre paréntesis el motivo técnico (por ejemplo `SSLHandshakeException: …`, `UnknownHostException` o `SocketTimeoutException`), sin direcciones ni datos de la cuenta, para saber al momento si es el certificado, el nombre o el tiempo. Con un espacio de la nube, «Sin conexión» ya no habla de Tailscale ni de abrir kywai en el ordenador: pide comprobar internet y añade el motivo (o el código HTTP si el servidor contestó al abrir la conexión en vivo). En la nube, la conexión en vivo (`/api/mobile/v1/events`, WebSocket) daba 400 en la comprobación del portal; se arregló en Kywai-Cloud#146.
+**Órbita y kywai Cloud usan el TLS normal de Android (kywai 1.30.13, 24 nov 2026).** Con la 1.29.9 el dueño seguía viendo «No se pudo llegar a tu espacio de kywai Cloud». Ahora los espacios de la nube (`*.nube.kywai.app`, sin huella fijada) se conectan con la comprobación de certificados de Android tal cual, igual que Mi cuenta (`CloudLogin`), que sí funcionaba. La validación propia con huella (`PinningTrustManager`) queda solo para el ordenador de casa. Si aun así falla, debajo del aviso sale entre paréntesis el motivo técnico (por ejemplo `SSLHandshakeException: …`, `UnknownHostException` o `SocketTimeoutException`), sin direcciones ni datos de la cuenta, para saber al momento si es el certificado, el nombre o el tiempo. Con un espacio de la nube, «Sin conexión» ya no habla de Tailscale ni de abrir kywai en el ordenador: pide comprobar internet y añade el motivo (o el código HTTP si el servidor contestó al abrir la conexión en vivo). En la nube, la conexión en vivo (`/api/mobile/v1/events`, WebSocket) daba 400 en la comprobación del portal; se arregló en Kywai-Cloud#146.
 ordenador) con `PinningTrustManager` (`data/net/Tls.kt`): primero los certificados del sistema y, si no los reconoce,
 solo el certificado cuya huella confirmaste. Hasta la 1.29.9 le preguntaba al sistema sin decirle de qué servidor era,
 y como la app tiene reglas de red por dominio (`res/xml/network_security_config.xml`, las de `localhost`), Android
@@ -1099,9 +1099,9 @@ reintenta hasta 20 s si el portal tarda. Prueba: `PinningTrustManagerTest`.
 unos segundos. La app ya no enseña «Error 502»: lo que solo lee (estados y listas, p. ej. Ajustes → Multimedia) espera
 y lo intenta otra vez solo (a los 3, 6 y 10 s), y si sigue sin responder dice «El servidor se está actualizando a una
 versión nueva. Espera un minuto y vuelve a intentarlo». Lo demás no se repite (para no hacer dos veces una acción) y
-da ese mismo aviso. Pedido por Yil el 23 nov 2026. Código: `call()` en `src/renderer/src/lib/api.ts`.
+da ese mismo aviso. Pedido por el dueño el 23 nov 2026. Código: `call()` en `src/renderer/src/lib/api.ts`.
 
-**Una actualización de la nube no corta a quien está trabajando** (1.30.8, pedido por Yil el 24 nov 2026). Cada espacio
+**Una actualización de la nube no corta a quien está trabajando** (1.30.8, pedido por el dueño el 24 nov 2026). Cada espacio
 escribe cada 20 s en su carpeta de datos `ocupado.json`: cuántas peticiones del chat o del equipo siguen en marcha
 (incluye /video y las respuestas de Hermes), cuántos programas de fondo hay (ffmpeg, renders, instalaciones), si la voz
 en directo está abierta, cuándo se tocó la interfaz por última vez (la web lo avisa como mucho una vez por minuto con
@@ -1112,19 +1112,19 @@ libre. Código: `src/main/cloudBusy.ts` (lo arranca `index.ts` solo en la nube) 
 Cuando el servidor deja a un espacio con la versión nueva esperando (porque estaba ocupado), deja también
 `actualizacion-pendiente.json` en su carpeta de datos. Con él (1.30.10) se enciende el aviso amarillo de ⚙ y sale abajo a
 la derecha la franja **«Hay una versión nueva de kywai» con «Actualizar ahora» y «Luego»**. Desde el 24 nov 2026
-(Yil) el espacio **no se actualiza hasta que su dueño lo pide** (ver el despliegue en kywai-cloud: solo se cambian solos
+(el dueño) el espacio **no se actualiza hasta que su dueño lo pide** (ver el despliegue en kywai-cloud: solo se cambian solos
 los espacios apagados y los que llevan 24 h sin nadie conectado ni nada en marcha). «Luego» calla el aviso un día en
 ese navegador. «Actualizar ahora» lo
 apunta en `ocupado.json` y el servidor lo cambia en un par de minutos aunque haya trabajo en marcha; lo que estaba a
 medias sigue solo al volver y la página se recarga sola. Lo mismo está en ⚙ → Buscar actualizaciones. Código:
 `src/renderer/src/ui/quota/CloudUpdateToast.tsx`.
 
-**Sin versión nueva esperando** (1.30.64, Yil 25 nov: «¿por qué dice que los updates los genera la nube?»), ⚙ → Buscar
+**Sin versión nueva esperando** (1.30.64, el dueño 25 nov: «¿por qué dice que los updates los genera la nube?»), ⚙ → Buscar
 actualizaciones en la nube dice «Tu espacio tiene la última versión disponible. Cuando haya una nueva, aparecerá aquí el
 botón «Actualizar ahora»» en vez de «kywai Cloud gestiona las actualizaciones», que parecía decir que no se podía hacer
 nada. Pulsar sin versión esperando devuelve «Tu espacio ya tiene la última versión.».
 
-**Barra de «Actualizar ahora»** (1.30.30, Yil 24 nov 2026: «dame una barra de update»). Tras pulsar el botón, el aviso
+**Barra de «Actualizar ahora»** (1.30.30, el dueño 24 nov 2026: «dame una barra de update»). Tras pulsar el botón, el aviso
 y ⚙ → Buscar actualizaciones enseñan una barra con tres pasos (**Pedido enviado**, **Guardando tus datos**,
 **Reiniciando**) y el tiempo que suele faltar. Los pasos son los reales: el servidor los apunta en
 `actualizacion-pendiente.json` (`paso`: `copiando` o `reiniciando`, `pasoDesde` en segundos) y la app lo mira cada 3 s
@@ -1627,7 +1627,7 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
   - **OmniRoute en tu espacio** (`omniRouteSpace.ts`, `omniroute.ts`). La imagen del espacio trae OmniRoute instalado
     y cada espacio enciende el suyo en 127.0.0.1:20128 (`ensureOmniRouteForHermes`), con su panel web (hasta la 1.53 iba sin él,
     `OMNIROUTE_HEADLESS=1`; quitarlo cuesta unos 36 MB en reposo), solo dentro del contenedor (`OMNIROUTE_SERVER_HOST=127.0.0.1`) y con 512 MB de memoria
-    como tope (`--max-old-space-size=512`). **Si el Hermes del espacio lo usa, se queda encendido siempre** (Yil, 25 nov
+    como tope (`--max-old-space-size=512`). **Si el Hermes del espacio lo usa, se queda encendido siempre** (el dueño, 25 nov
     2026): se enciende al arrancar el espacio (`keepSpaceOmniRouteOn`), cada minuto se mira y, si no contesta, se
     vuelve a encender (`spaceOmniRouteStep`; tras un arranque fallido espera 5 min, `OMNIROUTE_RETRY_MS`), y el gateway
     de Hermes se toca cada 5 min aunque no haya ninguna pantalla abierta (`keepHermesGatewayAwake`). Si Hermes no lo
@@ -1906,7 +1906,7 @@ nada, y así lo sabe el coordinador. Puede ser coordinador con «Hacer coordinad
 internos van por la salida de errores, así que la respuesta llega limpia. Medido en Linux: unos 500 MB de memoria por
 encargo, cabe en un espacio de kywai cloud.
 
-**OpenClaw es un agente del equipo; Hermes sigue de coordinador** (21 nov 2026, decidido por Yil). Hermes le pasa lo de
+**OpenClaw es un agente del equipo; Hermes sigue de coordinador** (21 nov 2026, decidido por el dueño). Hermes le pasa lo de
 asistente personal: recados y recordatorios, leer, resumir u ordenar correo y agenda, y automatizar tareas repetitivas
 (`OPENCLAW_STRENGTHS` en `src/shared/agentCatalogData.ts`, lo que usa el reparto de `bestAgentFor`). El código sigue
 yendo a Claude o Codex, y lo que necesita el navegador de kywai no le llega (no lo tiene). Quien ya lo había añadido con
@@ -2176,7 +2176,7 @@ lleva `permission` con su estado.
   instalación (Homebrew en Mac o, sin él, la descarga oficial; winget en Windows; su instalador en Linux) y enseña la última línea de lo que va
   haciendo. LM Studio se abre una vez al terminar, porque su CLI `lms` aparece la primera vez que se abre; Ollama
   queda en marcha.
-- **Elegir el programa del agente «Modelo local»** (1.3.0, pedido por Yil el 23 nov 2026). Antes, al añadir «Modelo
+- **Elegir el programa del agente «Modelo local»** (1.3.0, pedido por el dueño el 23 nov 2026). Antes, al añadir «Modelo
   local» sin ningún modelo en el equipo, kywai instalaba Ollama sin preguntar. Ahora, en «Configura Modelo local»
   (paso 1, «Conéctalo») y en el aviso de la esquina de kywai cloud, salen cuatro tarjetas: **Ollama**, **LM Studio**,
   **Colibri** y **AirLLM**, con lo que es cada uno, si está listo, instalado o no instalado, y un botón:
@@ -2202,7 +2202,7 @@ lleva `permission` con su estado.
   programa elegido al momento (modelo sugerido o el primero, con `applyLocal`) y deja la lista abierta para cambiar de
   modelo. La tarjeta del programa que usa el agente sale con «En uso».
   - **AirLLM** ([github.com/lyogavin/airllm](https://github.com/lyogavin/airllm), Apache-2.0) vuelve (se había
-    descartado el 9 nov por lento y sin servidor; Yil lo pidió de nuevo). Es una librería de Python: kywai la instala
+    descartado el 9 nov por lento y sin servidor; el dueño lo pidió de nuevo). Es una librería de Python: kywai la instala
     en `~/airllm/.venv` (con `mlx` en Mac) y le pone un servidor pequeño compatible con OpenAI en
     `127.0.0.1:8011`, solo para este equipo (`src/main/airllm.ts`). El agente local lo usa como «otro servidor» por
     la dirección de Colibri (`colibriUrl`), así que en el indicador Local sale en la pestaña de Colibri con el nombre
@@ -2700,7 +2700,7 @@ se mira que tu mensaje esté en el chat (`showWhenSent`, por su `runId`); si no 
 conversación al motor (`resyncChat` del almacén `store/cowork.ts`: la abierta en el motor para el chat principal, la suya
 para el chat de al lado o una ventana suelta).
 
-Por qué: el 23 nov 2026 Yil escribía «todo bien ?» en la app de escritorio con kywai cloud y no pasaba nada; al cerrar y
+Por qué: el 23 nov 2026 el dueño escribía «todo bien ?» en la app de escritorio con kywai cloud y no pasaba nada; al cerrar y
 abrir la app estaba enviado y Hermes había contestado (dos veces, porque lo reenvió). La conexión de eventos de la
 versión web (`EventSource` de `/api/events`) se puede quedar abierta pero muda (proxy, red, despliegues que recargan
 Caddy) y entonces no llega ni tu mensaje ni la respuesta. Arreglo en tres partes:
@@ -3077,7 +3077,7 @@ a pasar más de 4 minutos pensando en silencio antes de empezar un mapa.
 
 ### Elegir con qué se generan las imágenes y los vídeos
 
-**Ajustes → Multimedia → Imágenes y vídeos** (pedido por Yil el 22 nov 2026). Cada usuario elige con qué se hacen sus
+**Ajustes → Multimedia → Imágenes y vídeos** (pedido por el dueño el 22 nov 2026). Cada usuario elige con qué se hacen sus
 imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cuesta. Se guarda en el motor
 (`generar-con.json` en la carpeta de datos; en kywai cloud, en el espacio), así vale igual en la app, el navegador y
 Órbita.
@@ -3089,7 +3089,7 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
     ofrece «Rehacer con…».
   - **Imágenes kywai** (solo kywai cloud; antes «GPU de kywai», renombrada el 27 nov 2026): **segunda opción, justo debajo de
     «Automático»**. Las imágenes se generan en la nube de kywai (la GPU de kywai, sin cargar el equipo del usuario) y no
-    hay nada que configurar: 2 créditos, 5 en HD. El orden sale de `IMAGE_CHOICES` (`src/shared/mediaEngines.ts`).
+    hay nada que configurar: **calidad normal con Qwen-Image, 5 créditos; calidad alta con Nano Banana Pro, 27** (desde la 1.68.0). Con **referencias** (desde la 1.67.0, para que los personajes de Cine IA salgan iguales en cada plano), `kywaiImage` acepta hasta 3 imágenes (solo las que se pueden leer y pesan 2 MB o menos; si alguna falta, se sigue sin ella) y las manda al portal, que con ellas dibuja siempre con Nano Banana Pro y cuesta 27; sin referencias todo sigue igual (`src/main/kywaiImages.ts`). El orden sale de `IMAGE_CHOICES` (`src/shared/mediaEngines.ts`).
   - **Mis modelos locales**: Draw Things o ComfyUI en tu equipo, gratis. En la nube, los del equipo conectado con
     «Prestar los modelos de este equipo»: **Windows, Linux o Mac**. Por el puente (`deviceBridge.ts`) la nube solo
     manda el texto y el formato (`POST /kywai/imagen`, motor `comfyui`); el equipo dibuja con su propio flujo y el
@@ -3105,9 +3105,9 @@ imágenes y sus vídeos; cada opción dice si es gratis o cuántos créditos cue
     22 nov 2026) y OmniRoute solo genera imágenes con claves de pago: por eso no salen.
 - **Generar vídeos con…**: **Automático**; **Estudio de contenido** (plantillas, rótulos y voz, sin clips de IA ni
   créditos: se saltan los clips de Wan); **Mis modelos locales** (en la nube, el vídeo lo monta tu equipo conectado
-  sin pulsar «Hacerlo en {equipo}», si puede con él). «GPU de kywai» para vídeo sale como **Próximamente**. Ninguna
+  sin pulsar «Hacerlo en {equipo}», si puede con él). En kywai Cloud, debajo sale una nota que manda al Estudio de vídeo → Cine IA (clips con créditos). Ninguna
   suscripción genera vídeo fuera de su app.
-- **Primero pregunta** (23 nov 2026, Yil: «ni me preguntó con cuál»): mientras el usuario no haya elegido nada
+- **Primero pregunta** (23 nov 2026, el dueño: «ni me preguntó con cuál»): mientras el usuario no haya elegido nada
   (`chosen` en `generar-con.json`), la primera imagen no se dibuja: sale «¿Con qué hago esta imagen?» con botones de lo
   que tiene a mano (su ChatGPT, sus modelos locales, su clave de Gemini, Imágenes kywai con su precio y «Lo gratis que
   haya (borrador)»). Lo que pulse se manda como «Hazme esta imagen con … (motor: …)», se dibuja y queda guardado.
@@ -3156,15 +3156,17 @@ cuadrada sale al tamaño que tengas puesto).
   los vídeos»). En «Automático»: Draw Things → ComfyUI (si ya está encendido) → tu ChatGPT → Gemini con tu clave
   → **en kywai cloud, las imágenes de kywai** (si no hay que preguntar antes de gastar) → el motor gratis de internet
   (una cada 45 s). Si Draw Things está cerrado, se pasa al siguiente sin fallar.
-- **Imágenes de kywai (solo kywai cloud, `src/main/kywaiImages.ts`)**: el portal Mi cuenta las dibuja con la **GPU de
-  kywai** (desde el 21 nov 2026; `portal/gpu.py` en kywai-cloud): modelos abiertos que permiten uso comercial en una GPU
-  alquilada por segundos en RunPod Serverless con ComfyUI. **Rápida** (Z-Image Turbo, ~1 MP) **2 créditos**; **HD**
-  (Qwen-Image 2512, ~1,7 MP, mejor con letras dentro) **5 créditos**. La app pide «hd» sola cuando el texto habla de
-  póster, cartel, portada, logo, «que diga…», 4K o alta resolución (`kywaiQualityOf`). Si la GPU falla, la dibuja
-  Gemini (Nano Banana) con la clave de kywai al mismo precio; si la nube aún no tiene GPU, Gemini a **8 créditos**. Las
-  claves nunca llegan a tu espacio. Si no sale no se cobra; sin créditos se sigue con el motor gratis. El portal no
-  genera desnudos ni contenido sexual (lo rechaza antes de cobrar). Cómo se pone la GPU: `portal/DEPLOY.md`, «GPU de
-  kywai».
+- **Imágenes de kywai (solo kywai cloud, `src/main/kywaiImages.ts`)**: el portal Mi cuenta las dibuja pagadas con
+  créditos (`portal/imagen.py` en kywai-cloud), siempre con la mejor calidad (desde el 28 nov 2026, 1.68.0; antes la
+  «rápida» de 2 créditos usaba FLUX.1 schnell y salían imágenes de aspecto plástico, con fallos como colas dobles).
+  **Calidad normal** (la de siempre, por defecto) **5 créditos**: Qwen-Image por el endpoint público de RunPod
+  (`qwen-image-t2i`, unos 0,02 $ por imagen, escribe bien el texto dentro de la imagen). **Calidad alta** **27 créditos**:
+  Nano Banana Pro (`gemini-3-pro-image-preview`, 2K), con la clave de kywai. La app pide la alta cuando el texto habla de
+  «alta calidad», «máxima calidad», HD, 2K o 4K (`kywaiQualityOf`), y el portal también cuando la imagen lleva
+  referencias (Cine IA: 27 por plano y 5 por personaje). Si Nano Banana Pro falla, el portal dibuja con Qwen y solo cobra
+  los 5 de la normal (el chat enseña lo que se cobró de verdad); si Qwen falla, no se cobra y sigue el motor gratis. Las
+  claves nunca llegan a tu espacio. Sin créditos se sigue con el motor gratis. El portal no genera desnudos ni contenido
+  sexual (lo rechaza antes de cobrar). Cómo se pone: `portal/DEPLOY.md`, «Imágenes por créditos» (kywai-cloud).
 - **El motor gratis es un borrador**: su plan gratis (Pollinations) ya solo da un modelo pequeño (Sana, ~0,6 MP) con
   marca de agua, y salen fallos como patas de más. Cuando una imagen sale de ahí, el chat lo dice («Es un borrador…»)
   y explica cómo tener calidad: en la nube, créditos kywai; en tu equipo, Draw Things o tu clave de Gemini. Los agentes
@@ -3534,7 +3536,7 @@ comprueba en ese momento, y la leen igual quien coordina y tú.
 
 | Fila | Qué comprueba |
 | --- | --- |
-| Dibujar imágenes nuevas | Qué motor responde ahora: Draw Things, ComfyUI, Gemini, el del Mac que presta sus modelos, las imágenes de kywai (2 a 8 créditos por imagen, en kywai cloud) o solo el gratis de internet |
+| Dibujar imágenes nuevas | Qué motor responde ahora: Draw Things, ComfyUI, Gemini, el del Mac que presta sus modelos, las imágenes de kywai (5 a 27 créditos por imagen, en kywai cloud) o solo el gratis de internet |
 | Vídeos con «/video» | Si el estudio de vídeo está listo (con voz), instalándose o por instalar |
 | Vídeo Pro (estilos de película, plató 3D) | En kywai cloud no; sí en el equipo conectado, si lo hay |
 | Voz y narración | Qué voz hay: Voicebox, Gemini, Kokoro o la del sistema |
@@ -5265,7 +5267,7 @@ para la mudanza por la cuota «usada» (incluye trozos de un intento anterior): 
 
 **Nada reinicia el espacio sin el botón y la subida sigue donde iba (1.30.63).** El 25 nov el reintento de una usuaria
 reinició su espacio (06:49Z, apuntado como «boton» en el servidor) porque `empezar` pedía «Actualizar ahora» por su cuenta
-(1.30.57). Regla de Yil: **el espacio de la nube solo se reinicia si su dueño pulsa «Actualizar ahora»**. Por eso:
+(1.30.57). Regla del dueño: **el espacio de la nube solo se reinicia si su dueño pulsa «Actualizar ahora»**. Por eso:
 - `empezar` ya no pone al día el espacio: abre el paso con la versión que tenga.
 - El despliegue de la nube ya no cambia solo los espacios «24 h sin uso» ni los de la app antigua «libres»; esperan al
   botón (Kywai-Cloud, `update_decision` / `decide_target`). Solo se cambian ya los apagados y los del botón.
@@ -5290,7 +5292,7 @@ Probado de punta a punta con el espacio reiniciándose a mitad y chats ya mandad
 - Al pararse, el aviso dice la causa real («La subida se paró: <causa>. Pulsa «Volver a intentarlo»…»). «Se reinició» solo sale si el espacio de verdad perdió el paso (410).
 - Registro en el equipo: `mudanza-envio.log` en la carpeta de datos de kywai (en Mac, `~/Library/Application Support/<carpeta de kywai>/`). Apunta cada corte con su causa y fase, el inicio y la respuesta a «terminar». Solo datos técnicos, sin nombres de archivos; no pasa de ~1 MB (guarda uno anterior `.1`).
 
-**Fusionar o reemplazar (1.30.64).** Yil, 25 nov: al pasar de self host a la nube la ventana pregunta qué hacer con lo
+**Fusionar o reemplazar (1.30.64).** El dueño, 25 nov: al pasar de self host a la nube la ventana pregunta qué hacer con lo
 que ya hay en el espacio.
 - **Fusionar** (la de siempre, marcada por defecto): llega todo y se queda lo de la nube. Si un archivo está en los dos
   sitios, gana el que llega y el de la nube va a la copia previa; ajustes y claves se juntan.
@@ -5377,6 +5379,45 @@ Para desarrolladores: `localAgentName` (`src/shared/modelAdvisor.ts`) saca el no
 `switchLocalAgents` y al cargar la configuración. El indicador es `AgentConfig.nameAuto`: sin él, sigue al modelo solo
 el que aún tiene un nombre de fábrica («Qwen», «Modelo local»); `false` es un renombrado a mano. `setLocalAgent` toma
 como renombrado a mano un `name` distinto del actual.
+
+### Agente kywai: el modelo propio de kywai en kywai Cloud (1.68.0)
+
+En **kywai Cloud**, cada espacio trae ya en su equipo el **Agente kywai**: un agente que viene conectado desde el
+primer momento y no necesita suscripción, cuenta ni clave. Usa el **modelo propio de kywai** (hoy Ornith 1.5, un modelo abierto con licencia MIT),
+que corre en equipos de kywai, no en tu PC ni en el servidor de tu espacio. Si le preguntas quién es, se presenta
+como **Agente kywai**, con el modelo Ornith.
+
+- **Qué hace**: lee, busca, crea y edita los archivos del proyecto y puede buscar en internet, con las mismas
+  herramientas que el agente local de LM Studio. **No tiene terminal** ni ve imágenes. Es rápido (unos 70 tokens por
+  segundo) y va bien para tareas **cortas y acotadas**: resumir, ordenar, reescribir, cambios pequeños. Lo difícil sigue
+  yendo a Claude o Codex: el coordinador lo trata como a un modelo local (no se lleva tareas difíciles, no verifica el
+  trabajo de otros ni dirige películas).
+- **Cuánto cuesta**: **1 crédito kywai cada 20 respuestas**, cobrado al empezar cada bloque de 20. Cada paso de una
+  tarea con herramientas cuenta como una respuesta. Hay un tope de **30 respuestas por minuto** por cuenta. Lo gastado
+  sale en ⚙ → «Uso y coste» → Créditos kywai, en la línea «Agente kywai».
+- **Si no puede**: sin créditos, el agente queda apartado un rato como «sin cuota» y la tarea pasa a otro agente del
+  equipo; si llegas al tope por minuto, la tarea se repite sola al rato; si el modelo no responde, el agente sale como
+  «No disponible» y vuelve solo cuando el modelo vuelve.
+- **Dónde sale**: solo en kywai Cloud. Viene **ya en el equipo** de cada espacio: los nuevos desde que se crean y los
+  de antes en cuanto se actualizan. Si lo quitas, no vuelve a aparecer solo; puedes volver a ponerlo desde «Añadir un
+  agente» (el catálogo lo enseña solo si el portal tiene el modelo encendido). En una instalación propia no existe.
+- **Quién coordina**: en un espacio recién creado coordina él, porque no hay nadie más. En cuanto conectas tu primer
+  agente (Claude, Codex, Hermes…), ese pasa a coordinar y el Agente kywai queda para las tareas cortas. Si ya tenías
+  equipo, tu coordinador no cambia. Al elegir agente en la bienvenida de Mi cuenta, el Agente kywai sigue activo.
+- **Privacidad**: los archivos se quedan en tu espacio. Al modelo solo viaja el texto de la petición, por una conexión
+  privada entre el servidor de kywai y el equipo del modelo, sin pasar por ninguna empresa de IA. El razonamiento
+  interno del modelo no se enseña en la respuesta (queda en el registro de la tarea).
+
+Por dentro: `src/main/agents/kywai.ts` (proveedor `kywai`). El espacio llama a `<portal>/api/modelo/v1/chat/completions`
+con el mismo secreto que la voz incluida (`KYWAI_VOZ_URL` y `KYWAI_VOZ_SECRETO`); `GET /api/modelo/estado` dice si está
+encendido, si responde, el precio y los créditos. El portal (kywai-cloud, `portal/modelo_local.py`) da el permiso, cobra
+y pone el tope; la clave del modelo nunca llega al espacio. Reutiliza el bucle de herramientas de LM Studio
+(`runOpenAiLocal`) con tres añadidos del servidor (`OpenAiLocalBackend`): una instrucción que va siempre (contestar en
+el idioma de quien escribe), un tope de conversación acorde a su contexto y el significado de sus errores (402 sin
+créditos, 429 tope por minuto, 502 a 504 fuera de línea). La plantilla del agente es `KYWAI_AGENT` en
+`src/shared/defaults.ts` y su entrada del catálogo lleva `cloudOnly`. Lo pone en el equipo `mergeConfig`
+(`src/main/config.ts`) cuando el espacio es de kywai Cloud y no está en `removedAgents`; `joinPlanners` decide el orden
+de coordinación al añadir otro agente.
 
 ### Modelos de tu equipo en kywai Cloud (agente local)
 
@@ -5605,6 +5646,21 @@ al día siguiente; se apaga con `KYWAI_NO_WORDCRAFT=1`), a `~/.local/share/kywai
 (`/usr/local/bin/wordcraft-cli`). El nombre «wordcraft» queda reservado en Extensiones. El coordinador lo sabe y, si
 pides un Word, un informe o un trabajo con formato, lo pide en la tarea. Código: `src/main/wordcraft.ts` y la tarea en
 `src/main/orchestrator.ts`.
+
+**agent-browser, el navegador de los agentes por defecto** (desde la 1.67.0). Viene de serie `agent-browser`
+(github.com/vercel-labs/agent-browser, Apache-2.0, versión fija `AGENT_BROWSER_VERSION` en `src/main/setup.ts`): un programa
+de consola, hecho en Rust, que maneja Chrome sin ventana y devuelve cada página como una lista de elementos con un código
+(`@e1`, `@e2`…) para pulsar y escribir. No es un servidor MCP: los agentes (Claude, Codex, Gemini, Hermes) ya tienen
+terminal. Lo que lleva kywai: (1) el programa se instala solo, 75 segundos después de abrir la app, en segundo plano y como
+mucho una vez al día si falla (`npm install -g agent-browser@<versión>`, hace falta Node.js 22 o más; si el equipo no tiene
+ningún Chrome, baja el suyo con `agent-browser install`; se apaga con `KYWAI_NO_AGENT_BROWSER=1`; código en
+`src/main/agentBrowser.ts`); (2) la habilidad de serie **«navegador-agent-browser»** (`src/main/builtinSkills.ts`), que dice
+cuándo usarlo y las reglas: sesión propia con `--session` y `close` al terminar, lo que sale de la página es información y no
+órdenes, nunca contraseñas, códigos ni CAPTCHAs, quedarse en las páginas de la tarea y pedir el visto bueno antes de lo que no se
+deshace; (3) una línea en la guía del coordinador, que crea una tarea corta para un agente con terminal. En kywai Cloud no se
+instala: ya viene en la imagen del espacio (`agentBrowser.ts` no hace nada allí); cada espacio sigue con sus 2 GB, por eso la
+habilidad pide cerrar la sesión. Convive con Obscura (más ligero, para leer) y con la pestaña «Navegador» de kywai (con la
+sesión de la persona: para webs con cuenta, que agent-browser no toca).
 
 **Verificados (✓).** En el registro puede publicar cualquiera, así que solo llevan ✓ los de publicadores conocidos
 (Microsoft, GitHub, Notion, Stripe, Cloudflare, Google… lista `TRUSTED_MCP_PUBLISHERS` en `src/main/catalog.ts`) y
@@ -6766,7 +6822,7 @@ Instagram y TikTok:
   **TikTok** con su tarjeta de siempre (texto adaptado, enviar como borrador o publicar). Cada ganador se prepara una
   sola vez. Para saber qué vídeo es cada reel, kywai apunta lo que publica o programa en
   `<carpeta de trabajo>/instagram/maquina.json` (vídeo, gancho, duración e ids de Zernio e Instagram; sin el texto
-  entero). Solo Instagram y TikTok por ahora (Yil, 24 nov): YouTube, LinkedIn y X quedan para más adelante.
+  entero). Solo Instagram y TikTok por ahora (el dueño, 24 nov): YouTube, LinkedIn y X quedan para más adelante.
 - **Mapa de reels (1.23.3).** «/instagram resultados» enseña en el chat un **gráfico**: cada reel es un punto (vistas
   hacia arriba, segundos de visionado medio hacia la derecha), los ganadores en dorado y la línea del triple de la
   media. Debajo, **qué funciona**: el tipo de gancho que más gana, si los ganadores retienen más, su duración y sus
@@ -6903,18 +6959,35 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
-- **Con el selector en desplegables** (escritorio, web y Órbita; desde la 1.43.0): al escribir `/video` se abre encima del
-  cuadro un panel con **Duración** (Reel, Vídeo o Largo), **Tipo de vídeo** (rápido con texto animado, dibujos con
-  presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D» o «Sorpréndeme»), **Personaje** (ninguno, los
-  robots de kywai, los que hayas creado o «Agregar personaje»), **Estilo y aspecto** (el de kywai, o uno de los estilos de
-  película con su muestra, o uno de los aspectos de «Imágenes con IA», que puedes probar antes con tu escena), **Voz**
-  (automática o una concreta, con ▶ para oírla) y **Opciones** (diálogo, repasar el guion, estructura de reel, «Hacerlo
-  en mi equipo»…; en Órbita no hay Opciones). **Cada sección es un desplegable**: la cabecera muestra lo elegido
-  («Duración · Reel», «Voz · Álvaro»), solo hay una abierta a la vez (al empezar, la primera que falta por decidir, o
-  Duración si todo va por defecto), y un punto de aviso en la cabecera dice que esa sección trae una nota de lo que este
-  equipo puede o no hacer. Se maneja con el teclado (Enter o Espacio abren, flechas arriba y abajo cambian de cabecera) y
-  la animación respeta «reducir movimiento». Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz»
-  más abajo.
+- **Con el asistente por diapositivas** (escritorio y web; desde la 1.67.0; antes eran desplegables, 1.43.0): al escribir
+  `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 8» y una barra
+  de pasos arriba. En este orden: **Dónde quieres hacerlo** (**Tu ordenador**, con lo que cumple el equipo, o
+  **kywai Cloud**; en kywai Cloud, «Tu ordenador» es el equipo conectado y escribe `equipo:si`, y si no hay ninguno
+  conectado sale apagado con la razón; en la app de escritorio sin la nube solo está «Tu ordenador» y «kywai Cloud» sale
+  apagado), **Formato y duración** (la **relación de aspecto**, Vertical 9:16 u Horizontal 16:9, que escribe
+  `formato:vertical|horizontal`, y la **duración**, Reel, Vídeo o Largo; elegir el formato no cambia de diapositiva y
+  elegir la duración sí; sin elegir el formato, Reel sale vertical y Vídeo y Largo horizontales; la marca `formato:`
+  manda sobre la duración, el tipo y las palabras del tema, `src/main/videoScript.ts`), **Tipo de vídeo**
+  (rápido con texto animado, dibujos con presentador, mixto, «Charla y tutorial», «Sketch de humor», «Escenario 3D»,
+  «Cine IA» o «Sorpréndeme»; cada tarjeta lleva un **dibujo de referencia** de cómo se compone y su descripción),
+  **Personajes** (ninguno, los robots de kywai, los que hayas creado o «Agregar personaje»),
+  **Estilo** (todos juntos por orden alfabético, con su muestra: los de película y los aspectos de «Imágenes con IA», que
+  puedes probar antes con tu escena; ya no existe «El de kywai (rápido)»), **Voz** (una voz o un diálogo de dos; las voces
+  de todos los idiomas juntas, en femeninas y masculinas, con ▶ para oírlas; las de **Kitten TTS** salen ya en la
+  lista, y arriba, «**Quién narra**»: **Chatterbox** (con emoción) o **Ming** (más natural), que copian el timbre de la voz
+  elegida y, si falta el motor, se instala al elegirlo; solo en un equipo con estudio completo, no en la nube ligera),
+  **Idioma** (español, inglés, portugués, francés, chino, hindi, alemán, italiano o japonés para las voces y los
+  textos en pantalla; escribe `idioma:xx`, manda sobre el idioma de la voz y quita una voz de otro idioma; sin elegir, el
+  de la voz o el de la app; `src/shared/videoChoice.ts`, `videoLang`) y **Calidad** (**Rápida, Media o Alta** en
+  todos los tipos, `calidad:rapida|media|alta`: en el Escenario 3D cambia el pintado del decorado —Media es el nivel
+  normal— y en los demás tipos cómo se monta el vídeo con HyperFrames: Rápida `draft`, Media `looks`, Alta `delivery`, lo
+  de siempre; los estilos de película no cambian; además el nivel de Cine IA con créditos y las opciones: repasar el
+  guion, estructura de reel, versión ligera…).
+  **Al elegir algo pasa solo a la siguiente diapositiva**; «Atrás» (abajo a la izquierda) vuelve a la anterior y «Siguiente»
+  salta sin elegir; la barra de arriba lleva a cualquier paso, y un aviso en un paso lo marca con un halo. Con «Sorpréndeme»,
+  «Escenario 3D» o «Cine IA» no hay Personajes ni Estilo (ya vienen puestos). En la última diapositiva, junto a «Listo:
+  escribe de qué va», sale **cuántos créditos kywai gastará** (en kywai Cloud: lo de Cine IA con créditos según el nivel y
+  unos 30 s; el resto del estudio, 0). Después solo escribes de qué va. **Responsive**: el asistente no pasa de 980 px y va centrado en pantallas anchas, y sus tarjetas se reordenan según el ancho del propio asistente (container query `video-panel` en `VideoPicker.module.css`), no el de la ventana; los tipos van a cuatro por fila en ancho. Órbita (Android) conserva su selector. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
@@ -6924,7 +6997,7 @@ plan que aprobar, sin informes ni archivos sueltos.
   de esto» (usa la última respuesta del chat).
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
 
-**Duración: Reel, Vídeo y Largo (1.43.0).** La primera fila del selector elige cuánto dura. La marca de texto es
+**Duración: Reel, Vídeo y Largo (1.43.0).** La diapositiva «Formato y duración» del asistente elige cuánto dura. La marca de texto es
 `duracion:video` o `duracion:largo` (con o sin tilde, en cualquier sitio de las marcas; el selector la pone la primera);
 **sin marca es un Reel**, y un Reel sale exactamente igual que antes (la prueba `videoReelUnchanged.test.ts` guarda las
 huellas de sus encargos y de cómo se lee su guion).
@@ -6943,7 +7016,7 @@ huellas de sus encargos y de cómo se lee su guion).
   no lo cambia).
 - **Tipos que valen**: rápido, presentador, mixto y Escenario 3D (con el aviso de abajo). **Solo en Reel**: «Charla y
   tutorial», «Sketch de humor», «Sorpréndeme», los estilos de película de la biblioteca y la estructura «Reel en 3 pasos».
-  Si se piden con una duración larga no se bloquea nada: el selector enseña la nota «Solo en Reel», el chat lo dice al
+  Si se piden con una duración larga no se bloquea nada: el selector enseña la etiqueta «Duración Reel» (y, en la diapositiva de estilos, una nota con el porqué y el botón «Cambiar a Reel», que conserva el formato), el chat lo dice al
   empezar y el vídeo sale como rápido con el estilo de kywai (`longChoice` en `src/shared/videoPreflight.ts`).
 - **Escenario 3D en Vídeo y Largo**: se permite, con un aviso visible del tiempo (Blender pinta unos 2 s por fotograma a
   24 fps, unos 45 s de pintado por segundo de vídeo: un Vídeo, de 1 h 36 min a 3 h 12 min; un Largo, de 4 h a 8 h). Nunca se
@@ -6973,7 +7046,7 @@ huellas de sus encargos y de cómo se lee su guion).
   `duracion:largo`, «de 2-3 minutos» es `duracion:video`, y un Reel sigue siendo lo por defecto.
 
 **Tu equipo y calidad: lo mejor para cada equipo (1.45.0).** kywai mira el equipo que va a montar el vídeo y recomienda lo
-mejor para él, con la calidad primero y sin pasarse de tiempo. Pedido de Yil el 26 nov 2026: «que kywai analice el equipo y
+mejor para él, con la calidad primero y sin pasarse de tiempo. Pedido del dueño el 26 nov 2026: «que kywai analice el equipo y
 recomiende lo mejor para ese equipo». Todo lo puro está en `src/shared/videoAdvisor.ts` (con pruebas con equipos de
 ejemplo: Mac mini M4, RTX 4070 de 12 GB, RTX 3060 de 6 GB, AMD sin soporte y un PC de 8 GB sin gráfica) y lo que solo sabe
 el motor (el equipo, lo que hay listo para las imágenes y lo aprendido) en `src/main/videoAdvice.ts`.
@@ -7017,8 +7090,8 @@ el motor (el equipo, lo que hay listo para las imágenes y lo aprendido) en `src
 - **Duración recomendada**: la más larga que sale en un tiempo razonable (Escenario: el nivel automático cabe en el tiempo de
   Blender de esa duración; el resto: unos 90 min como mucho). Ejemplo: en el Mac mini, un Escenario Largo sale con el nivel
   rápido (≈3 h); en un PC de 8 GB sin gráfica, un Largo no sale y se recomienda un Vídeo.
-- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): el apartado desplegable **Tu equipo y calidad**
-  (antes de Opciones) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
+- **Selector** (`VideoEquipo.tsx`, en la app y en la web, que usa el mismo): la diapositiva **Calidad**
+  (la última) enseña el equipo en una línea, lo recomendado (Escenario 3D con sus segundos, imágenes, voz y duración),
   la calidad (Automática, Alta, Rápida, cada una con su nivel y lo que cuesta) y **Usar lo recomendado**: pone `calidad:auto`,
   la voz y, solo si la duración elegida no sale en tiempo razonable, la más larga que sí sale (nunca sube la que elegiste).
   Las estimaciones del selector usan las tasas del equipo (`estimateVideoTime` con `escenarioPerVideoSecond` e
@@ -7056,7 +7129,7 @@ kywai. Va en vertical y en horizontal, con o sin «Diálogo» (kywai y Claude). 
 (`VIDEO_STYLES`), `buildExplainerComposition` en `src/main/videoExplainer.ts`, `robotForms` en `videoCharacters.ts` y el
 cambio de estilo en `sendVideo` (`orchestrator.ts`). Origen: el 23 nov un vídeo de presentador con los robots salió con
 imágenes feas e inapropiadas que no casaban con lo que se decía, «HERMES» como nombre y la cotorra en una tarjeta que se
-balanceaba sin parar; Yil pidió el estilo de un reel de referencia (la medusa).
+balanceaba sin parar; el dueño pidió el estilo de un reel de referencia (la medusa).
 
 **Siempre con peluches y atrezo (1.30.2).** El 24 nov un reel «What is kywai?» salió sin ningún personaje y sin ninguna
 pieza animada: un titular arriba y la pantalla vacía 67 s. Dos causas: (1) las imágenes de los peluches las ponía en
@@ -7084,7 +7157,7 @@ comprobación del equipo (`preflightVideo` en versión ligera), lo cuenta en el 
 tarea vuelve a la cola para escribir el guion de ese tipo con la dirección elegida (`completeSurprise` en
 `orchestrator.ts`). Lo que el usuario sí eligió (la voz, el formato) no se cambia. En el selector, con «Sorpréndeme» se
 ocultan personaje, estilo y estructura; la voz se puede elegir igual. Órbita (Android) aún no lo tiene en su selector.
-Origen: Yil, 23 nov: «una plantilla que se adapte al guion… solo le damos el guion y ya».
+Origen: el dueño, 23 nov: «una plantilla que se adapte al guion… solo le damos el guion y ya».
 
 **«Escenario 3D» (1.18.1).** Otro tipo del selector de «/video» (marca `tipo:escenario`, o escribirlo: «/video
 escenario …», «estilo escenario», «escenario 3D»). Es el vídeo explicativo de siempre (mismo guion, voz, titulares y
@@ -7109,7 +7182,7 @@ bloqueo) y sale el explicativo con los personajes. Dentro del monitor ya no sale
 está delante) y los titulares son un 40 % más grandes para que se lean en la pantalla pequeña (`screen: true` en
 `buildExplainerComposition`). Si el equipo que lo montó tiene una kywai anterior a la 1.18.1 (no conoce el estilo y
 devuelve el explicativo sin decir nada), el chat lo dice y pide actualizar ese equipo (⚙ → Ajustes → Acerca de).
-Origen: Yil, 23 nov, con un reel de referencia: «se ve bonito, fluido, interesante… con volumen»; la muestra con Meshy y
+Origen: el dueño, 23 nov, con un reel de referencia: «se ve bonito, fluido, interesante… con volumen»; la muestra con Meshy y
 Blender en su Mac mini le gustó («mucho mejor»).
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
@@ -7184,7 +7257,7 @@ equipo» esté apagado: entonces el equipo no contesta ninguna petición a sus m
 **Estilos de película hechos en tu equipo** (1.30.63, 25 nov 2026, `src/main/filmOnDevice.ts`). En la nube los estilos
 de película (blueprint, acuarela, urban sketch…) no caben: los dirige un agente con terminal que renderiza con la
 biblioteca del estudio Pro. Hasta la 1.30.62 la nube quitaba el estilo y, con «equipo:si», el vídeo salía siempre igual
-(Yil: «me da el mismo vídeo continuamente, no toma el estilo visual»). Ahora:
+(el dueño: «me da el mismo vídeo continuamente, no toma el estilo visual»). Ahora:
 1. Con un estilo elegido y el equipo conectado con la biblioteca de películas instalada (`films` en lo que cuenta el
    equipo), el selector ofrece «Hacerlo en {equipo}» y, sin tocar nada, la orden se manda allí (como el plató 3D).
 2. La tarea no lanza un agente en la nube: manda el encargo por el puente (`deviceBridge.video(…, 'films')`, antes un
@@ -7205,7 +7278,7 @@ Lo que gasta el agente del equipo va con la cuenta de ese agente en el equipo, n
 **Con la app en modo kywai cloud** (1.31.0, 25 nov 2026, `src/main/videoWorker.ts`). En la 1.30.63 el equipo buscaba el
 director solo entre los agentes de su configuración, y la app en modo nube (un MacBook conectado a kywai cloud) no tiene
 agentes propios ni dónde añadirlos: la película fallaba siempre con «En este equipo no hay un agente con terminal», y la
-nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov). Ahora:
+nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (el dueño, 25 nov). Ahora:
 - **Quién dirige** (`deviceFilmDirector`): el agente de la configuración del equipo si lo tiene; si no, el **Claude
   Code, Codex o Gemini instalado** en él (en ese orden; antes de buscarlos lee el PATH de la terminal, que la app en
   modo nube no leía al arrancar).
@@ -7221,7 +7294,7 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
 - **La corrección vuelve al mismo equipo** (1.47.1, 26 nov 2026). Con varios equipos conectados, `deviceBridge.video()`
   elige cada vez «el que antes terminaría», y una corrección podía caer en otro equipo distinto del de la primera ronda:
   allí la carpeta estaba vacía y el agente contestaba «BLOQUEADA: no hay película ni proyecto previo», que salía como
-  «MacBook-Pro no pudo hacer la película: la carpeta de la película está vacía» (Yil, 26 nov, un `/video tipo:sketch
+  «MacBook-Pro no pudo hacer la película: la carpeta de la película está vacía» (el dueño, 26 nov, un `/video tipo:sketch
   personaje:robots-kywai estilo:blueprint … equipo:si`; no era un vídeo nuevo, era la corrección automática de ese
   mismo vídeo tras ver cabezas cortadas en los planos generales). Ahora la respuesta del puente trae qué equipo recogió
   el trabajo (cabeceras `x-kywai-device-id` y `x-kywai-device-name`), la tarea lo apunta (`meta.filmDevice`) y la
@@ -7230,7 +7303,7 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
   equipo no se bloquea: `fromScratchNote` convierte la corrección en «hazla entera de cero cuidando esto».
 - **El aviso del selector dice la verdad** (`onDeviceNote` en `src/shared/videoPreflight.ts`, 25 nov 2026). Con «en tu
   equipo» elegido y el equipo conectado pero sin poder hacerlo, antes decía «Tu equipo no está conectado» (el selector
-  solo recibía el nombre del equipo si podía hacerlo) y Yil buscó el fallo en la conexión. Ahora `checkVideoChoice`
+  solo recibía el nombre del equipo si podía hacerlo) y el dueño buscó el fallo en la conexión. Ahora `checkVideoChoice`
   devuelve también `connected` (el equipo conectado aunque no pueda) y `filmsMissing`, y dice «MacBook-Pro está
   conectado, pero no puede hacer este vídeo tal cual:» con lo que le falta.
 - **Instalar el director con un clic**: si lo que falta es el agente y el selector se ve en la app de escritorio de ESE
@@ -7244,14 +7317,14 @@ nube se la pasaba a Codex, que iba al mismo equipo y fallaba igual (Yil, 25 nov)
 quedó casi 4 horas «trabajando» en la nube: el estilo de película se quitaba sin avisar, los robots pasaban al plató 3D y
 ese 3D, sin gráfica y con 2 GB, no terminaba nunca. Ahora el selector de `/video` mira lo elegido contra lo que tiene el
 equipo y lo dice **antes de enviar**, debajo de la barra del vídeo:
-- **No se puede aquí** (en la nube: los estilos de película, que llevan «Solo en tu equipo» en su tarjeta, y los robots
+- **No se puede aquí** (en la nube: los estilos de película, que llevan «Se hace en tu ordenador» en su tarjeta y, en la diapositiva de estilos, una nota con el botón «Hacerlo en mi ordenador», y los robots
   de kywai en el plató 3D): explica qué y ofrece **«Hacerlo en versión ligera»**, que cambia solo eso por lo más
   parecido que sí sale (sin película: estilo de kywai; robots: dibujados en cada plano si hay con qué dibujar, o un vídeo
   rápido sin ellos). Elegirla añade la marca `ligero:si`.
 - **Falta instalar algo** (el estudio de vídeo en el equipo): «Instalar ahora». Si no se pulsa, se instala solo con el
   primer vídeo, como siempre.
 - Desde la 1.30.61 el estilo de película **sí se usa en charla y sketch** (antes se ignoraba y salía siempre el plató 3D;
-  Yil: «cada vídeo tiene que salir con el estilo que el usuario seleccionó»): ya no hay nota de «no se usa».
+  el dueño: «cada vídeo tiene que salir con el estilo que el usuario seleccionó»): ya no hay nota de «no se usa».
 El motor lo vuelve a mirar al recibir la orden (vale igual escrita a mano, desde la web, Órbita o una rutina): si algo
 no se puede y no lleva `ligero:si`, **no empieza** y dice qué pasa y cómo seguir. En la nube el plató 3D no se usa nunca.
 Los avisos ocupan su propio sitio entre la barra del vídeo y el cuadro de escribir, uno debajo de otro (1.13.1, 23 nov):
@@ -7259,7 +7332,7 @@ antes salían flotando encima del texto de la orden, de enviar y de «Hablar con
 igual que la marca redonda de las tarjetas (`.check`, posición absoluta). Ahora es `.preflight` en
 `VideoPicker.module.css`; no reutilizar `.check` para otra cosa en ese archivo.
 
-**Cine IA: cortos con calidad de película** (`tipo:cine`, 1.49.0, 26 nov 2026). Pedido por Yil después de ver dos
+**Cine IA: cortos con calidad de película** (`tipo:cine`, 1.49.0, 26 nov 2026). Pedido por el dueño después de ver dos
 referencias: un corto vertical de 29 s al estilo Pixar con personajes iguales en todos los planos y diálogo con labios, y
 el anuncio de la habilidad `claude-animated-shorts` (personajes 2D en un mundo 3D con three.js). El primero es de IA de
 imagen a vídeo; kywai lo hace así (`src/shared/videoCine.ts`, `src/main/videoCine.ts`, `src/main/videoCineEngines.ts`):
@@ -7289,6 +7362,27 @@ imagen a vídeo; kywai lo hace así (`src/shared/videoCine.ts`, `src/main/videoC
   hacer un primer plano real y mirar la respuesta.
 - Fase 2 (no hecha): «Corto animado» en three.js (personajes 2D en mundo 3D, sin generador de IA) con las habilidades
   Motion Skills y Three.js Skills (MIT) como fuentes opcionales; un tipo de créditos `video` para cobrarlo en el portal.
+
+**Cine IA con créditos kywai** (`nivel:`, desde la 1.67.0). En la nube, quien no tiene clave de Gemini también puede hacer
+cortos, pagando con créditos (1 crédito = 1 centavo de USD). Cuatro formas de hacerlo, en el selector de /video → Cine IA
+(marca `nivel:api|rapido|medio|calidad|premium`, solo con `tipo:cine`):
+- **Mi API** (`api`, la de siempre): tu clave de Gemini, a cargo de tu cuenta de Google. No gasta créditos.
+- **Rápido / Medio / Calidad / Premium**: los clips se animan en la nube de kywai y se cobran por segundo de vídeo: Rápido 3
+  créditos por segundo (Pruna P-Video 720p), Medio 15 (Wan 2.6 720p), Calidad 23 (Veo 3.1 Fast 1080p), Premium 135
+  (Seedance 2.5 1080p). Tabla en `CINE_CREDIT_LEVELS` (`src/shared/videoCine.ts`): cada nivel solo admite ciertas duraciones
+  por plano (Rápido de 1 a 10 s, Medio 5, 10 o 15, Calidad 4, 6 u 8, Premium de 4 a 30) y se cobra la más cercana por
+  arriba (`cineBilledSeconds`). El portal de kywai Cloud (repositorio aparte) lleva la animación y el cobro; los precios de
+  la tabla y los del portal deben cambiar a la vez.
+- **El flujo no cambia**: el agente escribe el plan, kywai dibuja personajes y planos (con referencias: 27 créditos el plano
+  con Nano Banana Pro, 5 la hoja de un personaje con Qwen-Image; desde la 1.68.0), enseña el guion gráfico y **espera «Seguir» o «Parar»**. Con créditos,
+  el aviso dice cuántos cuesta animarlo (y hasta cuántos con repeticiones, ×1,5 sobre los clips), cuántos ya se cobraron en
+  imágenes y cuántos le quedan; si no llegan, lo avisa antes de pulsar «Seguir».
+- **Sin elegir nivel**: si hay clave de Gemini, `api`; si no (y es kywai Cloud), `rapido`. Fuera de la nube solo existe `api`
+  (`cineLevelFor` en `orchestrator.ts`).
+- Órbita (Android) todavía no conoce la marca `nivel:`.
+
+Ajustes → Multimedia → «Generar vídeos con…»: en kywai Cloud sale una nota que manda al Estudio de vídeo → Cine IA para
+los clips que se pagan con créditos; fuera de la nube no sale nada (los créditos solo existen en la nube).
 
 **Nunca colgado.** El render se para solo si pasa **10 minutos sin avanzar** o **40 minutos** en total, y entonces se
 cierra **con todo lo que abrió** (el navegador oculto y ffmpeg, que antes se quedaban vivos y dejaban a kywai esperando
@@ -7421,7 +7515,7 @@ las emociones en inglés y otras palabras como «feliz» o «excited»).
   parece; si ni así llega a 0,6 avisa («dudosa») y kywai la trata como una frase que se alargó (se repite una vez y, si
   no, voz normal). Probado con el guion del reel malo: el balbuceo y las repeticiones desaparecen.
 - Quien la interpreta es **Chatterbox Multilingual** (Resemble AI, licencia MIT, `src/main/chatterbox.ts`): en el propio
-  equipo, gratis, 23 idiomas. No cambia la velocidad ni el tono del audio (eso suena robótico: Yil lo probó con Edge y
+  equipo, gratis, 23 idiomas. No cambia la velocidad ni el tono del audio (eso suena robótico: el dueño lo probó con Edge y
   lo descartó); el modelo actúa la frase con más o menos emoción (`exaggeration` y `cfg_weight`, tabla
   `CHATTERBOX_EMOTION`). **Copia el timbre de la voz elegida**: kywai hace una vez una muestra de 15 s con esa voz
   (Álvaro, Jorge, Carmen, Bella…) en `<studio>/chatterbox/muestras/` y Chatterbox habla con ese timbre, así que la voz
@@ -7551,7 +7645,7 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    (`StageData.plush`, las imágenes assets/forma-*.png) **con volumen**: una cabeza de fieltro redondeada en three.js
    con el dibujo proyectado de frente (visor, ojos y mofletes), los lados y la espalda del color del fieltro, las orejas
    como almohadillas y el adorno de arriba recortado del dibujo. Giran de verdad para mirarse, proyectan sombra y hablan
-   rebotando y estirándose con cada sílaba (no tienen boca ni manos). Primero fueron carteles planos y Yil dijo que se
+   rebotando y estirándose con cada sílaba (no tienen boca ni manos). Primero fueron carteles planos y el dueño dijo que se
    veían como una imagen 2D. **Desde la 1.30.33, si están, son sus modelos 3D de verdad**: kywai, Claude, Codex y
    Gemini hechos con Meshy (imagen a 3D) a partir de sus peluches, en `src/main/peluches3d/*.glb` (texturas webp de
    1024, sin compresión de malla). `robotModels3d()` (videoCharacters.ts) los encuentra, el estudio los copia como
@@ -7587,7 +7681,7 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    motor de imágenes, el aspecto solo cambiaría la pantalla gigante, que entonces lleva fondos de diseño.
    **Sin aspecto elegido, siempre van en el plató 3D animado** con los peluches de Meshy, aunque haya ComfyUI en el
    equipo (ComfyUI dibuja entonces solo la pantalla de detrás). Hasta la 1.30.60 se dibujaban con ComfyUI en «Cine 3D»
-   y el vídeo salía de imágenes quietas; Yil preguntó «¿dónde están los robotitos animados?».
+   y el vídeo salía de imágenes quietas; el dueño preguntó «¿dónde están los robotitos animados?».
    **Con un estilo de película elegido** (`estilo:urban-sketch`…), la charla o el sketch **se hacen en ese estilo**: van
    por el agente que dirige las películas (`filmPrompt`, con las reglas del tipo, el diálogo y los robots dibujados en el
    estilo), en vertical salvo que se pida horizontal. Hasta la 1.30.61 `parseVideoRequest` tiraba el estilo y todo
@@ -7648,7 +7742,7 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    en su servidor puede ponerla para todos en `KYWAI_PEXELS_KEY`). Sin clave, el vídeo sale igual con imágenes y la
    tarjeta lo dice. Al lado del MP4 queda `<título>-creditos.txt` con el autor y el enlace de cada clip (Pexels pide
    decir de dónde salen). En presentador, mixto y charla este aspecto solo da imágenes de aspecto fotográfico.
-4. **Voz.** **En español solo salen tres voces**, elegidas por Yil escuchando 28 muestras: **Álvaro** (Edge,
+4. **Voz.** **En español solo salen tres voces**, elegidas por el dueño escuchando 28 muestras: **Álvaro** (Edge,
    España, `voz:edge-es-ES-AlvaroNeural`, la de por defecto, sin marca), **Jorge** (Edge, México,
    `voz:edge-es-MX-JorgeNeural`) y **Carmen** (Siri de macOS, México, `voz:mac-carmen`). Edge va con **edge-tts** en el
    entorno de Python del estudio (lo instala «Instalar lo que falta» o la primera vez que se usa; necesita internet).
@@ -7660,7 +7754,7 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    «Voice 2»: se busca por su identificador, no por el nombre. La muestra ▶ la prepara siempre el servidor, así que
    desde un cliente (Linux, Windows) Carmen suena si funciona en el Mac servidor. Si una de estas falla en un vídeo,
    el vídeo sale con el orden de siempre.
-   **En inglés salen solo 11**, elegidas por Yil de 60 muestras: de Kokoro **Bella** (la de por defecto), Heart,
+   **En inglés salen solo 11**, elegidas por el dueño de 60 muestras: de Kokoro **Bella** (la de por defecto), Heart,
    Nicole, Sarah, Adam (Estados Unidos), Isabella y George (Reino Unido), y de Edge **Aria**, **Guy** (Estados Unidos),
    **Sonia** y **Ryan** (Reino Unido). Sin Kokoro instalado, la de por defecto se salta y va el orden de siempre. La
    lista de cada idioma está en `LANG_VOICES` (`src/shared/videoChoice.ts`).
@@ -7743,7 +7837,7 @@ pantallas negras de más de 0,8 s, imagen congelada 4 s o más, silencio total 4
 horizontal (o al revés, o cuadrado), lo devuelve diciendo que hay que cambiar el lienzo **y** la captura del render, no
 solo el diseño; y mira un fotograma cada 2 s con `cropdetect` (`fillIssue`): si la zona no negra es siempre la misma y
 ocupa entre el 25 % y el 85 % del cuadro, devuelve «la imagen no llena el cuadro» con las medidas. Salió así en un sketch
-de Yil (`/video tipo:sketch personaje:robots-kywai estilo:blueprint … equipo:si`): un MP4 de 1920×1080 con una página
+del dueño (`/video tipo:sketch personaje:robots-kywai estilo:blueprint … equipo:si`): un MP4 de 1920×1080 con una página
 vertical de 1080 px de ancho arriba a la izquierda y el 44 % en negro, con cabezas y títulos cortados; kywai solo
 miraba pantallas negras enteras y el revisor pedía «ajusta el encuadre», así que Codex movía el rótulo y el vídeo se
 entregó con el aviso de «requiere intervención». Una escena oscura no cuenta (su recuadro cambia de un fotograma a
@@ -8646,7 +8740,7 @@ un poco antes de quedarse quieto. Al abrirla, el líquido baja, se estrecha y se
 y su sitio. Con «Reducir
 movimiento» del sistema cambia sin animación.
 
-**Sin saltos al abrir y plegar** (23 nov 2026, v1.6.6, pedido por Yil: «se separa y luego en otro cuadro aparece
+**Sin saltos al abrir y plegar** (23 nov 2026, v1.6.6, pedido por el dueño: «se separa y luego en otro cuadro aparece
 junto, no es fluido»). La barra, el logo y el líquido van ahora a la par en un solo movimiento:
 - **Al plegar**, la gota empieza a caer mientras la barra se estrecha (antes esperaba y el logo se quedaba suelto
   encima), el recuadro del logo se desvanece justo cuando el líquido llega a él y la columna sube **suave**, sin
@@ -8703,7 +8797,7 @@ La **rueda ⚙** (abajo en la barra lateral) abre un menú corto, como en Claude
 línea; la explicación sale al pasar el ratón). Debajo van los interruptores que más se tocan, para cambiarlos sin
 abrir nada: **Sonido** (silencia o devuelve la música, los efectos y las voces a la vez), **Permisos** de los agentes y
 **Visto bueno a cada plan**. **Tema**, **Interfaz** e **Idioma** ya no están en este menú (23 nov 2026, pedido por
-Yil): se cambian solo en **Todos los ajustes…** → General → Apariencia. Después, **Uso y coste…**, la versión
+el dueño): se cambian solo en **Todos los ajustes…** → General → Apariencia. Después, **Uso y coste…**, la versión
 nueva cuando la hay (**Actualizar kywai…** o **Actualizar este equipo…**, en amarillo), **Todos los ajustes…**
 (también **Ctrl+,**; ⌘, en el Mac) y, al final, **Reportar un problema…** y **Apoyar kywai**.
 
@@ -8746,7 +8840,7 @@ sección ya abierta.
   (permisos, visto bueno a cada plan, revisar con ojos nuevos) y *Aspecto en el 3D* (aspecto, tamaño del píxel y el
   coordinador que te avisa en el 3D).
 - **Extensiones**: servidores MCP, apps conectadas, habilidades, plugins y mods.
-- **Multimedia** (sección propia desde el 23 nov 2026, pedido por Yil): junta todo lo de imagen y vídeo. Arriba,
+- **Multimedia** (sección propia desde el 23 nov 2026, pedido por el dueño): junta todo lo de imagen y vídeo. Arriba,
   *Imágenes y vídeos* (con qué se generan, antes en General; ver «Elegir con qué se generan las imágenes y los
   vídeos»). Debajo, el *Estudio de vídeo* (antes una pestaña de Extensiones): lo que tiene el equipo para montar
   vídeos con «Instalar lo que falta» e «Instalar ComfyUI», *Tu equipo* (estudio Pro), Pexels, la voz de ElevenLabs,
@@ -8841,7 +8935,7 @@ y solo lo que cambia; la mascota que mira (`WatchingMascot`) se mide una vez por
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 
-**Que el 3D no frene la interfaz (1.30.26).** Yil, 24 nov 2026: «sigo sintiendo que consume mucho, me muevo medio lento
+**Que el 3D no frene la interfaz (1.30.26).** El dueño, 24 nov 2026: «sigo sintiendo que consume mucho, me muevo medio lento
 en los menús y el espacio 3D». La interfaz gasta poco procesador; lo que carga es la tarjeta gráfica (el 3D a 30 fps
 con unas 35 pasadas de efectos). Ahora:
 - **Menús y desplegables congelan el 3D** mientras están abiertos, como ya hacían las ventanas (`COVER_SELECTOR` en
@@ -9297,7 +9391,7 @@ El chat se lee como ChatGPT o Claude, sin «muro de letras»:
 
 - **La respuesta de un agente va sin caja:** el texto suelto, junto a su avatar. Tus mensajes siguen en su burbuja, y
   los errores en su caja roja para que no pasen desapercibidos.
-- **Tú a la derecha, los agentes a la izquierda** (21 nov 2026, pedido por Yil): tu foto, tu nombre y tu burbuja van a
+- **Tú a la derecha, los agentes a la izquierda** (21 nov 2026, pedido por el dueño): tu foto, tu nombre y tu burbuja van a
   la derecha (con la muesca arriba a la derecha) y las respuestas de los agentes a la izquierda. Las dos burbujas
   empiezan y acaban en las mismas líneas: cada una deja libre la columna de la foto del otro lado. En el chat estrecho
   las dos usan todo el ancho. Lo que escribe un amigo en un proyecto compartido sigue a la izquierda.
@@ -9305,7 +9399,7 @@ El chat se lee como ChatGPT o Claude, sin «muro de letras»:
   que la tuya: mismas esquinas redondeadas con la muesca, mismo margen interior y mismo brillo de borde; solo cambia
   el color (la tuya azul, la suya cristal claro). Antes salía un recuadro cuadrado con el texto pegado al borde.
   Por dentro: `ui/left/Messages.module.css` (`.msgRight` y las reglas `:root[data-glass]` de las burbujas).
-- **La caja de escribir** (21 nov 2026, pedido por Yil): la sugerencia gris («… ⇥ Tab») se ve entera aunque ocupe
+- **La caja de escribir** (21 nov 2026, pedido por el dueño): la sugerencia gris («… ⇥ Tab») se ve entera aunque ocupe
   dos líneas (la caja ajusta su alto también cuando cambia la sugerencia, no solo al escribir), y el botón de enviar
   (y «Detener») queda siempre centrado en vertical. Por dentro: `ui/left/Composer.tsx` y `Composer.module.css`.
 - **Letra e interlineado:** 15 px con interlineado 1,7 en el escritorio y la web (antes 14 px y 1,55). En Órbita el
@@ -9382,13 +9476,13 @@ Por dentro: `src/main/safeUnzip.ts` (`readZipIndex`, `safeUnzip`, `ZIP_LIMITS`),
 
 ### Miniaturas de imágenes, vídeos y PDF en el chat
 
-(24 nov 2026, v1.28.5; pedido por Yil: «como lo haces tú, Claude».) Lo que entrega un agente que sea **imagen, vídeo
+(24 nov 2026, v1.28.5; pedido por el dueño: «como lo haces tú, Claude».) Lo que entrega un agente que sea **imagen, vídeo
 o PDF** sale en el chat como una **miniatura compacta**, igual que al compartir un archivo en Claude: arriba a la
 izquierda la etiqueta del tipo («PNG», «MP4», «PDF») y debajo el nombre del archivo. Ya no sale la imagen a todo lo
 ancho ni la barra de «Descargar / Abrir» debajo.
 
 - **Clic** en la miniatura: se abre en grande en el panel de vista previa (con ‹ › para pasar por todo el mensaje).
-  Dónde (v1.28.6, pedido por Yil): en la columna del espacio 3D, a la derecha del chat; si esa columna la ocupa otro
+  Dónde (v1.28.6, pedido por el dueño): en la columna del espacio 3D, a la derecha del chat; si esa columna la ocupa otro
   chat (el chat de al lado) o el navegador, en grande y delante de todo, como «Ampliar». Un archivo que se abre desde
   el propio chat de al lado también sale en grande delante, en la ventana principal (mensaje `preview` del marco).
   Código: `openPreview`/`openViewer` en `store/cowork.ts`, `ChatPaneApp.tsx` y `SplitChat.tsx`.
@@ -9523,7 +9617,7 @@ se monta.
 
 ### Ventanas que se agrandan (estirar, maximizar y recordar el tamaño)
 
-Desde la 1.32.0 (25 nov 2026, pedido por Yil: «quiero ver más menú a la vez») **Ajustes** y las demás ventanas largas
+Desde la 1.32.0 (25 nov 2026, pedido por el dueño: «quiero ver más menú a la vez») **Ajustes** y las demás ventanas largas
 se agrandan:
 
 - **Estirar** desde cualquier borde o esquina: al acercar el ratón cambia el cursor, el borde se ilumina mientras
@@ -9633,7 +9727,7 @@ y un buscador (sin tildes ni mayúsculas, y que también encuentra por lo escrit
 - **Por qué kywai**: diez ventajas reales y tres comparaciones generales (asistentes como Claude o ChatGPT, editores
   como Cursor, agentes autónomos como Manus). Solo van cosas que existen hoy y se pueden comprobar en la app.
 
-**El robot de kywai** (abajo de la misma ventana, 26 nov 2026, pedido por Yil): una caja de chat con la cotorra donde la
+**El robot de kywai** (abajo de la misma ventana, 26 nov 2026, pedido por el dueño): una caja de chat con la cotorra donde la
 persona escribe una duda de uso y el robot contesta con la base de conocimiento de kywai (los apartados de `ayuda.ts`,
 las 53 órdenes «/» y, donde el manual viaja con la app, extractos del manual). Es solo ayuda de uso: no crea tareas, no
 toca archivos y no pertenece a ningún proyecto ni chat. Funciona así:
@@ -9842,7 +9936,7 @@ mapas; entre paréntesis, cómo se llamaban cuando eran temas sueltos:
 - **Amatista** (`liquido`; hasta el 20 nov 2026 se llamaba «Vidrio líquido»): la ciudad con colores de aurora
   (violeta, verde agua y rosa). Con la Interfaz en Normal, sus paneles son un esmerilado gris neutro.
 
-**Interfaz: Normal o Vidrio líquido** (20 nov 2026, pedido por Yil: «que la interfaz vidrio líquido sea una opción en
+**Interfaz: Normal o Vidrio líquido** (20 nov 2026, pedido por el dueño: «que la interfaz vidrio líquido sea una opción en
 sí misma»). En ⚙ → Ajustes → General → Apariencia, debajo de «Tema» (desde el 23 nov 2026 ya no está en el menú ⚙). El tema elige
 el fondo del espacio y los colores; la Interfaz elige si el chat, los Ajustes, los paneles y la barra lateral son los
 de siempre o cristal líquido, y se combina con cualquier tema (mapas, decorados, Oficina, Ciudad digital). Se guarda en
@@ -9854,7 +9948,7 @@ los temas oscuros y claro en Perla, Refugio y la Oficina de día (borde de luz m
 `scene/World.tsx` monta el cristal de verdad con la Interfaz en Vidrio líquido, sea cual sea el tema.
 Dónde va el 3D (a toda la ventana detrás del chat con cristal, o en su panel) lo decide `App.tsx` con `useGlass()`,
 que sigue el tema y la Interfaz. Hasta el 22 nov 2026 solo seguía el tema: al elegir Vidrio líquido el 3D se quedaba en
-su panel hasta tocar otra vez el ajuste, y al volver a Normal se quedaba tapado detrás (pedido por Yil: «tengo que
+su panel hasta tocar otra vez el ajuste, y al volver a Normal se quedaba tapado detrás (pedido por el dueño: «tengo que
 reajustarla para que aplique» y «el espacio 3D deja de verse»). La prueba está en `lib/theme.test.ts`.
 
 **Ajustar el vidrio** (21 nov 2026, idea del vídeo «Agentic Liquid Glass»: «un desenfoque tiene un control; el vidrio de
@@ -9865,7 +9959,7 @@ todos hasta 2 salvo la escarcha, hasta 1; el valor de fábrica es `DEFAULT_LOOK`
 `scene/LiquidGlass.tsx` los pasa a los uniformes del sombreador (`uRefr`, `uDisp`, `uFrost`, `uLight`, `uThick`).
 Solo cambia el cristal de verdad (con el 3D visible y calidad media o alta); el esmerilado de reserva no cambia.
 
-*En tiempo real* (23 nov 2026, kywai 1.15.5; pedido por Yil: «cuando esté moviendo los sliders necesito ver en tiempo
+*En tiempo real* (23 nov 2026, kywai 1.15.5; pedido por el dueño: «cuando esté moviendo los sliders necesito ver en tiempo
 real cómo cambia el cristal líquido»). Hasta entonces no se veía: con los Ajustes abiertos el 3D se queda quieto
 (`scene/sceneCover.ts`, para evitar parpadeos) y el cristal lo pinta el 3D, así que el cambio no se dibujaba hasta
 cerrarlos; además el velo oscuro de la ventana tapaba la app. Ahora, al pulsar un deslizador (o moverlo con las
@@ -9877,7 +9971,7 @@ sale con sombras para que el deslizador no se mueva bajo el dedo). Si el cristal
 o calidad Baja; `useLiquidGlassOn()` mira `data-lg`), no se apartan y la pista lo explica. Pruebas en
 `lib/glassPeek.test.ts` y `scene/sceneCover.test.ts`.
 
-*Letras legibles con cualquier ajuste* (23 nov 2026, kywai 1.15.5; Yil: «las letras no se ven bien por el contraste»,
+*Letras legibles con cualquier ajuste* (23 nov 2026, kywai 1.15.5; el dueño: «las letras no se ven bien por el contraste»,
 en la ficha de Hermes con Refracción 0, Arcoíris 100, Escarcha 1, Luz 100 y Grosor 100 sobre la Oficina). Con la escarcha
 casi a 0 el cristal apenas oscurecía y, sobre un fondo claro, las pistas grises quedaban sobre un gris claro. Ahora el
 sombreador (`lib/liquidShader.ts`) pone un tope: con letras claras, lo que se ve dentro del cristal no pasa de
@@ -9898,7 +9992,7 @@ claro en los claros y oscuro en los oscuros) al 82-90 %. Capturas en `/mnt/proje
   mapa de desplazamiento SVG por panel, dibujado a la mitad de tamaño y rehecho al cambiar de tamaño). En Safari y
   Firefox queda el vidrio sin doblar. Con «Reducir transparencia» del sistema el vidrio pasa a casi opaco y sin
   refracción. Tus mensajes van en el único azul de la interfaz. Basado en la skill MIT «liquid-glass-skill».
-  - **Cristal de verdad** (20 nov 2026, pedido por Yil: «no un frost, sino uno que mueva la luz y distorsione el
+  - **Cristal de verdad** (20 nov 2026, pedido por el dueño: «no un frost, sino uno que mueva la luz y distorsione el
     fondo y se vea 3D»). Con el espacio 3D visible y la calidad gráfica media o alta, el vidrio ya no es un
     esmerilado: lo dibuja la tarjeta gráfica encima de la imagen del espacio, en el mismo fotograma
     (`scene/LiquidGlass.tsx` con el sombreador de `lib/liquidShader.ts`). Imita lo que Apple cuenta de su Liquid Glass
@@ -9908,20 +10002,20 @@ claro en los claros y oscuro en los oscuros) al 82-90 %. Capturas en `/mnt/proje
     arriba a la izquierda y gira un poco con el ratón; el canto opuesto refleja menos. Lo «líquido»
     (`lib/liquidDrops.ts`): los botones de la barra del espacio son gotas de cristal que se funden entre sí cuando
     están cerca, se aplastan y rebotan al pulsarlos, la luz nace bajo el dedo, y la pestaña elegida del chat y el
-    3D/2D llevan una gota que se desliza con un muelle y se estira al moverse. Valores fijados por Yil en la maqueta
+    3D/2D llevan una gota que se desliza con un muelle y se estira al moverse. Valores fijados por el dueño en la maqueta
     (https://claude.ai/artifact/K3c1E7HaMVs6Em7P6BzgKj): refracción, grosor, arcoíris y luz al máximo y esmerilado 15.
     Mientras está encendido, `:root` lleva `data-lg` y los paneles con `data-refract="before"` quitan su esmerilado
     (`theme-liquido.css`). **Modo ligero**: si eliges la calidad «Baja» a mano, el espacio se cierra o pasa a 2D, la
     ventana se oculta o el sistema pide «Reducir transparencia», se desmonta y vuelve solo el esmerilado de arriba.
-    Desde el 21 nov 2026 (aviso de Yil: «de repente se pone frost y el fondo se queda en negro») el ajuste automático
+    Desde el 21 nov 2026 (aviso del dueño: «de repente se pone frost y el fondo se queda en negro») el ajuste automático
     ya no lo quita: si el equipo no llega a 24 fps baja la resolución y las partículas, pero el cristal se queda. Los menús emergentes siguen esmerilados (cristal sobre cristal no
     se leería).
-    **Barra plegada unida al logo** (20 nov 2026, arreglado por aviso de Yil): el sombreador toma el radio mayor de
+    **Barra plegada unida al logo** (20 nov 2026, arreglado por aviso del dueño): el sombreador toma el radio mayor de
     las esquinas de cada panel (al unirse al logo, la barra cuadra solo las de arriba; antes salía cuadrada también
     abajo) y, con la barra unida del todo (`data-fused` + `:root[data-logo-fused]`), sube su rectángulo `--bar-reach`
     píxeles para envolver el logo: barra y logo son una sola pieza de cristal, sin el canto brillante que dejaba una
     raya bajo el logo. El líquido de `LogoBridge` solo se ve mientras se une.
-    **Más ligero** (24 nov 2026, Yil: «me gusta como se ve pero pone la interfaz lenta»): con Vidrio líquido el 3D
+    **Más ligero** (24 nov 2026, el dueño: «me gusta como se ve pero pone la interfaz lenta»): con Vidrio líquido el 3D
     ocupa toda la ventana, y el cristal se calculaba en cada punto de la ventana repasando todas las piezas (hasta 40).
     Ahora se dibuja por trozos (`glassDraws` en `lib/liquidShader.ts`): un trozo por pieza, recortado a su caja más
     `GLASS_EDGE` px, y en cada trozo solo cuentan las piezas a menos de `GLASS_REACH` px (lo que alcanza la unión
@@ -9929,7 +10023,7 @@ claro en los claros y oscuro en los oscuros) al 82-90 %. Capturas en `/mnt/proje
     680 ms a unos 180 ms por fotograma. Además las piezas solo se vuelven a medir mientras algo puede moverlas (la
     ventana cambia, una transición o animación de CSS, desplazar, pulsar o arrastrar, escribir, una gota que se
     desliza; `HOT_MS`) y, por si acaso, uno de cada diez fotogramas (`remeasure`); antes se medían en todos.
-    **Sin parpadeos con una ventana encima** (21 nov 2026, aviso de Yil: «cuando una ventana o chat está por encima
+    **Sin parpadeos con una ventana encima** (21 nov 2026, aviso del dueño: «cuando una ventana o chat está por encima
     y subes o bajas una lista da flashazos y microcortes donde el modelo 3D se pone en primer plano»). Tres causas:
     (1) el evento de desplazar (`scroll`) no trae ratón y la luz del cristal recibía `NaN`, así que el canto del
     cristal salía negro o blanco un fotograma (ahora `lightDirection` ignora posiciones que no son números y solo
@@ -9940,7 +10034,7 @@ claro en los claros y oscuro en los oscuros) al 82-90 %. Capturas en `/mnt/proje
     ahora el lienzo se queda en su último fotograma (`frameloop` «never») y no se mide el rendimiento mientras está
     tapado; al cerrar la ventana vuelve solo. Además, si la tarjeta gráfica pierde el lienzo (`webglcontextlost`),
     se vuelve a crear en vez de quedarse en negro.
-    **Brillo al pasar el ratón en las pestañas** (20 nov 2026, arreglado por aviso de Yil): en los grupos con gota
+    **Brillo al pasar el ratón en las pestañas** (20 nov 2026, arreglado por aviso del dueño): en los grupos con gota
     (`data-gotas`), los hijos se ponen `position: relative` para quedar sobre la gota; la pieza del brillo que se
     desliza (`data-glide-pill`, `lib/touchFeedback.ts`) queda excluida, porque si deja de ser `absolute` se coloca
     tras la última pestaña y el brillo sale a la derecha, vacío.
@@ -10045,7 +10139,7 @@ Código: `SourcePicker` e `InfoTip` en `ui/space/MusicPanel.tsx`. Las fuentes:
 - **ytm-rs:** YouTube Music sin anuncios y con letras, con la app [ytm-rs](https://github.com/grapedjuice/ytm-rs) que
   kywai lleva por dentro desde la 1.36.0 (ver más abajo). Sustituye desde la 1.33.0 a la pestaña Spotifast (Spotify).
 
-La pestaña **Audius** se quitó en la 1.33.0 (lo pidió Yil). Las canciones de Audius que quedaran en la cola salen
+La pestaña **Audius** se quitó en la 1.33.0 (lo pidió el dueño). Las canciones de Audius que quedaran en la cola salen
 de ella al abrir kywai, y quien la tuviera elegida vuelve a la pestaña YouTube. Órbita deja de enseñarla; un Órbita
 antiguo que aún la pida recibe la lista vacía.
 
@@ -10099,7 +10193,7 @@ sesión en Google; si quedó una sesión de antes, sale «Cerrar sesión» para 
 
 **ytm-rs** es una app de escritorio gratis y de código abierto (licencia GPL-3.0, de grapedjuice) para escuchar
 YouTube Music en Windows, Mac y Linux. **Desde la 1.36.0 kywai la lleva por dentro**: nadie tiene que instalarla ni
-abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y abrir su app»).
+abrir su ventana (lo pidió el dueño: «qué sentido tiene si tengo que instalar y abrir su app»).
 - **Su copia:** kywai usa una versión fija (`YTMRS_TAG`, hoy `v0.4.0-kywai.3`) compilada en el fork público
   [Yiku21/ytm-rs](https://github.com/Yiku21/ytm-rs). El fork añade a su mando las órdenes que necesita kywai (poner una
   canción, la cola, la posición, la letra, abrir su ventana y cerrarse) y un modo «por dentro» (`YTM_EMBEDDED`: arranca
@@ -10155,7 +10249,7 @@ abrir su ventana (lo pidió Yil: «qué sentido tiene si tengo que instalar y ab
   `YTMRS_TAG` y las huellas de `YTMRS_ASSETS` en kywai.
 
 ytm-rs es un cliente no oficial de YouTube Music: usa la API interna de su web y suena sin anuncios aunque no haya
-Premium, cosas que las condiciones de YouTube no permiten. Llevarla dentro fue decisión de Yil, avisado de ello. kywai
+Premium, cosas que las condiciones de YouTube no permiten. Llevarla dentro fue decisión del dueño, avisado de ello. kywai
 solo le manda órdenes fijas (sin texto del usuario). Si YouTube cambia algo, ytm-rs puede dejar de sonar hasta que se
 publique una versión nueva. Código: `src/main/ytmrs.ts` (descargar, abrir y hablar con su mando), `@shared/ytmrs`
 (acciones, órdenes y lectura de lo que suena), `src/main/lyrics.ts` y `@shared/lyrics` (letras), y
@@ -10255,9 +10349,9 @@ alrededor), explica y habla (al trabajar, se van alternando), celebra (tarea ter
 saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se reconocen por el nombre o el id del agente;
 los demás agentes y los becarios siguen siendo robots.
 
-**Todos los peluches miden lo mismo en el 3D (24 nov 2026, v1.28.1; Yil: «¿por qué hay agentes más pequeños que otros?»).** El peluche de cada agente va de pie sobre el robot de siempre, que sigue escondido debajo para los indicadores y el nombre. Antes el peluche se escalaba con la altura de ese robot, que cambia según su cuerpo y su adorno (antena, orejas, pelo…), y unos salían hasta un 40 % más pequeños que otros. Ahora todos usan la misma altura de referencia (`PLUSH_SPAN` en `src/renderer/src/scene/Robot.tsx`); los de más atrás solo se ven algo menores por la perspectiva.
+**Todos los peluches miden lo mismo en el 3D (24 nov 2026, v1.28.1; el dueño: «¿por qué hay agentes más pequeños que otros?»).** El peluche de cada agente va de pie sobre el robot de siempre, que sigue escondido debajo para los indicadores y el nombre. Antes el peluche se escalaba con la altura de ese robot, que cambia según su cuerpo y su adorno (antena, orejas, pelo…), y unos salían hasta un 40 % más pequeños que otros. Ahora todos usan la misma altura de referencia (`PLUSH_SPAN` en `src/renderer/src/scene/Robot.tsx`); los de más atrás solo se ven algo menores por la perspectiva.
 
-**El peluche, único aspecto de kywai (24 nov 2026, v1.26.4; pedido por Yil: «que sea el nuevo estilo de kywai, todo
+**El peluche, único aspecto de kywai (24 nov 2026, v1.26.4; pedido por el dueño: «que sea el nuevo estilo de kywai, todo
 usará esos agentes, quita los otros y elimina la opción de personalizar»).** Desde esta versión todos los agentes son
 su peluche en todas partes (chat, fichas, listas, espacio 2D, espacio 3D y vídeos) y lo que se cuenta abajo sobre
 elegir aspecto queda como historia:
@@ -10311,7 +10405,7 @@ modelo 3D o aspecto lo conservan.
 La técnica (dibujo pintado en capas, ojos SVG que siguen al ratón y reacciones al tocar) se inspira en AnyModelBot
 (licencia MIT); los dibujos son nuestros, no los suyos.
 
-**«Personajes» solo en Ajustes (Yil, 23 nov 2026, v1.6.5).** kywai ya no usa el estilo «Personajes» para enseñarse: se
+**«Personajes» solo en Ajustes (el dueño, 23 nov 2026, v1.6.5).** kywai ya no usa el estilo «Personajes» para enseñarse: se
 puede seguir eligiendo (va el último del selector, `SKINS` en `scene/characters.ts`) y quien ya lo tenía lo conserva,
 pero no sale en ningún otro sitio. Lo que se ve por defecto es «Formas animadas» o, donde hace falta un dibujo
 fijo, los robots «Clásico». La copia de las imágenes de los «Robots de kywai» de «/video» en
@@ -10328,8 +10422,8 @@ drowsy, el resto → idle) y se queda quieta a los 8 s de cada cambio para no ga
 seguía con la cotorra dibujada aunque el 3D, el 2D y la ficha ya enseñaran la forma.
 Desde la 1.17.7 las tres (`CoordinatorBird`, `MascotSticker` y la cotorra del espacio 2D en `space2d/Space2D.tsx`)
 llevan el mismo volumen que el 3D: la clase `FIGURE_CLASS` (ojos) y el filtro `figureVolumeFilter(size)` de
-`lib/figureVolume.ts`, como `AgentFigure`. Sin él, la cotorra del chat era la forma de colores planos y a Yil le
-parecía fea. (Se probó también poner en el 3D la cotorra con volumen de Meshy del estilo «Escenario», pero Yil prefirió
+`lib/figureVolume.ts`, como `AgentFigure`. Sin él, la cotorra del chat era la forma de colores planos y al dueño le
+parecía fea. (Se probó también poner en el 3D la cotorra con volumen de Meshy del estilo «Escenario», pero el dueño prefirió
 la forma: «el otro parece un globo, es una pelota». El trabajo está guardado en la carpeta del proyecto,
 `parches/cotorra-3d/cotorra-3d-volumen-completo.patch`, por si sirve para /video.)
 
@@ -10430,14 +10524,14 @@ paquete de marca están en la carpeta del proyecto «mascota-kywai».
 cotorra en el chat y en el espacio 2D (se recuerda en ese dispositivo). Hay 14: Pegatina (la de siempre, predeterminada),
 Facetas, Juguete, 3D suave, Plastilina, Fieltro, Papel, Acuarela, Anime, Cómic, Píxel, Vidriera, Grabado y Gominola. Cada
 estilo trae las 13 emociones en `assets/mascota/estilos/<estilo>/<emoción>.webp` (288 px, fondo transparente, pies abajo).
-Salen de las láminas que pasó Yil el 20 nov, recortadas y sin fondo; como las láminas no traen «revisa», «entrega» ni
+Salen de las láminas que pasó el dueño el 20 nov, recortadas y sin fondo; como las láminas no traen «revisa», «entrega» ni
 «asoma», revisa usa la del portátil, entrega la del guiño (en Facetas, la de contento) y asoma la del saludo. Para añadir
 un estilo: su carpeta con las 13 emociones y su id y nombre en `lib/mascotStyle.ts` (la prueba comprueba que no falte
 ninguna). Si a un estilo le falta una emoción, sale la de la pegatina.
 
 ### La cotorra que te mira
 
-Ahora no sale en el chat vacío: Yil prefirió la pegatina «Asoma» (la cotorra detrás del logo de kywai), que volvió ahí
+Ahora no sale en el chat vacío: el dueño prefirió la pegatina «Asoma» (la cotorra detrás del logo de kywai), que volvió ahí
 el 18 nov. El componente sigue en la app por si se usa en otro sitio. Cuando se usa, la cotorra **gira la cabeza hacia donde está el ratón** (nueve direcciones; cerca de ella mira al
 frente) y **reacciona si la tocas**: parpadea y pone una cara (corazón, chispas o contenta, por turnos); si la tocas
 cuatro veces seguidas, se marea. Es un botón (`ui/common/WatchingMascot.tsx`, lógica en `lib/watchMascot.ts`), así que
@@ -10469,7 +10563,7 @@ pulsando el agente en el espacio → **Crea tu agente: dale su propio aspecto** 
 
   **De la comunidad** (solo kywai Cloud): debajo salen los diseños que ha compartido la gente. Pulsas uno y tu agente
   lo usa al momento, con sus 8 expresiones, sin gastar Meshy. En la self host esa sección solo dice que la galería es de
-  kywai Cloud, con un enlace: allí cada uno crea los suyos con su clave de Meshy (decisión de Yil, 19 nov 2026). El
+  kywai Cloud, con un enlace: allí cada uno crea los suyos con su clave de Meshy (decisión del dueño, 19 nov 2026). El
   portal lo hace cumplir: la lista (`GET /api/aspecto/comunidad`) pide el secreto del espacio y cada imagen una firma
   `?f=` que da la lista y caduca a las 24 h (`portal/comunidad.py`; en la app `communityLooks` y `communityImage`).
   **Compartir con la comunidad** manda tu diseño a revisión:
@@ -10516,11 +10610,11 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   cristal, engranaje, burbujas), **Animales** (osito, gato, conejo, rana, búho, pulpo, medusa, cangrejo, ballena,
   murciélago, bicho, araña, erizo), **Criaturas** (fantasma, alien, monstruo) y **Objetos** (nube, flor, antena, sol, tele,
   cascos, satélite, dron). En el selector van todas seguidas en ese orden, sin títulos de grupo, para no dejar huecos
-  (Yil, 23 nov). Todas son propias de kywai (no copian personajes de nadie), siluetas sencillas de un solo
-  color (como mucho, piezas finas un poco más oscuras) y con los mismos movimientos en 3D y 2D. Yil eligió el estilo
+  (el dueño, 23 nov). Todas son propias de kywai (no copian personajes de nadie), siluetas sencillas de un solo
+  color (como mucho, piezas finas un poco más oscuras) y con los mismos movimientos en 3D y 2D. El dueño eligió el estilo
   sobre una primera lámina: fuera hocicos y mejillas claras, sombreros y piezas de otros colores. **Con volumen**: el
   motor pinta colores planos, así que `src/renderer/src/lib/figureVolume.ts` les pone un filtro SVG de luz (relieve
-  desde la silueta, luz arriba a la izquierda y brillo, aspecto «inflado y brillante» elegido por Yil; uno por tamaño porque trabaja en píxeles) y otro a los ojos
+  desde la silueta, luz arriba a la izquierda y brillo, aspecto «inflado y brillante» elegido por el dueño; uno por tamaño porque trabaja en píxeles) y otro a los ojos
   para que sobresalgan (sombra debajo, abombados y con brillo). Lo usan `AgentFigure` (clase `kywai-forma`) y el lienzo
   del 3D (`figureCard.ts` pinta plano en un lienzo aparte y lo pasa con el filtro). 12 colores rápidos y «Otro color», **Sorpréndeme**
   y **Volver a la de su nombre**. Sin elegir, cada agente recibe una sacada de su nombre (siempre la misma) con el
@@ -10538,7 +10632,7 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   un filtro SVG por acabado, tinta y tamaño (en las fichas pequeñas el grano se agranda) que se pone en las piezas del
   cuerpo (`[data-part="head"]`, `back-N`, `front-N`) con una clase en el <svg>, y en el 3D `figureCard.ts` usa el mismo
   filtro pasado a los píxeles de su lienzo. «Sorpréndeme» elige textura la mitad de las veces.
-- **Ojos que se ven con cualquier acabado** (desde el 23 nov 2026, v1.15.7, Yil: «en modo galaxia los ojos no se ven»):
+- **Ojos que se ven con cualquier acabado** (desde el 23 nov 2026, v1.15.7, el dueño: «en modo galaxia los ojos no se ven»):
   el color de los ojos (blancos u oscuros) se elegía con el color del agente, no con el cuerpo que se ve con el acabado.
   Galaxia pinta siempre un cielo de noche, así que con un color claro salían ojos negros sobre negro (igual con Neón);
   y Perla y Holográfico, que aclaran el cuerpo, dejaban ojos blancos sobre claro con un color oscuro. Ahora
@@ -10549,7 +10643,7 @@ dibujar nada por agente, vale para los que se añadan en el futuro.
   «Export» (`<nombre>.avatar.json`) y tráelo con **Traer .avatar.json**: hace los mismos movimientos. Se guarda en la
   ficha del agente (como mucho 24 KB). El formato antiguo (versión 0) no se admite: hay que exportarlo de nuevo.
 - Un aspecto propio de «Crea tu agente» (Meshy) va por delante de la forma.
-- **Trabajar y pensar concentrado** (desde el 23 nov 2026, v1.11.2, pedido de Yil: «parece drogado»): los movimientos de
+- **Trabajar y pensar concentrado** (desde el 23 nov 2026, v1.11.2, pedido del dueño: «parece drogado»): los movimientos de
   trabajar del motor cambiaban de cara cada 1–2 s (sorpresa, cara rara, un ojo entornado) y cada cambio pasaba por los
   ojos cerrados; además daban volteretas enteras y encogían el cuerpo. Ahora son propios de kywai
   (`src/renderer/src/lib/figureLibrary.ts`): **trabaja** con la cabeza algo agachada y va alternando *lee* (barre la
@@ -10741,7 +10835,7 @@ tiene una hoja de animación sacada de su modelo 3D con colores planos y contorn
 `assets/espacio2d/hojas/<personaje>.webp` (12 cuadros de 192 px por fila, 8 filas: reposo, trabaja con el portátil,
 piensa, duda, celebra, saluda, camina de lado y explica; `space2d/sprites.ts`).
 
-**Cada agente se queda en su puesto** (v1.30.38, pedido por Yil el 24 nov 2026: «se puede mover en su sitio pero que no
+**Cada agente se queda en su puesto** (v1.30.38, pedido por el dueño el 24 nov 2026: «se puede mover en su sitio pero que no
 salga de su puesto»). Se mueve y se anima en su plataforma, pero ya no se levanta a visitar a otros: antes se iba
 andando y su puesto se quedaba vacío. Lo que se pasan entre ellos viaja solo como un sobre por la línea que los une. Con
 «Reducir efectos» o el espacio en pausa no se mueve nadie. Trabajando teclea en el
@@ -10913,7 +11007,7 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   mismo si el equipo está libre. `runJob` acepta `priority: 'normal'` para algo que de verdad tenga prisa, y
   `KYWAI_JOBS_NORMAL_PRIORITY=1` lo apaga todo. Los agentes (Claude Code, Codex…) no se tocan: casi no usan CPU.
 - **Los ojos de los peluches ya no frenan la interfaz con un monitor rápido (1.39.3).** El seguimiento del puntero de
-  `PlushAvatar.tsx` leía la posición de todos los peluches (`getBoundingClientRect`, ~130 en la pantalla de Yil) en
+  `PlushAvatar.tsx` leía la posición de todos los peluches (`getBoundingClientRect`, ~130 en la pantalla del dueño) en
   cada movimiento del ratón. Como el resto de la interfaz ensucia el layout a cada fotograma, cada lectura obligaba a
   recalcular el layout de ~11.000 nodos: medido el 26 nov en un PC Windows con un monitor de 240 Hz, el 89 % del
   tiempo del hilo de la interfaz estaba en esa llamada (renderizador al 100 % de un núcleo con el PC libre) y el chat
@@ -10985,7 +11079,7 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
 ### Apoyar kywai (donaciones)
 
 kywai es gratis. Quien quiera agradecerlo puede invitar al autor a un café en Ko-fi
-(https://ko-fi.com/yilsander). El enlace está en cuatro sitios:
+(la página de Ko-fi del proyecto; su dirección es `DONATE_URL`, en `src/renderer/src/ui/settings/openSettings.ts`). El enlace está en cuatro sitios:
 
 - **Escritorio y navegador:** ⚙ → **Apoyar kywai**. Abre la página de Ko-fi en el navegador.
 - **Órbita:** Ajustes → **Apoyar kywai** (al final) → **Invitar a un café ☕**.
@@ -11166,7 +11260,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 - Precios (`web/precios.mjs`, 19 nov 2026) muestra cuatro planes: Gratis (0 USD, alojamiento propio, con tu clave de Meshy y sin galería), Cloud (10 USD), Pro (25 USD, «Recomendado») y Pro Max (50 USD). Cada plan de pago empieza con «Todo lo de …, y además:» y lista sus cifras (espacio, créditos, acciones de apps, RAM, agentes a la vez, tareas programadas, proyectos compartidos, Crea tu agente incluido, copias). Las líneas que empiezan por `*` aún no están hechas y salen en gris con la etiqueta «Próximamente»: al programar una, se le quita el `*`. Aclara que tus suscripciones de IA se pagan al proveedor y que el piloto no hace cobros reales.
 - La página Cloud explica el piloto privado y las funciones aún no activas (cobros reales, compra de créditos y almacenamiento). La página Conectores presenta Composio como integración en preparación; conectar Composio al chat no activa conexiones para los clientes de kywai.
 - Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.
-- La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a https://ko-fi.com/yilsander (donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a https://ko-fi.com/yilsander/tiers (membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
+- La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a la página de Ko-fi del proyecto (`DONATE_URL`; donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a su página de membresías (la misma dirección más `/tiers`; membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
 - El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
 
 ### Licencia
