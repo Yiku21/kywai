@@ -966,9 +966,10 @@ una versión anterior), el cliente olvida esa llave, que ya no sirve, y se queda
 generar un código nuevo en el servidor y escribirlo.
 
 **Para no confundir un equipo con otro**, la primera fila del menú ⚙ dice dónde estás: **Este equipo es el
-servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servidor** (violeta) o **Navegador**, con la
-explicación de dónde están los agentes y los proyectos. En el cliente, además, una franja violeta fina recorre lo alto
-de la ventana. El título de la ventana del cliente también lleva el nombre del servidor.
+servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servidor** (naranja kywai) o **Navegador**, con la
+explicación de dónde están los agentes y los proyectos. Hasta la 1.87.0 el cliente llevaba además una franja violeta
+fina en lo alto de la ventana; se quitó (1.87.1) porque se veía como una línea suelta sin explicación. El título de la
+ventana del cliente también lleva el nombre del servidor.
 
 **Los tiempos van con la hora del servidor.** El cliente y el navegador piden la hora al servidor al abrir (y cada
 10 minutos) y cuentan con ella cuánto lleva cada tarea, la barra de progreso y «sin novedades desde hace…». Así,
@@ -1146,6 +1147,12 @@ la marca kywai —azul, verde y naranja, los de las tres gotas del logo— en ve
 `common/ui.module.css` los usan con `.trackMarca` + `.fillMarca`. El degradado mide como toda la barra y se descubre
 al avanzar. Desde la 1.49.1 el aviso «Hay una versión nueva de kywai» (`CloudUpdateToast`, con los estilos de
 `LocalSetupToast.module.css`) también deja el morado: el icono, su fondo y el borde del aviso son azul kywai (`--k-blue`).
+Desde la 1.87.1 se acaba de limpiar el morado de la interfaz: el acento de «lo local» (`--c-qwen`, que usan los
+modelos locales, la etiqueta «manual» de la música y la tarjeta de «Novedades») ahora vale `--k-blue`; el icono de los
+archivos de código es naranja kywai; y en el 2D los puntos de «pensando/esperando», el confeti y la píldora del tren
+dejan el lila y el violeta por cian, azul kywai y azul noche. Siguen siendo violeta a propósito el color de cada
+agente en la ficha y el 3D (el de Qwen, por ejemplo), los temas «Amatista» y «Ultravioleta» y las escenas que lo
+llevan por diseño.
 
 Al volver tras un reinicio (también tras actualizar el espacio), la web se recarga sola; desde la 1.30.11 **guarda antes
 el texto que estabas escribiendo sin enviar** y lo devuelve al cuadro al abrir (solo en esa pestaña, `sessionStorage`).
@@ -2213,6 +2220,12 @@ lleva `permission` con su estado.
     modelo, no un programa: sale como opción para descargar con Ollama («sin filtros») cuando cabe en el equipo, y en
     «Ver los demás tamaños». Es un Qwen 3.8 27B sin la negativa de seguridad, así que kywai **nunca** lo recomienda ni
     lo sugiere solo (`optIn` y `UNFILTERED_RE` en `src/shared/modelAdvisor.ts`): solo se usa si la persona lo elige.
+  - **Mellum 2.1 12B** (`hf.co/JetBrains/Mellum2.1-12B-A2.5B-Instruct-GGUF:Q4_K_M`, 8,1 GB, Apache-2.0, JetBrains,
+    v1.83.0, vigía ronda 8) es un modelo para programar: 12B con 2,5B activos (mezcla de expertos, va bien sin
+    tarjeta gráfica), sin razonamiento en voz alta y 40,4 % en SWE-bench Verified según JetBrains. Sale como opción
+    para descargar con Ollama («para programar») cuando cabe (unos 10 GB de memoria), pero kywai no lo recomienda solo:
+    sabe sobre todo inglés y código. Ternary Bonsai 2.5 27B (PrismML) se dejó fuera de momento: su archivo para el
+    llama.cpp normal (Q2_0) pide una versión muy reciente y no está comprobado que Ollama lo cargue.
 - **Colibri como motor local** (pestaña **Colibri** en el indicador Local → «Agente local», y en el paso Agentes del
   asistente). [Colibri](https://github.com/JustVugg/colibri) (licencia Apache-2.0) sirve modelos MoE grandes
   (Qwen3.6, GLM, DeepSeek…) dejando en la GPU lo que más se usa, en RAM lo templado y leyendo del disco el resto.
@@ -4697,6 +4710,14 @@ Funciona sin navegador (DOM de linkedom), igual en el escritorio y en kywai clou
 también la usan por dentro en su `fetch_url`. Código: `src/main/cleanPage.ts` (+ test), `coworkMcp.ts` (`PAGE_TOOL`)
 y `agents/localTools.ts` (`fetchUrl`).
 
+**Buscar dentro de una web** (v1.83.0, vigía ronda 7: Cloudflare «Search for Agents», 25 nov 2026). `leer_pagina`
+admite además `{"url": "https://docs.ejemplo.com", "buscar": "cómo firmar webhooks"}`: kywai pregunta al buscador
+para agentes de esa web (`GET /.well-known/search?q=…`) y devuelve solo los trozos que responden, en Markdown, con su
+página y su puntuación. Si la web no lo tiene (no contesta, o contesta con HTML), da la página como siempre y lo dice.
+Cuando una página anuncia su buscador (`<meta name="agent:endpoint" …/.well-known/search…>`), `leer_pagina` lo avisa
+al final para que el agente lo use. Mismas reglas: solo webs públicas. Código: `searchSite` y `hasAgentSearch` en
+`src/main/cleanPage.ts` (+ test).
+
 Ojo al empaquetar: `defuddle` va en devDependencies y electron-vite lo mete dentro de `out/main`, pero turndown (que
 usa por dentro) hace `require("@mixmark-io/domino")` en tiempo de ejecución. Por eso `@mixmark-io/domino` está en
 `dependencies`: la app instalada y la imagen de la nube (`npm ci --omit=dev`) solo llevan esas, y sin él la app se cae
@@ -5417,6 +5438,19 @@ como **Agente kywai**, con el modelo Ornith.
 - **Si no puede**: sin créditos, el agente queda apartado un rato como «sin cuota» y la tarea pasa a otro agente del
   equipo; si llegas al tope por minuto, la tarea se repite sola al rato; si el modelo no responde, el agente sale como
   «No disponible» y vuelve solo cuando el modelo vuelve.
+- **Traducciones** (1.74.0): al pedirle «tradúceme al inglés: buenos días» a la respuesta rápida ⚡, el modelo
+  propio contestaba en español (lo tomaba por charla en el idioma del usuario). El encargo del triaje
+  (`triagePrompt`, `src/main/plan.ts`) lleva ahora una regla propia: traducir es dar solo el texto en el idioma pedido,
+  y si lo que hay que traducir es una pregunta, se traduce, no se contesta. Probado con Ornith de verdad, con la
+  regla y sin ella, en frases en inglés, francés, alemán, italiano y portugués.
+- **Cuánto le cabe** (1.74.0): cada conversación con él tiene un tope de memoria (el contexto que da el equipo de
+  kywai a cada persona; lo dice el portal en `context`, hoy 16.384 tokens). Antes, una tarea que no cabía fallaba con
+  «request … exceeds the available context size». Ahora cada petición **se recorta para que quepa**: primero los
+  resultados y los argumentos de herramientas antiguos; si no basta, lo más largo que quede (la tarea o el último
+  archivo leído) por el medio, conservando el principio y el final. Si aun así el modelo dice que no cabe, la app
+  afina la cuenta con lo que le contesta, recorta más y lo repite sola (hasta 3 veces). Solo si ni así cabe, la tarea
+  termina con «La tarea no cabe en la memoria del agente de kywai…» y pasa a otro agente (`fitToContext` y
+  `contextOverflow` en `src/main/agents/lmstudio.ts`; solo para los modelos con `fitContext`, hoy el Agente kywai).
 - **Dónde sale**: en kywai Cloud viene **ya en el equipo** de cada espacio: los nuevos desde que se crean y los
   de antes en cuanto se actualizan. Si lo quitas, no vuelve a aparecer solo; puedes volver a ponerlo desde «Añadir un
   agente» (el catálogo lo enseña solo si el portal tiene el modelo encendido). Desde la 1.73.0 también se puede usar
@@ -6192,7 +6226,7 @@ propia letra.
 Lo hace kywai directamente, sin gastar ningún agente ni pasar por el plan (`sendSong` en el orquestador, `lyriaCompose`
 en `src/main/lyria.ts` y el análisis de la orden en `src/main/songRequest.ts`): guarda el MP3 en `musica/<primeras-palabras>.mp3`
 del proyecto y, si Lyria escribió letra, un `.txt` al lado con la letra y la estructura; quien coordina los deja en el chat
-para escucharlos y dice cuánto tardó y cuánto costó. Usa **tu clave de Gemini** (la misma de las imágenes y de Cine IA, en Ajustes → Multimedia →
+para escucharlos y dice cuánto tardó y cuánto costó. **En kywai Cloud (desde la 1.87.0) la hace el portal y se cobra en créditos kywai:** 16 una canción y 8 un clip de 30 s (`portal/musica.py` en kywai-cloud, `src/main/kywaiMusic.ts`); si Lyria no responde se devuelve el cobro, y si no hay créditos el chat lo dice. Sin créditos, o fuera de la nube, usa **tu clave de Gemini** (la misma de las imágenes y de Cine IA, en Ajustes → Multimedia →
 Estudio de vídeo) y **tiene que tener la facturación activada**: Lyria no tiene capa gratis. Precio de Google (26 nov
 2026): 0,08 USD una canción de Lyria 3.5 y 0,04 USD un clip de Lyria 3 Clip; una pieza que sale mal también se cobra.
 Se pide con `POST /v1beta/interactions` (cabeceras `x-goog-api-key` y `Api-Revision: 2026-05-20`, cuerpo `{model, input}`)
@@ -6217,9 +6251,10 @@ charla…); Cine IA y los vídeos hechos en el equipo conectado no la usan.
 
 ### Imágenes con una orden (`/imagen`)
 
-**«/imagen [vertical|horizontal] [alta calidad] qué quieres»** dibuja una imagen sin pasar por ningún agente: «/imagen
+**«/imagen [vertical|horizontal] [alta calidad] [aspecto:<estilo>] qué quieres»** dibuja una imagen sin pasar por ningún agente: «/imagen
 un perro en la playa al atardecer», «/imagen vertical alta calidad retrato de una bruja». También valen `/imagenes`,
-`/image`, `/foto` y `/dibujo`. Sin forma sale cuadrada. Usa el motor de imágenes del usuario (`imageMaker.ts`, la misma
+`/image`, `/foto` y `/dibujo`. Sin forma sale cuadrada. `aspecto:<id>` (los mismos 15 estilos de Cine IA, p. ej. `aspecto:anime-cine`; los pone
+**Imagen kywai** al elegir un estilo, desde la 1.79.0) añade el estilo al encargo; un id que no existe se ignora. Usa el motor de imágenes del usuario (`imageMaker.ts`, la misma
 cadena que las imágenes pedidas hablando, con «Rehacer con…» y la pregunta de con qué motor la primera vez); en kywai
 Cloud, Imágenes kywai: la normal con Qwen-Image (5 créditos) y, si el texto dice «alta calidad», «hd», «2k» o «4k»
 (`kywaiQualityOf`), Nano Banana Pro (27 créditos). Se ve en el chat con Abrir y Descargar y se guarda en `imagenes/` del
@@ -7058,6 +7093,23 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
+- **Con «Video kywai», la pantalla completa** (escritorio y web; desde la 1.75.0): al escribir `/video ` (o con la entrada
+  **Video** de la barra lateral, bajo «Te necesita», para quien no usa las órdenes «/») se abre una pantalla que cubre
+  toda la app, como una aplicación dentro de kywai, con su propio logo y su nombre arriba («Video kywai»), el fondo de
+  puntos difuminado con una ola de luz lenta y los colores de la marca (azul, verde y naranja de las tres gotas del logo;
+  respeta «reducir movimiento»). A la izquierda: **Tu idea**, el **tipo** (Cine IA, Dibujos con presentador, Charla y
+  tutorial y Sketch de humor con su dibujo; «Más tipos» enseña el rápido, el mixto y el Escenario 3D) y el **personaje**; a
+  la derecha, el **estilo visual** con una vista previa grande (en Cine IA, los 15 aspectos con su imagen y «Que elija
+  kywai»; en los demás tipos, la galería de siempre). Abajo, **Sorpréndeme** y el botón que lo envía («Ver el guion
+  gráfico» en Cine IA). **Ajustes** abre, como cajón, el asistente de siempre con duración y formato, voz, idioma, calidad
+  y dónde se hace; los avisos de lo que falta (instalar, versión ligera, hacerlo en tu equipo) salen sobre la barra de
+  abajo. Escribe las mismas marcas en el texto (`tipo:`, `aspecto:`, `personaje:`…), así que vale igual que el asistente
+  por diapositivas, que sigue saliendo sobre el cuadro si cierras la pantalla con Escape o la X. Arriba, un selector
+  lleva a **Imagen kywai** y **Música kywai** (con la misma presentación, desde la 1.79.0): en **Imagen**, la idea, la
+  forma, alta calidad y una galería con los 15 estilos con su imagen (más «Sin estilo (libre)»); en **Música**, la idea,
+  la duración, «solo instrumental» y 8 géneros con su imagen (pop, rock, electrónica, lo-fi, épica de cine, acústica, hip
+  hop y jazz; «Que elija kywai»), con su logo cada una; al enviar, la pantalla se cierra y el chat hace el encargo como si
+  hubieras escrito la orden (el borrador que hubiera en el cuadro se queda como estaba). `src/renderer/src/ui/studio/`.
 - **Con el asistente por diapositivas** (escritorio y web; desde la 1.67.0; antes eran desplegables, 1.43.0): al escribir
   `/video` se abre encima del cuadro un asistente que enseña **una diapositiva cada vez**, con «Paso 2 de 8» y una barra
   de pasos arriba. En este orden: **Dónde quieres hacerlo** (**Tu ordenador**, con lo que cumple el equipo, o
@@ -7476,7 +7528,15 @@ ni créditos suficientes, sale el vídeo rápido de siempre y, si la razón la p
 - **En el selector**: sin elegir tipo, «Cine IA» sale ya marcado si en este equipo se puede (`checkVideoChoice` devuelve
   `storyByDefault`); el nivel que sale marcado es «Calidad» (`CINE_DEFAULT_LEVEL`). Elegir otro tipo, o «Rápido», lo cambia.
 - Antes de gastar en vídeo, el flujo es el de siempre: guion gráfico con el coste en créditos y «Seguir» o «Parar» (las imágenes del
-  guion, unos 170 créditos en un corto, ya están cobradas cuando se enseña).
+  guion, unos 170 créditos en un corto, ya están cobradas cuando se enseña). **Desde la 1.80.0 el guion gráfico se repasa y se
+  edita dentro de «Video kywai»**: la tarjeta del chat («Repasar y animar», `cineReview` del mensaje) abre una pantalla con
+  una imagen por plano, lo que dice cada uno (editable: se guarda al salir del cuadro y es lo que se anima), **«Repetir este
+  plano»** (dibuja otra imagen de ese plano; se cobra otra vez la imagen, 27 créditos, y si no sale queda la de antes), el
+  desglose del coste (imágenes ya cobradas, animar los planos, voces y sonido incluidos, total y lo que te quedaría) y
+  «Seguir y animar» o «Parar aquí». Los botones «Seguir»/«Parar» de «Te necesita» siguen valiendo. Al terminar, la misma
+  pantalla pasa a ser el **resultado**: el vídeo, la tira de planos, «Descargar el vídeo», «Otra versión» (misma idea y
+  estilo) y «Repetir un plano» (pide al chat rehacer ese plano). Código: `StoryboardPanel.tsx`, `editCineReview` y
+  `decideCineReview` en el orquestador, `CineEditor` en `src/main/videoCine.ts`.
 - Hermes lo sabe (`coordinatorGuide.ts`): para un vídeo explicativo o barato pone `tipo:rapido` en la orden.
 
 **Cine IA: estilo visual y música de fondo (1.69.0).** Pedido por Yil (27 nov 2026): los cortos de ComfyUI tienen un aspecto
@@ -7847,7 +7907,18 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    escena. Aunque el agente escriba pasos, kywai los quita. Para cuando se quiere entretener más que enseñar.
 2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex con el aspecto de «Formas animadas» (desde la 1.8.4: la cotorra verde para Hermes, la gota naranja para Claude (la forma «Gota» se rehízo: cuerpo redondo con la punta ladeada, antes parecía una bala) y el cuadrado redondeado verde para Codex, los mismos que en la app, con el acabado inflado y brillante de las formas (relieve, brillo y ojos que sobresalen); referencias en assets/robots/forma-*.png y su descripción en ROBOTS_LOOK de src/main/videoCharacters.ts). El plató 3D de «Charla y tutorial» sigue con sus muñecos propios. Los que hayas
    creado. Y **«Agregar personaje»**: nombre y una descripción, imágenes (hasta 6) o las dos cosas; la interfaz reduce
-   las imágenes (1024 px, WebP) y hace una miniatura. Se guardan en kywai **para todos los proyectos**, en
+   las imágenes (1024 px, WebP) y hace una miniatura. **El botón es «Generar personaje» (desde la 1.80.0):** kywai dibuja
+   una **hoja de personaje** (de frente, tres cuartos, de lado, de espaldas y tres gestos de la cara, fondo gris liso, sin
+   texto) a partir de las fotos (hasta 3, para que la cara sea la misma) y la descripción, la enseña para aprobarla
+   («Usar este personaje» o «Generar otra versión», que parte otra vez de las fotos y no de la hoja anterior) y la guarda
+   como `imagen-0-hoja.jpg`, **siempre la primera referencia**: Cine IA manda las 3 primeras imágenes del personaje a cada
+   imagen de plano (`completeCine`), así que cada plano de cada vídeo parte de la misma hoja. Es el método de fijar la
+   identidad con una hoja de referencia que enseñan los tutoriales de personajes consistentes, sin entrenar nada. La imagen
+   se cobra donde se dibuje: en kywai Cloud, **27 créditos** (Nano Banana Pro con referencias, calidad alta; los cobra el portal,
+   `kywaiImage`); con tu propia clave, una imagen de Gemini. Sin créditos ni clave, el personaje se guarda con sus fotos y
+   se explica por qué no salió la hoja. Código: `src/main/characterSheet.ts` (`generateVideoCharacter`). Un LoRA entrenado
+   por personaje en RunPod (más fiel; unas 3 h y unos 6 USD por personaje según los tutoriales, sin medir por nosotros) queda
+   como siguiente paso, pendiente del visto bueno de Yil al gasto de RunPod. Se guardan en kywai **para todos los proyectos**, en
    `<workspace>/personajes/<id>/` (`personaje.json`, `imagen-N.*`, `miniatura.jpg`; `src/main/videoCharacters.ts`), y
    se borran con la papelera de su tarjeta. **El personaje se dibuja en el estilo elegido**: la primera vez que sale
    en un vídeo, el agente del guion escribe su aspecto en inglés sin el estilo de dibujo (`cast`) y kywai lo guarda
@@ -8717,6 +8788,11 @@ pegarlos en el chat ni crear un `.env` en la carpeta del proyecto.
   cuerpo con los valores tapados. En el navegador de kywai, `navegador_escribir` solo lo escribe en páginas https de
   esa web. Así, aunque una página engañe al agente, no puede mandarlo a otro sitio. `peticion_api` también sirve con
   los secretos normales. La tarjeta muestra «Solo en web»; vaciar el campo lo quita.
+- **Falta una clave (v1.83.0, vigía ronda 8):** si `peticion_api` pide un `{{secreto:NOMBRE}}` que el proyecto no
+  tiene, el agente recibe el error y además sale un aviso en «Te necesita» (y en el móvil): «Codex necesita la clave
+  NOMBRE», con lo que hay que hacer (añadirla en «Secretos» con ese nombre, nunca en el chat). Uno por nombre y proyecto
+  mientras siga abierto (`askForMissingSecret` en `coworkMcp.ts`). Es lo que pide la «Elicitation» de MCP, pero con el
+  aviso de kywai, que ya llega a todas partes; las acciones delicadas siguen pidiendo permiso con su tarjeta.
 - **Tapado:** todo lo que devuelve un agente (respuesta, pasos, actividad, errores), lo que guarda con las
   herramientas de kywai (memoria, preguntas) y lo que lee de la página del navegador pasa por un filtro que cambia
   cualquier valor guardado (también escapado en JSON o en una URL) por `[secreto NOMBRE]`. La vista previa de
@@ -9539,6 +9615,14 @@ ya intentó esa tarea, y prefieren a uno que no esté en mala racha. Así una pe
 relevos que se veían venir (medido el 8 nov: la mitad de las tareas verificadas repetían, y un agente suspendió 3 de
 3).
 
+**Si nombras a un agente, se respeta del todo.** Con «que lo haga el Agente kywai» o «@Agentekywai» (con o sin
+espacio, con @ o sin ella; `agentNamedIn` en `src/shared/namedAgent.ts`), el plan le asigna esas tareas a él: la
+guía del coordinador se lo dice y kywai no se las quita ni por «el modelo local es lento para lo difícil», ni por
+mala racha, cuota o reparto. Si ese agente falla, se bloquea o no supera la revisión, **no se la pasa solo a otro**
+(el becario sí vuelve a su jefe, que es el mismo agente): la tarea queda parada, el chat dice que no se pasó porque
+lo pediste tú y en «Te necesita» sale con «Repetirla con {agente}» y «Pasársela a otro agente». Un agente que no
+nombras sigue con los relevos automáticos de siempre. Pruebas: `namedAgent.test.ts` y G2b de `orchestrator.check.ts`.
+
 Sale del mismo registro que «Uso y coste…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
 dificultad, cada verificación su veredicto y cada llamada si la detuviste. Los registros de antes de esta versión
 no tenían esos datos: sus tareas salen como dificultad «Sin dato», sin verificación, y una llamada que no salió
@@ -9781,6 +9865,12 @@ abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para 
 (adjuntos, entregables o archivos de la tarea), **Vista previa / Código** en Markdown, HTML y SVG, **copiar** el
 texto, **guardar en el móvil** y **abrir con otra app** del móvil (visor de PDF, galería…).
 
+**Capas (28 nov 2026):** el panel se pinta en la celda del espacio 3D, así que compite en capas con lo que flota
+dentro del espacio (Amigos `z-index: 30`, el reproductor de música `7`, el aviso de vista `6`). Si algo de eso queda por
+encima, al abrir un archivo con **Amigos** abierto el visor y la lista se veían mezclados. El panel lleva `z-index: 40`
+(`FilePreview.module.css`, `.panel`) y la prueba `ui/preview/capas.test.ts` falla si algo del espacio sube por encima.
+Cualquier cosa nueva que flote dentro del espacio debe quedar por debajo de 40.
+
 ### Ventanas encima de otras ventanas (se adaptan a la ventana)
 
 Las ventanas que se abren desde dentro de otra (la copia de seguridad, «Pasar a kywai cloud», «Desinstalar kywai» o
@@ -9850,14 +9940,16 @@ el chat:
   entregable…) vuelve a partir la ventana: chat a la izquierda y el archivo a la derecha. El 3D sigue cerrado y parado;
   al cerrar el archivo, vuelves a tener solo chat. Llevar el borde **casi hasta la izquierda** hace lo contrario: deja solo el
   3D (como el botón de pantalla completa; Escape vuelve).
-- **Pestañas de arriba del chat** (desde el 22 nov 2026, más limpias): a la vista solo **Chat, Tareas, Tablero y
-  Resultados** (`MAIN_TABS` en `ui/left/LeftPanel.tsx`); el resto (Archivos, Memoria, Rutinas, Secretos y Mods) va en
-  **«⋯»**, a la derecha de la fila. Si abres una de «⋯», sale también como pestaña mientras la tienes abierta. Un punto
-  en «⋯» avisa si alguna de dentro tiene algo (por ejemplo, notas de memoria por revisar). Si al estrechar el panel
-  ya no caben con su nombre, quedan **solo los iconos** (la pestaña abierta conserva su nombre; el nombre de cada una
-  sale al pasar el ratón). Si aun así no caben, la fila **se desplaza de izquierda a derecha** con la rueda del ratón
-  (también la normal, sin Mayús), con el trackpad o con las flechas **‹ ›** que salen en los bordes; la pestaña
-  abierta siempre queda a la vista. Al ensanchar, vuelven los nombres.
+- **Pestañas de arriba del chat** (desde el 28 nov 2026, según el ancho): salen en la cabecera **todas las que quepan**, en
+  este orden: Chat, Tareas, Tablero, Resultados, Archivos, Memoria, Rutinas, Secretos (y Mods si hay). Las que no caben
+  pasan a **«⋯»**, a la derecha de la fila, empezando por la última; si cabe todo, «⋯» no sale. La pestaña abierta
+  siempre se ve: si abres una de «⋯», sale como pestaña y la última visible pasa a «⋯». Un punto en «⋯» avisa si alguna
+  de dentro tiene algo (por ejemplo, notas de memoria por revisar). Si ni Chat y las otras tres principales
+  (`MAIN_TABS` en `ui/left/LeftPanel.tsx`) caben con su nombre, quedan **solo los iconos** (la pestaña abierta conserva su
+  nombre; el nombre de cada una sale al pasar el ratón) y se vuelve a repartir entre la fila y «⋯». Por debajo,
+  `useTabFit` mide en dos filas ocultas lo que ocupa cada pestaña (con nombre y solo icono), así que se ajusta solo en
+  escritorio, con el panel estrecho y en el móvil, y cada vez que cambia una cifra o el idioma. Si aun así algo no
+  cupiera, la fila se desplaza con la rueda del ratón, el trackpad o las flechas **‹ ›** de los bordes.
 - **Cabecera del Espacio digital** (desde el 22 nov 2026, más limpia): a la vista solo el título con un punto de
   estado («En vivo»; en la demo no sale, porque ya lo dice el sello «Demo» de la cabecera), 3D / 2D, Música, **«⋯»** y
   ocultar el espacio. Dentro de «⋯» están Modo noche y Auto,
@@ -10927,6 +11019,35 @@ suscripciones no gasta créditos. Se ven y se recargan en Mi cuenta → **Crédi
   `src/shared/agentLook.ts` (piezas y encargos), `src/main/agentLook.ts` (Meshy) y
   `src/renderer/src/ui/space/AgentLookDialog.tsx` (el editor). Órbita todavía enseña el robot de siempre.
 
+### Prueba gratis de 7 días del plan kywai Cloud (apagada por defecto)
+
+Desde la 1.86.0 el plan de 10 $ puede tener **7 días gratis**. Está **apagada**: no cambia nada para nadie hasta que el
+dueño la enciende, con su sí escrito, en **Mi cuenta → Administrar cuentas → «Prueba gratis de 7 días»** (botón
+«Encender la prueba gratis»; también se apaga ahí, y las pruebas ya empezadas siguen su curso).
+
+Con ella encendida, quien elige **kywai Cloud** (solo ese plan; Pro y Pro Max no la tienen):
+- Ve la etiqueta **«7 días gratis»** y, al pulsar «Empezar mi prueba gratis», las condiciones claras: **hoy no paga nada**,
+  pone **los datos de su tarjeta ahora** (quedan guardados en Stripe, sin cobro por adelantado), si no cancela antes del
+  día de fin **se le cobran 10 $ solos y 10 $ cada mes**, **tras el cobro no hay reembolso**, y si cancela después sigue
+  usando kywai hasta **30 días después del cobro**. Tiene que marcar la casilla de que las acepta (junto a los términos y
+  condiciones de kywai) o no se abre Stripe; la aceptación queda guardada sin IP.
+- Stripe repite las condiciones sobre el botón de pagar y guarda la tarjeta (`trial_period_days` con tarjeta
+  obligatoria; si al terminar no hubiera tarjeta, la suscripción se cancela y no se cobra nada).
+- Durante la prueba hay **40 créditos** del mes (no los 200 del plan; `KYWAI_PRUEBA_CREDITOS` en `portal.env` lo cambia);
+  el resto llega solo con el primer pago. Una **tarjeta ya usada** en otra prueba no da créditos de prueba. Una prueba por
+  cuenta y por correo (sin «+etiquetas» ni puntos de Gmail), y nunca a quien ya pagó antes.
+- Durante la prueba no se puede cambiar de plan ni ampliar el espacio (esperan al primer cobro).
+- **Correos**: uno al empezar y otro unos días antes del primer cobro (el aviso `trial_will_end` de Stripe; si no llega,
+  el trabajador avisa cuando quedan 2 días). No avisa a quien ya canceló.
+- **Cancelar es un botón** en Plan y pagos («Cancelar mi prueba gratis», sin contraseña): no se cobra nada y se sigue
+  hasta el último día de la prueba. En «Uso y coste» de la app, la tarjeta **«Prueba gratis de kywai Cloud»** dice cuántos
+  días quedan, cuándo y cuánto se cobrará, y lleva a Mi cuenta para gestionarla (`GET /api/creditos` trae `prueba`).
+
+Código: `portal/prueba.py` (interruptor, condiciones, correos, cancelar), `portal/creditos.py` (`grant` con los créditos de
+prueba), `portal/app.py` (`/pagar` y el aviso de Stripe), textos en `portal/i18n_prueba.py`. Variables: `KYWAI_PRUEBA_DIAS`
+(7) y `KYWAI_PRUEBA_CREDITOS` (40). Antes de encenderla: revisión legal de los términos (hay un texto preparado en
+`docs/prueba-gratis-terminos.md` de kywai-cloud) y la nota de parche de la novedad.
+
 ### La cotorra en el espacio 3D
 
 En el espacio 3D el coordinador (el primero en planificar) es siempre la cotorra, sea cual sea su CLI y con cualquier
@@ -11010,10 +11131,10 @@ con los agentes; solo el saludo del chat nuevo se queda como pegatina. «Reducir
   con otro decorado dibujado con código (sin imágenes). En la **Mesa de ideas** el proyecto es un tablero de papel sobre
   una mesa de madera: cada agente trabaja sobre su hoja, los une un hilo rojo y lo entregado son sobres lacrados. En la
   **Aldea** cada agente tiene su casita-taller con el tejado de su color (la puerta se enciende mientras trabaja), las
-  casas se unen por caminos de piedra y las Entregas son el puesto del mercado. Desde la 1.74.0 la Aldea lleva ilustración
+  casas se unen por caminos de piedra y las Entregas son el puesto del mercado. Desde la 1.74.0 la Aldea lleva ilustración (y desde la 1.76.0 las casitas tienen la escala de los agentes, que se asoman a su puerta)
   (`assets/espacio2d/escenas/aldea/{fondo,puesto,entregas,percha}.webp`, hechas con Nano Banana Pro en los colores de kywai: azul,
-  naranja y verde): un prado con camino y arroyo, la casita de cada agente, el puesto del mercado y la percha de la cotorra; si faltan, se dibujan con código como antes. En el **Tren nocturno** cada agente va
-  en su compartimento, con el paisaje del atardecer pasando por la ventana, y los envíos viajan por los rieles de latón.
+  naranja y verde): un prado con camino y arroyo, la casita de cada agente, el puesto del mercado y la plataforma de carga del robot de kywai (desde la 1.76.0; antes era una percha); si faltan, se dibujan con código como antes. En el **Tren nocturno** cada agente va
+  en su compartimento, con el paisaje del atardecer pasando por la ventana, y los envíos viajan por los rieles de latón. Desde la 1.76.0 el Tren lleva ilustración (`assets/espacio2d/escenas/tren/{fondo,puesto,entregas,percha}.webp`, en los colores de kywai: vagón de grafito y madera, compartimento con ventana por agente cuyo cristal es transparente y deja ver el paisaje que pasa, cabina de conductor para el robot de kywai (panel de mandos de latón y madera) y cajón de correo para las entregas); si faltan, se dibuja con código.
 - **Tema**: el tema puesto dibujado como escenario, como se explica arriba.
 
 En todas las escenas los personajes (aspecto «Personajes») se mueven de verdad y con aspecto de dibujo 2D: cada uno
