@@ -5395,6 +5395,13 @@ como **Agente kywai**, con el modelo Ornith.
 - **Cuánto cuesta**: **1 crédito kywai cada 20 respuestas**, cobrado al empezar cada bloque de 20. Cada paso de una
   tarea con herramientas cuenta como una respuesta. Hay un tope de **30 respuestas por minuto** por cuenta. Lo gastado
   sale en ⚙ → «Uso y coste» → Créditos kywai, en la línea «Agente kywai».
+- **Su aspecto** (1.68.1): tiene su propio robot, distinto de todos los demás: un juguete de vinilo blanco con el
+  visor negro grande de borde naranja, una oreja azul y otra verde, y tres aros entrelazados encima (azul, verde y
+  naranja, los colores del logo de kywai). Sale así en el chat, las fichas, el 2D y el 3D
+  (`assets/peluche/kywai.webp`; se reconoce por su proveedor, `plushFor`).
+- **También ayuda en la bienvenida**: mientras configuras tu espacio en Mi cuenta, su robot sale en una esquina con
+  la burbuja «¿Dudas? Pregúntame» y contesta gratis dudas de la configuración (hasta 40 preguntas al día). Eso vive
+  en kywai-cloud (`portal/ayudante.py`), no en la app.
 - **Si no puede**: sin créditos, el agente queda apartado un rato como «sin cuota» y la tarea pasa a otro agente del
   equipo; si llegas al tope por minuto, la tarea se repite sola al rato; si el modelo no responde, el agente sale como
   «No disponible» y vuelve solo cuando el modelo vuelve.
@@ -7374,9 +7381,14 @@ cortos, pagando con créditos (1 crédito = 1 centavo de USD). Cuatro formas de 
   arriba (`cineBilledSeconds`). El portal de kywai Cloud (repositorio aparte) lleva la animación y el cobro; los precios de
   la tabla y los del portal deben cambiar a la vez.
 - **El flujo no cambia**: el agente escribe el plan, kywai dibuja personajes y planos (con referencias: 27 créditos el plano
-  con Nano Banana Pro, 5 la hoja de un personaje con Qwen-Image; desde la 1.68.0), enseña el guion gráfico y **espera «Seguir» o «Parar»**. Con créditos,
+  con Nano Banana Pro, 5 la hoja de un personaje con Qwen-Image; desde la 1.68.0; el selector de nivel enseña ese precio y calcula el corto de 30 s con `roughCineCredits`, desde la 1.68.1), enseña el guion gráfico y **espera «Seguir» o «Parar»**. Con créditos,
   el aviso dice cuántos cuesta animarlo (y hasta cuántos con repeticiones, ×1,5 sobre los clips), cuántos ya se cobraron en
   imágenes y cuántos le quedan; si no llegan, lo avisa antes de pulsar «Seguir».
+- **Imágenes con el formato real (1.68.2)**: los motores de imagen dan PNG, JPEG o WebP según el caso, pero se guardan con
+  nombre `.png`. Antes de montar el guion gráfico, `runCine` mira los primeros bytes de cada imagen de plano y de personaje
+  (`realImageFormat`) y, si no es PNG, la pasa a PNG de verdad con ffmpeg (`toPngArgs`). Sin esto, ffmpeg lee
+  `plano-%02d.png` con el descodificador de PNG y falla con «No se pudo montar la hoja del guion gráfico: Error marking
+  filters as finished». También arregla las imágenes que ya estaban en la carpeta de trabajo de un intento anterior.
 - **Sin elegir nivel**: si hay clave de Gemini, `api`; si no (y es kywai Cloud), `rapido`. Fuera de la nube solo existe `api`
   (`cineLevelFor` en `orchestrator.ts`).
 - Órbita (Android) todavía no conoce la marca `nivel:`.
